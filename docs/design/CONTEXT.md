@@ -22,12 +22,12 @@ Se cargan por tarea, no todas a la vez. Están en `.claude/skills/`.
 
 ## Active Context
 
-**Orden de carga:** este archivo → `platform-blueprint/context.md` → los archivos que su document map marca `always` → solo los archivos que nombre la tarea. No cargues `CHANGELOG.md`, `evidence/`, `archive/` ni una carpeta entera salvo que la tarea nombre el archivo.
-**Topics activos:** `platform-blueprint` (memoria de diseño montada; sin código ni infraestructura).
+**Orden de carga:** este archivo → `<topic>/context.md` del topic activo → los archivos que su document map marca `always` → solo los archivos que nombre la tarea. No cargues `CHANGELOG.md`, `evidence/`, `archive/` ni una carpeta entera salvo que la tarea nombre el archivo.
+**Topics activos:** `platform-blueprint` (descripción de producto y Conventions del blueprint); `agent-workflow` (archivos raíz hechos; faltan agentes y hooks).
 
-**Current state (2026-11-12):** Rama `main`. La memoria de diseño está montada: archivos de proyecto, topic `platform-blueprint` con la descripción de producto, y las Conventions del blueprint. No hay código, Terraform ni recursos AWS. Fase 1 sin empezar.
+**Current state (2026-11-12):** Rama `main`. Memoria de diseño montada y archivos raíz escritos (`AGENTS.md`, `CLAUDE.md`, `README.md`, `.gitignore`) en el topic `agent-workflow`, sin commit. No hay código, Terraform ni recursos AWS. Fase 1 sin empezar.
 
-**Siguiente:** sesión 2: `AGENTS.md`, `CLAUDE.md`, README raíz, `.gitignore`, agentes (`adversarial-reviewer`) y hooks.
+**Siguiente:** sesión 3 de `agent-workflow`: `.claude/agents/` (incluido `adversarial-reviewer`), `.claude/settings.json` y hooks.
 **Problemas conocidos:** no existe `.claude/agents/adversarial-reviewer.md`, que `reppit-propose` necesita.
 
 ## Conventions
@@ -43,4 +43,6 @@ Hogar único de las reglas de todo el proyecto. Los demás archivos las citan po
 - **IaC only (en vigor 2026-11-12; owner javiladino; source platform-blueprint):** todo recurso AWS existe solo por Terraform (`infra/terraform/`, state remoto en S3 con `use_lockfile`); nada se crea a mano en consola ni por CLI. El primer recurso es un `aws_budgets_budget` de 10 USD con alertas al 50/80/100 %.
 - **Apply gate (en vigor 2026-11-12; owner javiladino; source platform-blueprint):** ningún agente ejecuta `terraform plan`, `terraform apply` ni comandos AWS; el owner corre `plan` él mismo; `apply` solo desde CI al fusionar (dev), y prod con aprobación manual.
 - **Idempotency (en vigor 2026-11-12; owner javiladino; source platform-blueprint):** cada tarea y job depende solo de la fecha lógica (`{{ ds }}` / `--run-date` / `var("run_date")`), nunca de `now()`, y escribe con MERGE o reemplazo de partición, nunca con append ciego (salvo Bronze, append-only por diseño): relanzar un día da el mismo resultado.
+- **Single design writer (en vigor 2026-11-12; owner javiladino; source agent-workflow):** solo el agente principal escribe en `docs/design/`; los subagentes entregan sus resultados en su informe y el principal los registra.
+- **Read-only subagents (en vigor 2026-11-12; owner javiladino; source agent-workflow):** los subagentes no editan archivos, con una sola excepción: los implementers de `reppit-implement` escriben el código que lista su fase del plan, nunca en `docs/design/`.
 - **Reglas de un solo topic:** viven en `<topic>/context.md` § Rulings.

@@ -26,6 +26,7 @@ Proyecto de portfolio para un puesto de Data Engineer Senior: una plataforma de 
 | Topic | Título | Status |
 |-------|--------|--------|
 | [`platform-blueprint`](platform-blueprint/context.md) | Blueprint de la plataforma y descripción de producto | In progress |
+| [`agent-workflow`](agent-workflow/context.md) | Archivos raíz, agentes y hooks para trabajar con agentes | In progress |
 
 ## Documentos
 
@@ -34,6 +35,9 @@ Proyecto de portfolio para un puesto de Data Engineer Senior: una plataforma de 
 | — | Contexto para agentes | [CONTEXT.md](CONTEXT.md) |
 | — | Changelog | [CHANGELOG.md](CHANGELOG.md) |
 | platform-blueprint | Descripción de producto (deliverable) | [README.md](platform-blueprint/current/project/README.md) |
+| agent-workflow | Instrucciones para agentes | [AGENTS.md](../../AGENTS.md) |
+| agent-workflow | Específico de Claude Code | [CLAUDE.md](../../CLAUDE.md) |
+| agent-workflow | README raíz | [README.md](../../README.md) |
 | platform-blueprint | Blueprint original (evidencia) | [skyroute-blueprint.html](platform-blueprint/evidence/skyroute-blueprint.html) |
 
 ## Open decisions

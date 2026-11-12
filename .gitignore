@@ -1,0 +1,56 @@
+# macOS
+.DS_Store
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+dist/
+build/
+
+# dbt
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+target/
+dbt_packages/
+logs/
+
+# Airflow / Astro CLI
+airflow/logs/
+airflow/.astro/
+airflow.db
+airflow-webserver.pid
+standalone_admin_password.txt
+
+# Spark
+spark-warehouse/
+metastore_db/
+derby.log
+
+# Datos locales
+data/
+
+# Secretos y entorno
+.env
+.env.*
+
+# Claude Code (local, no compartido)
+.claude/settings.local.json
+CLAUDE.local.md

@@ -16,3 +16,13 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 - `docs/design/CONTEXT.md`, `README.md`, `CHANGELOG.md` (new)
 - `docs/design/platform-blueprint/context.md`, `current/project/README.md` (new)
 - `.DS_Store` ×5 (deleted)
+
+### agent-workflow — Sesión 2: archivos raíz del repo
+- Nuevo topic `agent-workflow` (cubre esta sesión y la siguiente).
+- Dos Conventions nuevas aprobadas por el owner: Single design writer y Read-only subagents (con excepción para los implementers de `reppit-implement`). Ruling del topic: AGENTS.md budget. Los traspasos en el chat se quedan como regla de la skill `design-memory`, sin ruling.
+- Escritos `AGENTS.md` (120 líneas), `CLAUDE.md`, `README.md` raíz y `.gitignore`; `docs/design/` sigue versionado entero.
+
+### Files (skyroute, rama main, sin commit)
+- `AGENTS.md`, `CLAUDE.md`, `README.md`, `.gitignore` (new)
+- `docs/design/agent-workflow/context.md` (new)
+- `docs/design/CONTEXT.md`, `README.md`, `CHANGELOG.md` (modified)
