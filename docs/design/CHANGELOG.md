@@ -79,3 +79,21 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 ### Files (skyroute, rama main, sin commit)
 - `docs/design/foundations/context.md` (new)
 - `docs/design/CONTEXT.md`, `README.md`, `CHANGELOG.md` (modified)
+
+### foundations — Research (sesión infra-lead)
+- `working/research.md` consolidado a partir de cuatro notas de área (terraform-layout, cicd-oidc, iam-security, account-cost); una ronda de revisión (adversarial-reviewer GO-WITH-FIXES, security-reviewer, cost-guard) y corrección de 22 hallazgos.
+- Siete tensiones con Conventions registradas sin resolver (Region en el alta nueva de AWS, Budgets global, revisores de environments según plan de GitHub, bucket de state frente a IaC only, Apply gate frente al criterio de la Fase 1, cobros horarios de KMS, orden budget/backend). Decisión abierta "Plan de cuenta AWS" documentada, no decidida. Siguiente: Propose.
+- Datos del owner añadidos a `research.md`: repo `javiladino/skyroute` creado 2026-11-12 (formato `sub` inmutable) y público; cuenta AWS existente en eu-west-3. Tensiones 1 (Region en el alta) y 3 (revisores de environments) resueltas por dato del owner.
+- Conventions Region y Apply gate aclaradas con el owner (grill-me): servicios globales exentos de Region; GitHub Actions publica `plan` en cada PR; excepción única de bootstrap aplicada por el owner en local. Resueltas las tensiones 2, 4, 5 y 7; KMS queda para Propose.
+
+### Files (skyroute, rama infra-foundations, sin commit)
+- `docs/design/foundations/working/research.md`, `working/research/{terraform-layout,cicd-oidc,iam-security,account-cost}.md` (new)
+- `docs/design/CONTEXT.md`, `CHANGELOG.md`, `foundations/context.md` (modified)
+
+### foundations — Propose (sesión infra-lead)
+- `working/proposal.md` con tres propuestas (mínimo coste; postura gestionada con Organizations e Identity Center; intermedia), una ronda de revisión (adversarial-reviewer GO-WITH-FIXES, security-reviewer, cost-guard) y corrección de todos los hallazgos.
+- El owner eligió P1 con dos roles de CI: Ruling Foundations design. Decisión abierta "Plan de cuenta AWS" cerrada: Free, Paid aplazado. Siguiente: Plan.
+
+### Files (skyroute, rama infra-foundations, sin commit)
+- `docs/design/foundations/working/proposal.md` (new)
+- `docs/design/CONTEXT.md`, `README.md`, `CHANGELOG.md`, `foundations/context.md` (modified)

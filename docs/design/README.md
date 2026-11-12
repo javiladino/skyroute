@@ -48,7 +48,7 @@ Proyecto de portfolio para un puesto de Data Engineer Senior: una plataforma de 
 
 | Decisión | Opciones | Estado |
 |----------|----------|--------|
-| Plan de cuenta AWS (créditos Free Tier desde julio 2025) | Plan Free (cierra a los 6 meses o al agotar créditos) / Plan Paid con presupuesto y alertas | Proposed |
+| Plan de cuenta AWS (créditos Free Tier desde julio 2025) | Plan Free (cierra a los 6 meses o al agotar créditos) / Plan Paid con presupuesto y alertas | Decided 2026-11-12: Free, Paid aplazado (Ruling Foundations design en [`foundations`](foundations/context.md)) |
 | Dónde corre Spark en las ejecuciones diarias | Spark local en Docker / AWS Glue 5 para todo / local + Glue solo en demos | Proposed |
 | Motor de checks de calidad en la rama WAP de Silver | PySpark checks propios / Soda Core | Proposed |
 | Modo de escritura Iceberg por tabla | Copy-on-write / merge-on-read (el blueprint sugiere MoR en Silver bookings y CoW en Gold, a justificar por ratio lecturas/escrituras) | Proposed |
