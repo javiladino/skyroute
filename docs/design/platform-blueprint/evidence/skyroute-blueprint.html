@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skyroute Marketing Lakehouse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+/* Plan: ficha técnica de proyecto. Columna de lectura + índice lateral fijo.
+   Bronze / Silver / Gold son los únicos colores "de capa"; el acento azul acero marca orquestación y enlaces. */
+:root{
+  --bg:#f2f3f0; --surface:#ffffff; --ink:#17212b; --muted:#56616d; --line:#d3d8d2;
+  --accent:#1d5a86; --accent-soft:#e1ebf3; --code-bg:#ebeee9; --lake-soft:#f7f8f6;
+  --bronze:#9c5b26; --bronze-soft:#f3e5d8; --silver:#5f6f80; --silver-soft:#e6ebf0; --gold:#a37c07; --gold-soft:#f5edcf;
+  --ok:#2e7d4f; --warn:#b26b00; --bad:#b3261e;
+  --display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#10151a; --surface:#172029; --ink:#e4e9ee; --muted:#9ca8b4; --line:#2b3643;
+    --accent:#72b2df; --accent-soft:#15283a; --code-bg:#0c1116; --lake-soft:#131b22;
+    --bronze:#d38d55; --bronze-soft:#2d2117; --silver:#a9b7c5; --silver-soft:#1f2832; --gold:#dbb540; --gold-soft:#2b2611;
+    --ok:#5fbf86; --warn:#e2a043; --bad:#ef7a72;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10151a; --surface:#172029; --ink:#e4e9ee; --muted:#9ca8b4; --line:#2b3643;
+  --accent:#72b2df; --accent-soft:#15283a; --code-bg:#0c1116; --lake-soft:#131b22;
+  --bronze:#d38d55; --bronze-soft:#2d2117; --silver:#a9b7c5; --silver-soft:#1f2832; --gold:#dbb540; --gold-soft:#2b2611;
+  --ok:#5fbf86; --warn:#e2a043; --bad:#ef7a72;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 var(--sans)}
+a{color:var(--accent)}
+a:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.shell{display:grid;grid-template-columns:230px minmax(0,1fr);gap:48px;max-width:1280px;margin:0 auto;padding:40px 24px 80px}
+aside nav{position:sticky;top:24px;display:flex;flex-direction:column;gap:2px;font-size:14px}
+aside nav a{color:var(--muted);text-decoration:none;padding:5px 10px;border-left:2px solid var(--line)}
+aside nav a:hover{color:var(--ink);border-left-color:var(--accent)}
+aside .navtitle{font:600 12px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 10px 12px}
+@media (max-width:980px){.shell{grid-template-columns:1fr;gap:0}aside{display:none}}
+main{min-width:0}
+header.hero{padding-bottom:28px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.eyebrow{font:600 12px var(--mono);letter-spacing:.06em;color:var(--accent);text-transform:uppercase}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.15;margin:0}
+h1{font-size:clamp(34px,5vw,52px);font-weight:700;margin:10px 0 14px}
+h2{font-size:30px;font-weight:700;margin:0 0 6px}
+h3{font-size:20px;font-weight:600;margin:28px 0 8px}
+.lede{font-size:19px;max-width:68ch;color:var(--ink)}
+p,li{max-width:72ch}
+.muted{color:var(--muted)}
+section{padding:44px 0 8px;border-bottom:1px solid var(--line)}
+section:last-of-type{border-bottom:0}
+.secnum{font:600 13px var(--mono);color:var(--muted);display:block;margin-bottom:4px}
+.facts{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+.chip{font:500 13px var(--sans);padding:4px 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface)}
+.chip.b{border-color:var(--bronze);color:var(--bronze)} .chip.s{border-color:var(--silver);color:var(--silver)} .chip.g{border-color:var(--gold);color:var(--gold)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin:18px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px}
+.card h4{margin:0 0 6px;font:600 16px var(--sans)}
+.card p,.card li{font-size:15px}
+.card ul{margin:6px 0 0;padding-left:18px}
+.diagram{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;margin:18px 0 6px;overflow-x:auto}
+.diagram svg{display:block;min-width:900px;width:100%;height:auto}
+.caption{font-size:14px;color:var(--muted);margin:6px 0 18px}
+table{border-collapse:collapse;width:100%;font-size:14.5px;background:var(--surface)}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;margin:16px 0}
+th,td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--line)}
+th{font:600 12.5px var(--sans);letter-spacing:.04em;text-transform:uppercase;color:var(--muted);background:var(--lake-soft)}
+tr:last-child td{border-bottom:0}
+td code,p code,li code{font:13px var(--mono);background:var(--code-bg);padding:1px 5px;border-radius:4px}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+pre{background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;font:13px/1.55 var(--mono);margin:10px 0 18px}
+.codehead{font:600 12px var(--mono);color:var(--muted);margin:18px 0 -4px}
+.layer{border-left:4px solid var(--line);padding:4px 0 4px 16px;margin:18px 0}
+.layer.b{border-color:var(--bronze)} .layer.s{border-color:var(--silver)} .layer.g{border-color:var(--gold)}
+.layer h3{margin-top:0}
+.pill{display:inline-block;font:600 11.5px var(--sans);padding:2px 8px;border-radius:999px;white-space:nowrap}
+.pill.ok{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
+.pill.warn{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.pill.bad{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
+details.qa{background:var(--surface);border:1px solid var(--line);border-radius:8px;margin:8px 0}
+details.qa summary{cursor:pointer;padding:12px 16px;font-weight:600;list-style:none}
+details.qa summary::-webkit-details-marker{display:none}
+details.qa summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-family:var(--mono)}
+details.qa[open] summary::before{content:"–"}
+details.qa .a{padding:0 16px 14px 34px;font-size:15px}
+details.qa .a p{margin:6px 0}
+.qgroup{font:600 13px var(--mono);color:var(--accent);margin:26px 0 6px;letter-spacing:.04em;text-transform:uppercase}
+.callout{background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);border-radius:8px;padding:14px 18px;margin:18px 0}
+.callout p{margin:4px 0}
+.fr{font-style:italic}
+.steps{counter-reset:s;list-style:none;padding:0;margin:14px 0;display:grid;gap:10px}
+.steps li{counter-increment:s;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px 12px 56px;position:relative;max-width:none}
+.steps li::before{content:counter(s,decimal-leading-zero);position:absolute;left:16px;top:12px;font:600 14px var(--mono);color:var(--accent)}
+.steps strong{display:block}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted);margin:4px 0 0}
+.legend span::before{content:"";display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px;border:1.5px solid var(--sw)}
+/* SVG */
+.d-box{fill:var(--surface);stroke:var(--line);stroke-width:1.2}
+.d-band{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.2}
+.d-lake{fill:var(--lake-soft);stroke:var(--muted);stroke-width:1.2;stroke-dasharray:6 4}
+.d-gov{fill:var(--lake-soft);stroke:var(--line);stroke-width:1.2}
+.d-br{fill:var(--bronze-soft);stroke:var(--bronze);stroke-width:1.4}
+.d-si{fill:var(--silver-soft);stroke:var(--silver);stroke-width:1.4}
+.d-go{fill:var(--gold-soft);stroke:var(--gold);stroke-width:1.4}
+.d-spark{fill:var(--bronze-soft);stroke:var(--bronze);stroke-width:1.2}
+.d-dbt{fill:var(--gold-soft);stroke:var(--gold);stroke-width:1.2}
+.d-af{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.2}
+.d-t{fill:var(--ink);font:600 12.5px var(--sans)}
+.d-tb{fill:var(--ink);font:700 13px var(--display)}
+.d-s{fill:var(--muted);font:11px var(--sans)}
+.d-m{fill:var(--ink);font:11px var(--mono)}
+.d-mb{fill:var(--ink);font:600 11.5px var(--mono)}
+.d-h{fill:var(--muted);font:600 10.5px var(--sans);letter-spacing:.09em}
+.d-hb{fill:var(--bronze);font:700 12px var(--display);letter-spacing:.08em}
+.d-hs{fill:var(--silver);font:700 12px var(--display);letter-spacing:.08em}
+.d-hg{fill:var(--gold);font:700 12px var(--display);letter-spacing:.08em}
+.d-ln{stroke:var(--muted);stroke-width:1.4;fill:none}
+.d-lna{stroke:var(--accent);stroke-width:1.4;fill:none;stroke-dasharray:5 4}
+.d-arh{fill:var(--muted)}
+.d-arha{fill:var(--accent)}
+footer{margin-top:40px;font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="shell">
+<aside>
+  <p class="navtitle">Índice</p>
+  <nav>
+    <a href="#resumen">Resumen y pitch</a>
+    <a href="#negocio">Caso de negocio</a>
+    <a href="#arquitectura">Arquitectura</a>
+    <a href="#flujo">Flujo Medallion</a>
+    <a href="#orquestacion">Orquestación</a>
+    <a href="#conexiones">Cómo se unen las piezas</a>
+    <a href="#iceberg">Iceberg por dentro</a>
+    <a href="#calidad">Calidad y observabilidad</a>
+    <a href="#gobierno">Contratos, lineage, catálogo</a>
+    <a href="#iac">IaC y CI/CD</a>
+    <a href="#run">RUN e incidentes</a>
+    <a href="#costes">Costes y Free Tier</a>
+    <a href="#plan">Plan por fases</a>
+    <a href="#dominar">Lo que debes dominar</a>
+    <a href="#frances">Kit para la entrevista</a>
+  </nav>
+</aside>
+
+<main>
+<header class="hero">
+  <span class="eyebrow">Proyecto de portfolio · Data Engineer Senior · AWS Lakehouse</span>
+  <h1>Skyroute Marketing Lakehouse</h1>
+  <p class="lede">Plataforma de datos de marketing para una agencia de viajes online ficticia, <strong>Skyroute</strong>. Ingiere clickstream, reservas, gasto publicitario y CRM; los refina en una arquitectura Medallion sobre Apache Iceberg en S3; y entrega productos de datos con contrato (ROAS, atribución, funnel, segmentos de clientes) a Product Owners de marketing. Se construye end to end con Terraform, Spark, dbt y Airflow, y se opera como en producción: calidad, alertas, lineage y post-mortems.</p>
+  <div class="facts">
+    <span class="chip">AWS eu-west-3 (París)</span>
+    <span class="chip">S3 + Glue Data Catalog</span>
+    <span class="chip">Apache Iceberg</span>
+    <span class="chip">Spark / PySpark</span>
+    <span class="chip">dbt Core + Athena</span>
+    <span class="chip">Airflow 3</span>
+    <span class="chip">Terraform</span>
+    <span class="chip">OpenLineage · Data contracts</span>
+    <span class="chip b">Bronze</span><span class="chip s">Silver</span><span class="chip g">Gold</span>
+  </div>
+</header>
+
+<!-- 01 -->
+<section id="resumen">
+  <span class="secnum">01</span>
+  <h2>Resumen y pitch del proyecto</h2>
+  <p>La oferta pide cuatro cosas: construir pipelines en un Lakehouse AWS, industrializarlos, operarlos (RUN) y trabajar lo transversal (lineage, contratos, catálogo) con negocio. El proyecto está diseñado para que tengas una respuesta concreta, con código y con un incidente vivido, para cada una de ellas.</p>
+  <div class="grid2">
+    <div class="card"><h4>Conception</h4><p>Modelo Medallion, elección de formato de tabla, particionado, estrategia incremental, ADRs (Architecture Decision Records) que justifican cada decisión.</p></div>
+    <div class="card"><h4>Industrialisation</h4><p>Todo en Terraform, CI con GitHub Actions (lint, tests, plan, dbt slim CI), entornos dev/prod, despliegue sin clics en consola.</p></div>
+    <div class="card"><h4>Exploitation / RUN</h4><p>Alertas, runbooks, backfills idempotentes, mantenimiento de tablas Iceberg, 6 incidentes simulados con análisis de causa raíz.</p></div>
+    <div class="card"><h4>Transverse</h4><p>Data contracts versionados, lineage a nivel de columna con OpenLineage, catálogo con propietarios y glosario de KPIs acordado con el PO.</p></div>
+  </div>
+  <div class="callout">
+    <p><strong>Pitch de 30 segundos (en español)</strong></p>
+    <p>"Construí una plataforma de datos de marketing para una OTA simulada: datos de sesiones, reservas, gasto en Google/Meta y CRM aterrizan en S3, Spark los convierte en tablas Iceberg limpias con MERGE y SCD2, y dbt sobre Athena publica marts de ROAS y atribución con contrato y tests. Airflow orquesta todo con backfills idempotentes, Terraform despliega la infraestructura, y la calidad se controla con un patrón write-audit-publish sobre ramas Iceberg. Lo opero como en producción: alertas, lineage con OpenLineage y post-mortems de incidentes reales que provoqué."</p>
+  </div>
+</section>
+
+<!-- 02 -->
+<section id="negocio">
+  <span class="secnum">02</span>
+  <h2>Caso de negocio: el equipo Marketing de una OTA</h2>
+  <p>Una agencia de viajes online gasta mucho en adquisición (SEA, metabuscadores, redes sociales, afiliación) y vive de su tasa de conversión. Los Product Owners de marketing te plantean preguntas como estas. Tu trabajo es convertirlas en productos de datos fiables.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Pregunta del PO</th><th>Producto de datos (Gold)</th><th>Definición que debes acordar</th></tr></thead>
+    <tbody>
+      <tr><td>¿Qué canal y campaña es rentable?</td><td><code>mart_roas_daily</code></td><td>ROAS = ingresos atribuidos / gasto. Ingresos netos de cancelación, en EUR, modelo de atribución y ventana (p. ej. 30 días).</td></tr>
+      <tr><td>¿Cuánto cuesta un cliente nuevo?</td><td><code>mart_cac_monthly</code></td><td>CAC = gasto / clientes con primera reserva confirmada en el mes.</td></tr>
+      <tr><td>¿Dónde perdemos usuarios en el funnel?</td><td><code>mart_funnel</code></td><td>Búsqueda → ficha de oferta → checkout → reserva, por sesión. <em>Look-to-book ratio</em> = búsquedas / reservas.</td></tr>
+      <tr><td>¿A quién enviamos la campaña de verano?</td><td><code>mart_customer_rfm</code> + export de audiencia</td><td>Recency / Frequency / Monetary, <em>booking window</em> habitual (días entre reserva y salida), destino preferido, consentimiento RGPD.</td></tr>
+      <tr><td>¿Qué parte del ingreso aporta cada touchpoint?</td><td><code>mart_attribution</code></td><td>Last-click, linear y position-based (40/20/40) calculados sobre el mismo recorrido de sesiones.</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Fuentes simuladas (realistas y gratuitas)</h3>
+  <p>Escribes un generador en Python (Faker + reglas de negocio) que produce datos coherentes entre sí: un <code>customer_id</code> que hace clic en una campaña de Meta, navega tres sesiones y reserva un vuelo Nantes–Lisboa. La coherencia es lo que permite calcular atribución de verdad.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Fuente</th><th>Formato y llegada</th><th>Dificultad que introduces a propósito</th></tr></thead>
+    <tbody>
+      <tr><td>Clickstream web/app</td><td>JSON, micro-lotes cada 15 min (Lambda + EventBridge)</td><td>Duplicados, eventos tardíos (hasta 72 h), campos nuevos sin avisar</td></tr>
+      <tr><td>Reservas (OLTP)</td><td>Postgres local en Docker; extracción incremental por <code>updated_at</code></td><td>Cambios de estado (confirmada → cancelada), varias divisas</td></tr>
+      <tr><td>Gasto publicitario</td><td>CSV diario por plataforma (estilo Google Ads, Meta, Criteo)</td><td>Esquemas distintos por plataforma, correcciones retroactivas de gasto</td></tr>
+      <tr><td>CRM emailing</td><td>JSON diario (envíos, aperturas, clics, bajas)</td><td>Bajas de consentimiento que deben propagarse a las audiencias</td></tr>
+      <tr><td>Tipos de cambio</td><td>Datos abiertos del BCE, diario</td><td>Días sin publicación (fines de semana): hay que arrastrar el último valor</td></tr>
+    </tbody>
+  </table></div>
+  <p class="muted">Volumen objetivo: 50.000–200.000 eventos/día y unos 6 meses de histórico. Suficiente para que el particionado, la compactación y el coste de Athena importen, y lo bastante pequeño para no gastar.</p>
+</section>
+
+<!-- 03 -->
+<section id="arquitectura">
+  <span class="secnum">03</span>
+  <h2>Arquitectura objetivo</h2>
+  <p>Una sola copia de los datos en S3, en formato Iceberg, registrada en un único catálogo (Glue). Spark, Athena y dbt leen y escriben las mismas tablas. Airflow decide cuándo; Terraform decide qué existe; la franja inferior vigila que todo sea correcto, trazable y barato.</p>
+  <div class="diagram" role="img" aria-label="Diagrama de arquitectura del lakehouse">
+  <svg viewBox="0 0 1120 640" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="d-arh" d="M0 0 L10 5 L0 10 z"/></marker>
+      <marker id="ara" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="d-arha" d="M0 0 L10 5 L0 10 z"/></marker>
+    </defs>
+    <!-- orquestación -->
+    <rect class="d-band" x="200" y="14" width="900" height="54" rx="7"/>
+    <text class="d-tb" x="220" y="37">ORQUESTACIÓN · Apache Airflow 3</text>
+    <text class="d-s" x="220" y="56">DAG marketing_daily · local con Docker (Astro CLI) · en producción: Amazon MWAA</text>
+    <path class="d-lna" d="M280 68 V210" marker-end="url(#ara)"/>
+    <path class="d-lna" d="M553 68 V408" marker-end="url(#ara)"/>
+    <path class="d-lna" d="M771 68 V408" marker-end="url(#ara)"/>
+
+    <!-- fuentes -->
+    <text class="d-h" x="20" y="100">FUENTES</text>
+    <rect class="d-box" x="20" y="112" width="150" height="58" rx="6"/><text class="d-t" x="32" y="136">Clickstream</text><text class="d-s" x="32" y="154">JSON · web y app</text>
+    <rect class="d-box" x="20" y="182" width="150" height="58" rx="6"/><text class="d-t" x="32" y="206">Reservas OLTP</text><text class="d-s" x="32" y="224">Postgres · incremental</text>
+    <rect class="d-box" x="20" y="252" width="150" height="58" rx="6"/><text class="d-t" x="32" y="276">Gasto publicitario</text><text class="d-s" x="32" y="294">CSV · Google/Meta/Criteo</text>
+    <rect class="d-box" x="20" y="322" width="150" height="58" rx="6"/><text class="d-t" x="32" y="346">CRM emailing</text><text class="d-s" x="32" y="364">JSON · envíos, clics</text>
+    <rect class="d-box" x="20" y="392" width="150" height="58" rx="6"/><text class="d-t" x="32" y="416">Tipos de cambio</text><text class="d-s" x="32" y="434">API BCE · diario</text>
+
+    <!-- ingesta -->
+    <text class="d-h" x="200" y="100">INGESTA</text>
+    <rect class="d-box" x="200" y="112" width="160" height="78" rx="6"/><text class="d-t" x="212" y="136">AWS Lambda</text><text class="d-s" x="212" y="154">+ EventBridge (15 min)</text><text class="d-s" x="212" y="170">simula el tracking web</text>
+    <rect class="d-af" x="200" y="212" width="160" height="80" rx="6"/><text class="d-t" x="212" y="236">Extractores Python</text><text class="d-s" x="212" y="254">tareas de Airflow</text><text class="d-s" x="212" y="270">incremental por fecha</text>
+    <rect class="d-box" x="200" y="312" width="160" height="138" rx="6"/><text class="d-t" x="212" y="336">S3 · landing/</text><text class="d-s" x="212" y="356">archivos crudos tal cual</text><text class="d-m" x="212" y="378">source=…/dt=…/</text><text class="d-s" x="212" y="400">marcador _SUCCESS</text><text class="d-s" x="212" y="418">lifecycle: 30 días</text>
+    <path class="d-ln" d="M170 141 H198" marker-end="url(#ar)"/>
+    <path class="d-ln" d="M170 211 H186 M170 281 H186 M170 351 H186 M170 421 H186 M186 211 V421"/>
+    <path class="d-ln" d="M186 252 H198" marker-end="url(#ar)"/>
+    <path class="d-ln" d="M360 150 H380 V400 H362" marker-end="url(#ar)"/>
+    <path class="d-ln" d="M280 292 V310" marker-end="url(#ar)"/>
+    <path class="d-ln" d="M360 432 H396 V280 H420" marker-end="url(#ar)"/>
+
+    <!-- lakehouse -->
+    <rect class="d-lake" x="410" y="96" width="440" height="400" rx="10"/>
+    <text class="d-tb" x="426" y="118">LAKEHOUSE · Amazon S3 + Apache Iceberg</text>
+    <text class="d-s" x="426" y="136">tablas registradas en AWS Glue Data Catalog</text>
+
+    <rect class="d-br" x="422" y="150" width="120" height="248" rx="6"/>
+    <text class="d-hb" x="434" y="172">BRONZE</text><text class="d-s" x="434" y="189">crudo, append-only</text>
+    <text class="d-m" x="434" y="214">web_events_raw</text><text class="d-m" x="434" y="232">bookings_raw</text><text class="d-m" x="434" y="250">ad_spend_raw</text><text class="d-m" x="434" y="268">crm_events_raw</text><text class="d-m" x="434" y="286">fx_rates_raw</text>
+    <text class="d-s" x="434" y="318">+ _ingested_at</text><text class="d-s" x="434" y="334">+ _batch_id</text><text class="d-s" x="434" y="350">+ _source_file</text>
+
+    <rect class="d-si" x="564" y="150" width="120" height="248" rx="6"/>
+    <text class="d-hs" x="576" y="172">SILVER</text><text class="d-s" x="576" y="189">limpio, conformado</text>
+    <text class="d-m" x="576" y="214">web_events</text><text class="d-m" x="576" y="232">sessions</text><text class="d-m" x="576" y="250">bookings</text><text class="d-m" x="576" y="268">customers_scd2</text><text class="d-m" x="576" y="286">ad_spend_eur</text><text class="d-m" x="576" y="304">crm_events</text>
+    <text class="d-s" x="576" y="334">tipado, sin duplicados</text><text class="d-s" x="576" y="350">claves estables</text>
+
+    <rect class="d-go" x="706" y="150" width="130" height="248" rx="6"/>
+    <text class="d-hg" x="718" y="172">GOLD</text><text class="d-s" x="718" y="189">productos de datos</text>
+    <text class="d-m" x="718" y="214">dim_customer</text><text class="d-m" x="718" y="232">dim_campaign</text><text class="d-m" x="718" y="250">fct_bookings</text><text class="d-m" x="718" y="268">fct_sessions</text><text class="d-m" x="718" y="286">mart_roas_daily</text><text class="d-m" x="718" y="304">mart_attribution</text><text class="d-m" x="718" y="322">mart_funnel</text><text class="d-m" x="718" y="340">mart_customer_rfm</text>
+
+    <path class="d-ln" d="M542 274 H562" marker-end="url(#ar)"/>
+    <path class="d-ln" d="M684 274 H704" marker-end="url(#ar)"/>
+
+    <rect class="d-spark" x="422" y="410" width="262" height="74" rx="6"/>
+    <text class="d-t" x="434" y="432">Apache Spark / PySpark</text><text class="d-s" x="434" y="450">local en Docker · o AWS Glue 5</text><text class="d-s" x="434" y="468">MERGE · dedup · sesiones · SCD2</text>
+    <rect class="d-dbt" x="706" y="410" width="130" height="74" rx="6"/>
+    <text class="d-t" x="718" y="432">dbt + Athena</text><text class="d-s" x="718" y="450">modelos SQL</text><text class="d-s" x="718" y="468">tests · docs</text>
+
+    <!-- consumo -->
+    <text class="d-h" x="880" y="100">CONSUMO</text>
+    <rect class="d-box" x="880" y="112" width="220" height="64" rx="6"/><text class="d-t" x="892" y="136">Amazon Athena</text><text class="d-s" x="892" y="155">SQL ad hoc · límite por consulta</text>
+    <rect class="d-box" x="880" y="190" width="220" height="64" rx="6"/><text class="d-t" x="892" y="214">Dashboard marketing</text><text class="d-s" x="892" y="233">Streamlit o Evidence (local)</text>
+    <rect class="d-box" x="880" y="268" width="220" height="64" rx="6"/><text class="d-t" x="892" y="292">Audiencias CRM</text><text class="d-s" x="892" y="311">export a S3 → herramienta CRM</text>
+    <rect class="d-box" x="880" y="346" width="220" height="64" rx="6"/><text class="d-t" x="892" y="370">Product Owners</text><text class="d-s" x="892" y="389">ROAS · CAC · conversión · RFM</text>
+    <path class="d-ln" d="M836 274 H860 M860 144 V378"/>
+    <path class="d-ln" d="M860 144 H878" marker-end="url(#ar)"/><path class="d-ln" d="M860 222 H878" marker-end="url(#ar)"/><path class="d-ln" d="M860 300 H878" marker-end="url(#ar)"/><path class="d-ln" d="M860 378 H878" marker-end="url(#ar)"/>
+
+    <!-- gobierno -->
+    <path class="d-lna" d="M630 496 V518"/>
+    <rect class="d-gov" x="20" y="518" width="1080" height="110" rx="8"/>
+    <text class="d-h" x="36" y="540">GOBIERNO · CALIDAD · OBSERVABILIDAD · INFRAESTRUCTURA COMO CÓDIGO</text>
+    <rect class="d-box" x="36" y="552" width="166" height="62" rx="6"/><text class="d-t" x="48" y="576">Glue Catalog</text><text class="d-s" x="48" y="596">+ Lake Formation (permisos)</text>
+    <rect class="d-box" x="212" y="552" width="166" height="62" rx="6"/><text class="d-t" x="224" y="576">Data contracts</text><text class="d-s" x="224" y="596">YAML ODCS · tests en CI</text>
+    <rect class="d-box" x="388" y="552" width="166" height="62" rx="6"/><text class="d-t" x="400" y="576">Lineage</text><text class="d-s" x="400" y="596">OpenLineage → Marquez</text>
+    <rect class="d-box" x="564" y="552" width="166" height="62" rx="6"/><text class="d-t" x="576" y="576">Catálogo de datos</text><text class="d-s" x="576" y="596">OpenMetadata · dbt docs</text>
+    <rect class="d-box" x="740" y="552" width="166" height="62" rx="6"/><text class="d-t" x="752" y="576">Calidad y alertas</text><text class="d-s" x="752" y="596">dbt tests · Elementary · SNS</text>
+    <rect class="d-box" x="916" y="552" width="168" height="62" rx="6"/><text class="d-t" x="928" y="576">IaC y CI/CD</text><text class="d-s" x="928" y="596">Terraform · GitHub Actions</text>
+  </svg>
+  </div>
+  <div class="legend">
+    <span style="--sw:var(--accent)">Controlado por Airflow (flechas discontinuas: "dispara")</span>
+    <span style="--sw:var(--bronze)">Cómputo Spark</span>
+    <span style="--sw:var(--gold)">Cómputo dbt / Athena</span>
+  </div>
+  <p class="caption">Spark escribe Bronze y Silver; dbt construye Gold. Ambos ven las mismas tablas porque comparten el Glue Data Catalog.</p>
+
+  <h3>Decisiones de arquitectura (ADRs que vas a escribir)</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Decisión</th><th>Elección</th><th>Por qué / alternativa descartada</th></tr></thead>
+    <tbody>
+      <tr><td>Formato de tabla</td><td>Apache Iceberg</td><td>MERGE/UPDATE/DELETE ACID sobre S3, evolución de esquema y de partición, time travel. Lo leen Spark, Athena, Trino y Snowflake. Delta Lake es la alternativa natural en Databricks.</td></tr>
+      <tr><td>Catálogo</td><td>AWS Glue Data Catalog</td><td>Nativo para Athena y Lake Formation, gratis a este volumen. Alternativa: REST catalog (Polaris, Nessie) si se necesita multi-motor fuera de AWS.</td></tr>
+      <tr><td>Bronze → Silver</td><td>Spark</td><td>JSON semiestructurado, sesionización con ventanas, deduplicación y MERGE a escala. Python testeable con pytest.</td></tr>
+      <tr><td>Silver → Gold</td><td>dbt sobre Athena</td><td>Lógica de negocio en SQL legible por analistas, tests declarativos, documentación y lineage gratis. Athena cobra por dato escaneado: barato con particiones bien hechas.</td></tr>
+      <tr><td>Orquestación</td><td>Airflow 3 en Docker local</td><td>MWAA cuesta cientos de euros al mes aunque no haga nada. El mismo código de DAG se despliega en MWAA en producción; lo explicas como decisión de coste, no como limitación.</td></tr>
+      <tr><td>Cómputo Spark en AWS</td><td>AWS Glue 5 (puntual)</td><td>Serverless, Iceberg integrado, pago por segundo. Alternativas: EMR Serverless (más control de Spark) o EMR on EC2 (volúmenes grandes y estables).</td></tr>
+      <tr><td>Red</td><td>Sin VPC privada ni NAT Gateway</td><td>Un NAT Gateway cuesta cada hora aunque no pase tráfico. En producción irían VPC endpoints para S3 y Glue.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 04 -->
+<section id="flujo">
+  <span class="secnum">04</span>
+  <h2>Flujo de datos Medallion, capa por capa</h2>
+  <p>Cada capa tiene un contrato de lo que garantiza. Esa promesa es lo que defiendes en la entrevista, más que la lista de tablas.</p>
+
+  <div class="layer b">
+    <h3>Bronze: "tengo exactamente lo que llegó, y sé de dónde vino"</h3>
+    <ul>
+      <li>Append-only, sin transformaciones de negocio. Se añaden metadatos técnicos: <code>_ingested_at</code>, <code>_batch_id</code>, <code>_source_file</code>, <code>_ingest_date</code>.</li>
+      <li>El payload se conserva completo (columna <code>raw</code> en JSON) para poder reprocesar si cambia una regla.</li>
+      <li>Partición oculta Iceberg por <code>days(_ingested_at)</code>; retención larga y barata.</li>
+      <li>Control de entrada: esquema mínimo exigido por el contrato. Si falta un campo obligatorio, el lote va a <code>quarantine/</code> y salta alerta.</li>
+    </ul>
+  </div>
+  <div class="layer s">
+    <h3>Silver: "datos correctos, únicos y con claves estables"</h3>
+    <ul>
+      <li><strong>web_events</strong>: deduplicación por <code>event_id</code>, tipado, normalización de UTM (<code>utm_source</code>, <code>utm_campaign</code>), gestión de eventos tardíos con ventana de relectura de 3 días.</li>
+      <li><strong>sessions</strong>: sesionización en Spark (30 min de inactividad) con funciones de ventana; primer y último touchpoint de marketing por sesión.</li>
+      <li><strong>bookings</strong>: <code>MERGE INTO</code> por <code>booking_id</code>, solo si <code>updated_at</code> es más reciente (idempotente y robusto a reenvíos).</li>
+      <li><strong>customers_scd2</strong>: historial de cambios (país, segmento, consentimiento) con <code>valid_from</code> / <code>valid_to</code> / <code>is_current</code>.</li>
+      <li><strong>ad_spend_eur</strong>: esquemas de Google/Meta/Criteo unificados en uno, conversión a EUR con el tipo del día (o el último disponible).</li>
+    </ul>
+  </div>
+  <div class="layer g">
+    <h3>Gold: "respuestas de negocio con definición acordada"</h3>
+    <ul>
+      <li>Modelo dimensional (<code>dim_*</code>, <code>fct_*</code>) y marts orientados a pregunta (<code>mart_*</code>).</li>
+      <li>Modelos dbt incrementales con <code>table_type='iceberg'</code> y estrategia <code>merge</code>, con relectura de 3 días para absorber datos tardíos y correcciones de gasto.</li>
+      <li><code>contract: enforced: true</code> en los marts expuestos: si cambia un tipo o desaparece una columna, el build falla antes de romper el dashboard.</li>
+      <li><code>exposures</code> en dbt para declarar quién consume cada mart (dashboard, export CRM): así el lineage llega hasta el usuario.</li>
+    </ul>
+  </div>
+
+  <p class="codehead">spark/jobs/silver/bookings.py: MERGE idempotente en Iceberg</p>
+<pre>spark = (SparkSession.builder
+    .config("spark.sql.extensions",
+            "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
+    .config("spark.sql.catalog.glue", "org.apache.iceberg.spark.SparkCatalog")
+    .config("spark.sql.catalog.glue.catalog-impl", "org.apache.iceberg.aws.glue.GlueCatalog")
+    .config("spark.sql.catalog.glue.warehouse", "s3://skyroute-lake-dev/warehouse")
+    .getOrCreate())
+
+w = Window.partitionBy("booking_id").orderBy(F.col("updated_at").desc())
+latest = (spark.table("glue.bronze.bookings_raw")
+          .where(F.col("_ingest_date") == run_date)          # run_date llega desde Airflow
+          .withColumn("rn", F.row_number().over(w))
+          .where("rn = 1").drop("rn"))
+latest.createOrReplaceTempView("src")
+
+spark.sql("""
+  MERGE INTO glue.silver.bookings t
+  USING src s ON t.booking_id = s.booking_id
+  WHEN MATCHED AND s.updated_at > t.updated_at THEN UPDATE SET *
+  WHEN NOT MATCHED THEN INSERT *
+""")</pre>
+
+  <p class="codehead">dbt/models/marts/mart_roas_daily.sql: incremental Iceberg con relectura</p>
+<pre>{{ config(
+    materialized='incremental',
+    table_type='iceberg',
+    incremental_strategy='merge',
+    unique_key=['event_date', 'channel', 'campaign_id'],
+    partitioned_by=['day(event_date)'],
+    contract={'enforced': true}
+) }}
+
+with spend as (
+    select * from {{ ref('fct_marketing_spend') }}
+    {% if is_incremental() %}
+      where event_date >= date '{{ var("run_date") }}' - interval '3' day
+    {% endif %}
+),
+revenue as (
+    select event_date, channel, campaign_id, sum(attributed_revenue_eur) as revenue_eur
+    from {{ ref('mart_attribution') }}
+    where attribution_model = 'position_based'
+    group by 1, 2, 3
+)
+select s.event_date, s.channel, s.campaign_id,
+       s.spend_eur,
+       coalesce(r.revenue_eur, 0)                      as attributed_revenue_eur,
+       coalesce(r.revenue_eur, 0) / nullif(s.spend_eur, 0) as roas
+from spend s
+left join revenue r using (event_date, channel, campaign_id)</pre>
+</section>
+
+<!-- 05 -->
+<section id="orquestacion">
+  <span class="secnum">05</span>
+  <h2>Orquestación: el DAG <code>marketing_daily</code></h2>
+  <p>Un DAG diario a las 04:00 con la fecha lógica como único parámetro. Cada tarea es idempotente: relanzarla para el mismo día produce el mismo resultado, que es lo que hace posibles los backfills.</p>
+  <div class="diagram" role="img" aria-label="Grafo de tareas del DAG marketing_daily">
+  <svg viewBox="0 0 1120 300" xmlns="http://www.w3.org/2000/svg">
+    <defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="d-arh" d="M0 0 L10 5 L0 10 z"/></marker></defs>
+    <rect class="d-af" x="20" y="127" width="132" height="50" rx="6"/><text class="d-mb" x="30" y="148">wait_landing</text><text class="d-s" x="30" y="166">S3 sensor diferible</text>
+    <rect class="d-af" x="180" y="127" width="132" height="50" rx="6"/><text class="d-mb" x="190" y="148">contract_check</text><text class="d-s" x="190" y="166">esquema vs contrato</text>
+    <rect class="d-spark" x="340" y="40" width="132" height="50" rx="6"/><text class="d-mb" x="350" y="61">bronze_events</text><text class="d-s" x="350" y="79">Spark · append</text>
+    <rect class="d-spark" x="340" y="127" width="132" height="50" rx="6"/><text class="d-mb" x="350" y="148">bronze_bookings</text><text class="d-s" x="350" y="166">Spark · append</text>
+    <rect class="d-spark" x="340" y="214" width="132" height="50" rx="6"/><text class="d-mb" x="350" y="235">bronze_spend_crm</text><text class="d-s" x="350" y="253">Spark · append + FX</text>
+    <rect class="d-spark" x="500" y="40" width="132" height="50" rx="6"/><text class="d-mb" x="510" y="61">silver_sessions</text><text class="d-s" x="510" y="79">dedup + ventanas</text>
+    <rect class="d-spark" x="500" y="127" width="132" height="50" rx="6"/><text class="d-mb" x="510" y="148">silver_bookings</text><text class="d-s" x="510" y="166">MERGE</text>
+    <rect class="d-spark" x="500" y="214" width="132" height="50" rx="6"/><text class="d-mb" x="510" y="235">silver_cust_spend</text><text class="d-s" x="510" y="253">SCD2 · EUR</text>
+    <rect class="d-af" x="660" y="127" width="132" height="50" rx="6"/><text class="d-mb" x="670" y="148">wap_audit</text><text class="d-s" x="670" y="166">checks en rama Iceberg</text>
+    <rect class="d-af" x="820" y="127" width="132" height="50" rx="6"/><text class="d-mb" x="830" y="148">wap_publish</text><text class="d-s" x="830" y="166">fast-forward a main</text>
+    <rect class="d-dbt" x="980" y="127" width="120" height="50" rx="6"/><text class="d-mb" x="990" y="148">dbt_build_gold</text><text class="d-s" x="990" y="166">run + test</text>
+    <rect class="d-af" x="980" y="214" width="120" height="50" rx="6"/><text class="d-mb" x="990" y="235">reconcile</text><text class="d-s" x="990" y="253">+ lineage + aviso</text>
+    <path class="d-ln" d="M152 152 H178" marker-end="url(#ar2)"/>
+    <path class="d-ln" d="M312 152 H326 M326 65 V239 M326 65 H338 M326 239 H338" /><path class="d-ln" d="M326 152 H338" marker-end="url(#ar2)"/>
+    <path class="d-ln" d="M326 65 H338" marker-end="url(#ar2)"/><path class="d-ln" d="M326 239 H338" marker-end="url(#ar2)"/>
+    <path class="d-ln" d="M472 65 H498" marker-end="url(#ar2)"/><path class="d-ln" d="M472 152 H498" marker-end="url(#ar2)"/><path class="d-ln" d="M472 239 H498" marker-end="url(#ar2)"/>
+    <path class="d-ln" d="M632 65 H646 V239 H632 M632 152 H646"/><path class="d-ln" d="M646 152 H658" marker-end="url(#ar2)"/>
+    <path class="d-ln" d="M792 152 H818" marker-end="url(#ar2)"/>
+    <path class="d-ln" d="M952 152 H978" marker-end="url(#ar2)"/>
+    <path class="d-ln" d="M1040 177 V212" marker-end="url(#ar2)"/>
+    <text class="d-s" x="20" y="292">Fallo en cualquier tarea → on_failure_callback → SNS (email). Si wap_audit falla, main no cambia: el dashboard sigue mostrando el último dato bueno.</text>
+  </svg>
+  </div>
+  <div class="legend">
+    <span style="--sw:var(--accent)">Tarea nativa de Airflow / Python</span>
+    <span style="--sw:var(--bronze)">Job Spark</span>
+    <span style="--sw:var(--gold)">dbt (con Astronomer Cosmos, un modelo = una tarea)</span>
+  </div>
+
+  <p class="codehead">airflow/dags/marketing_daily.py (extracto)</p>
+<pre>from airflow.sdk import dag, task
+from airflow.providers.amazon.aws.sensors.s3 import S3KeySensor
+
+@dag(schedule="0 4 * * *", start_date=datetime(2026, 1, 1), catchup=False,
+     max_active_runs=1,
+     default_args={"retries": 2, "retry_delay": timedelta(minutes=10),
+                   "on_failure_callback": notify_sns})
+def marketing_daily():
+    wait = S3KeySensor(
+        task_id="wait_landing",
+        bucket_name="{{ var.value.landing_bucket }}",      # viene de un output de Terraform
+        bucket_key="landing/ad_spend/dt={{ ds }}/_SUCCESS",
+        deferrable=True, timeout=3 * 3600)
+    # spark_job("silver_bookings", args=["--run-date", "{{ ds }}"])
+    # dbt: DbtTaskGroup(select=["tag:gold"], operator_args={"vars": {"run_date": "{{ ds }}"}})</pre>
+  <p>Conceptos que tienes que poder explicar con este DAG: fecha lógica (<code>data_interval_start</code>) frente a fecha de ejecución, <code>catchup</code> y backfill (<code>airflow backfill create</code> en Airflow 3), sensores diferibles que no ocupan un worker, <code>pools</code> para no saturar Athena, <code>max_active_runs</code> para no pisar escrituras sobre la misma tabla, y por qué no se pone lógica pesada en el nivel superior del archivo del DAG.</p>
+</section>
+
+<!-- 06 -->
+<section id="conexiones">
+  <span class="secnum">06</span>
+  <h2>Cómo se unen las herramientas y qué comparten</h2>
+  <p>Un stack moderno funciona porque las herramientas comparten unos pocos acuerdos. Si en la entrevista puedes nombrar esos acuerdos, demuestras que entiendes el sistema y no solo cada pieza.</p>
+  <div class="grid2">
+    <div class="card"><h4>1. El catálogo</h4><p>Glue Data Catalog es la única fuente de verdad sobre qué tablas existen y dónde está su metadata actual. Spark, Athena, dbt y Lake Formation lo consultan. Un nombre de tabla es un contrato físico.</p></div>
+    <div class="card"><h4>2. El formato de tabla</h4><p>Iceberg define cómo se leen y escriben los archivos (snapshots, manifests, esquema por IDs). Por eso Spark puede hacer MERGE y Athena ve el resultado al instante, de forma atómica.</p></div>
+    <div class="card"><h4>3. La fecha lógica</h4><p>Airflow pasa <code>{{ ds }}</code> a Spark (<code>--run-date</code>) y a dbt (<code>--vars</code>). Todas las capas procesan la misma partición temporal. Es la base de la idempotencia y de los backfills.</p></div>
+    <div class="card"><h4>4. El esquema / contrato</h4><p>Un YAML por producto de datos. CI lo valida, Spark comprueba la entrada contra él y dbt lo aplica con <code>contract: enforced</code>. Productor y consumidor hablan del mismo documento.</p></div>
+    <div class="card"><h4>5. La identidad</h4><p>Roles IAM por función (ingesta, transformación, lectura Gold) creados por Terraform. Lake Formation da permisos a nivel de base, tabla y columna (p. ej. ocultar el email al rol analista).</p></div>
+    <div class="card"><h4>6. El namespace de lineage</h4><p>Airflow, Spark y dbt emiten eventos OpenLineage con los mismos nombres de dataset (<code>glue://…/silver.bookings</code>). Así Marquez dibuja un único grafo de punta a punta.</p></div>
+  </div>
+  <h3>Quién habla con quién</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Relación</th><th>Qué se intercambia</th><th>Cómo</th><th>Qué se rompe si está mal</th></tr></thead>
+    <tbody>
+      <tr><td>Terraform → todo</td><td>Buckets, bases Glue, roles IAM, workgroup Athena, permisos Lake Formation, jobs Glue, alarmas, presupuesto</td><td><code>terraform apply</code> desde CI; outputs (nombres, ARNs) cargados como Variables / Connections de Airflow</td><td>Recursos creados a mano que nadie sabe reproducir (drift)</td></tr>
+      <tr><td>Airflow → Spark</td><td>Fecha lógica, nombre del job, parámetros</td><td><code>SparkSubmitOperator</code> en local o <code>GlueJobOperator</code> en AWS</td><td>Reprocesar el día equivocado, escrituras concurrentes sobre la misma tabla</td></tr>
+      <tr><td>Airflow → dbt</td><td>Selección de modelos, <code>run_date</code></td><td><code>dbt build</code> vía Astronomer Cosmos (una tarea por modelo, reintentos finos)</td><td>Gold construido antes de que Silver esté publicado</td></tr>
+      <tr><td>Spark ↔ Catálogo ↔ dbt</td><td>Las mismas tablas Iceberg</td><td>Spark escribe en <code>glue.silver.*</code>; dbt las declara como <code>source()</code> y las lee con Athena</td><td>Esquema cambiado en Silver que rompe Gold sin aviso</td></tr>
+      <tr><td>dbt → catálogo</td><td><code>manifest.json</code>, <code>catalog.json</code>: descripciones, tests, owners, lineage SQL</td><td>Ingesta en OpenMetadata; <code>dbt docs</code></td><td>Catálogo desactualizado en el que nadie confía</td></tr>
+      <tr><td>Airflow / Spark / dbt → Marquez</td><td>Eventos de lineage (inputs, outputs, columnas, estado)</td><td>Provider OpenLineage de Airflow, listener <code>openlineage-spark</code>, <code>dbt-ol</code></td><td>No poder responder "¿qué dashboards se ven afectados si falla esta tabla?"</td></tr>
+      <tr><td>Contrato → CI, Spark, dbt</td><td>Esquema, tipos, unicidad, frescura, owner</td><td><code>datacontract test</code> en CI; validación de esquema en Spark; contrato dbt</td><td>Cambios rompientes descubiertos por el PO, no por el pipeline</td></tr>
+      <tr><td>Todo → CloudWatch / SNS</td><td>Fallos, duraciones, filas procesadas, bytes escaneados</td><td>Callbacks de Airflow, métricas Glue, workgroup Athena, AWS Budgets</td><td>Incidentes detectados por los usuarios</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 07 -->
+<section id="iceberg">
+  <span class="secnum">07</span>
+  <h2>Apache Iceberg por dentro</h2>
+  <p>Es la pregunta técnica más probable de la entrevista. Iceberg es una capa de metadatos sobre archivos Parquet: un commit es simplemente cambiar, de forma atómica en el catálogo, el puntero a un nuevo <code>metadata.json</code>.</p>
+  <div class="diagram" role="img" aria-label="Estructura de metadatos de una tabla Iceberg">
+  <svg viewBox="0 0 1120 210" xmlns="http://www.w3.org/2000/svg">
+    <defs><marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="d-arh" d="M0 0 L10 5 L0 10 z"/></marker></defs>
+    <rect class="d-af" x="20" y="30" width="190" height="80" rx="6"/><text class="d-t" x="32" y="54">Catálogo (Glue)</text><text class="d-m" x="32" y="74">silver.bookings</text><text class="d-s" x="32" y="94">→ puntero a metadata v42</text>
+    <rect class="d-box" x="245" y="30" width="190" height="80" rx="6"/><text class="d-t" x="257" y="54">metadata.json</text><text class="d-s" x="257" y="74">esquema, partition spec,</text><text class="d-s" x="257" y="92">lista de snapshots</text>
+    <rect class="d-box" x="470" y="30" width="190" height="80" rx="6"/><text class="d-t" x="482" y="54">Manifest list</text><text class="d-s" x="482" y="74">un archivo por snapshot</text><text class="d-s" x="482" y="92">rangos de partición</text>
+    <rect class="d-box" x="695" y="30" width="190" height="80" rx="6"/><text class="d-t" x="707" y="54">Manifests (Avro)</text><text class="d-s" x="707" y="74">lista de archivos + stats</text><text class="d-s" x="707" y="92">min/max, nulos por columna</text>
+    <rect class="d-si" x="920" y="30" width="180" height="80" rx="6"/><text class="d-t" x="932" y="54">Data files</text><text class="d-s" x="932" y="74">Parquet en S3</text><text class="d-s" x="932" y="92">+ delete files (MoR)</text>
+    <path class="d-ln" d="M210 70 H243" marker-end="url(#ar3)"/><path class="d-ln" d="M435 70 H468" marker-end="url(#ar3)"/><path class="d-ln" d="M660 70 H693" marker-end="url(#ar3)"/><path class="d-ln" d="M885 70 H918" marker-end="url(#ar3)"/>
+    <text class="d-s" x="20" y="150">Commit atómico: el writer crea archivos nuevos y luego intercambia el puntero en el catálogo. Si otro writer llegó antes, reintenta (concurrencia optimista).</text>
+    <text class="d-s" x="20" y="172">Lectura: el motor poda particiones con la manifest list y archivos con las estadísticas de los manifests, sin listar S3.</text>
+    <text class="d-s" x="20" y="194">Time travel: leer un snapshot anterior es leer un metadata.json anterior. Por eso hay que expirar snapshots (si no, S3 crece sin límite).</text>
+  </svg>
+  </div>
+  <div class="grid2">
+    <div class="card"><h4>Copy-on-write vs merge-on-read</h4><p>CoW reescribe los archivos afectados en cada MERGE: escrituras caras, lecturas rápidas (bueno para Gold). MoR escribe delete files: escrituras rápidas, lecturas que combinan; necesita compactación (bueno para Silver con muchas actualizaciones).</p></div>
+    <div class="card"><h4>Particionado oculto y evolución</h4><p>Particionas por <code>days(ts)</code> sin crear una columna <code>dt</code>; el usuario filtra por <code>ts</code> y la poda funciona igual. Puedes pasar de <code>days</code> a <code>hours</code> sin reescribir el histórico.</p></div>
+    <div class="card"><h4>Mantenimiento (RUN)</h4><p><code>rewrite_data_files</code> (compactar archivos pequeños a ~128–512 MB), <code>expire_snapshots</code>, <code>remove_orphan_files</code>, <code>rewrite_manifests</code>. En Athena: <code>OPTIMIZE</code> y <code>VACUUM</code>. Lo programas en un DAG semanal.</p></div>
+    <div class="card"><h4>Branches y WAP</h4><p>Escribes en una rama (<code>audit_2026_11_10</code>), validas, y solo si pasa haces <code>fast_forward</code> de <code>main</code>. Los consumidores nunca ven un dato a medio validar.</p></div>
+  </div>
+</section>
+
+<!-- 08 -->
+<section id="calidad">
+  <span class="secnum">08</span>
+  <h2>Calidad de datos y observabilidad</h2>
+  <p>Controles en cada frontera, cada uno con una acción definida: bloquear, poner en cuarentena o avisar. Un test que solo genera ruido se desactiva; uno que nunca falla probablemente no prueba nada.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Dónde</th><th>Control</th><th>Herramienta</th><th>Si falla</th></tr></thead>
+    <tbody>
+      <tr><td>Landing → Bronze</td><td>Esquema mínimo, archivo no vacío, marcador <code>_SUCCESS</code></td><td>Spark + contrato YAML</td><td><span class="pill bad">bloquea</span> lote a cuarentena</td></tr>
+      <tr><td>Silver (rama WAP)</td><td>Unicidad de claves, nulos, rangos (importe &gt; 0), volumen vs media móvil de 7 días</td><td>PySpark checks o Soda Core</td><td><span class="pill bad">bloquea</span> sin publicar en main</td></tr>
+      <tr><td>Sources dbt</td><td>Frescura (<code>loaded_at_field</code>, warn 6 h, error 12 h)</td><td><code>dbt source freshness</code></td><td><span class="pill warn">avisa</span> / bloquea Gold</td></tr>
+      <tr><td>Gold</td><td><code>unique</code>, <code>not_null</code>, <code>relationships</code>, <code>accepted_values</code>, tests de negocio (ROAS ≥ 0)</td><td>dbt tests, dbt-expectations</td><td><span class="pill bad">error</span> o <span class="pill warn">warn</span> según severidad</td></tr>
+      <tr><td>Reconciliación</td><td>Ingresos de reservas confirmadas: Silver = suma Gold (tolerancia 0,1 %)</td><td>Test singular dbt</td><td><span class="pill bad">bloquea</span> y abre incidente</td></tr>
+      <tr><td>Tendencias</td><td>Anomalías de volumen, frescura y distribución por columna</td><td>Elementary (open source)</td><td><span class="pill ok">informe</span> + alerta</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Observabilidad: las cuatro señales que vigilas</h3>
+  <ul>
+    <li><strong>Frescura</strong>: hora del último dato en cada mart frente al SLA acordado con el PO (Gold disponible antes de las 08:00).</li>
+    <li><strong>Volumen</strong>: filas por lote y por tabla; una caída del 40 % suele ser un problema de la fuente, no del pipeline.</li>
+    <li><strong>Calidad</strong>: resultados de los tests escritos en una tabla Iceberg <code>ops.dq_results</code>, consultable y graficable.</li>
+    <li><strong>Coste y rendimiento</strong>: duración por tarea, bytes escaneados por Athena por consulta y por modelo dbt, DPU-hora de Glue.</li>
+  </ul>
+</section>
+
+<!-- 09 -->
+<section id="gobierno">
+  <span class="secnum">09</span>
+  <h2>Data contracts, lineage y catálogo</h2>
+  <p>Es la parte "transverse" de la oferta y la que más diferencia a un perfil senior: no solo mover datos, sino hacer que otros puedan confiar en ellos y encontrarlos.</p>
+  <p class="codehead">contracts/silver_bookings.yaml (inspirado en Open Data Contract Standard v3)</p>
+<pre>apiVersion: v3.0.2
+kind: DataContract
+id: skyroute.silver.bookings
+name: bookings
+version: 1.2.0
+status: active
+domain: marketing
+team:
+  - username: data-fabric-marketing
+    role: owner
+schema:
+  - name: bookings
+    physicalName: skyroute_silver.bookings
+    properties:
+      - name: booking_id
+        logicalType: string
+        required: true
+        unique: true
+        primaryKey: true
+      - name: status
+        logicalType: string
+        required: true
+        quality:
+          - type: library
+            rule: validValues
+            validValues: [confirmed, cancelled, pending]
+      - name: total_amount_eur
+        logicalType: number
+        required: true
+slaProperties:
+  - property: latency
+    value: 6
+    unit: h</pre>
+  <div class="grid2">
+    <div class="card"><h4>Contratos</h4><ul><li>Versionado semántico: añadir columna = minor, cambiar tipo o borrar = major con periodo de convivencia.</li><li>CI ejecuta <code>datacontract lint</code> y <code>test</code>; un PR que rompe un contrato no se fusiona sin aprobación del consumidor.</li></ul></div>
+    <div class="card"><h4>Lineage</h4><ul><li>Marquez en Docker recibe eventos OpenLineage de Airflow, Spark y dbt.</li><li>Demo: "si falla <code>bronze.ad_spend_raw</code>, estos 3 marts y este dashboard están afectados".</li></ul></div>
+    <div class="card"><h4>Catálogo</h4><ul><li>OpenMetadata (Docker) conectado a Glue y a los artefactos dbt.</li><li>Cada tabla Gold con owner, descripción, glosario de KPI, clasificación PII y nivel de certificación.</li></ul></div>
+    <div class="card"><h4>Permisos y RGPD</h4><ul><li>Lake Formation: el rol analista no ve <code>email</code> ni <code>phone</code>.</li><li>Derecho al olvido: <code>DELETE</code> en Iceberg + <code>expire_snapshots</code>, para que el dato desaparezca también del historial.</li></ul></div>
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="iac">
+  <span class="secnum">10</span>
+  <h2>Infraestructura como código y CI/CD</h2>
+  <p class="codehead">Estructura del repositorio</p>
+<pre>skyroute-marketing-lakehouse/
+├── infra/terraform/
+│   ├── bootstrap/            # bucket de state, rol OIDC de GitHub, presupuesto
+│   ├── modules/              # s3_lake, glue_catalog, iam, athena, lakeformation,
+│   │                         # glue_jobs, lambda_generator, monitoring, budgets
+│   └── envs/{dev,prod}/      # mismos módulos, distintas variables
+├── generators/               # simulador OTA (Faker) + handler Lambda
+├── spark/jobs/{bronze,silver,maintenance}/   spark/tests/   # pytest + chispa
+├── dbt/models/{staging,intermediate,marts}/  dbt/tests/  dbt/macros/
+├── airflow/dags/  airflow/include/           # proyecto Astro CLI
+├── contracts/                # un YAML por producto de datos
+├── observability/            # docker-compose: Marquez, OpenMetadata
+├── docs/{adr,runbooks,postmortems}/
+├── .github/workflows/        # ci.yml · terraform.yml · dbt_slim_ci.yml
+└── Makefile                  # make up · make backfill DATE=… · make chaos-…</pre>
+  <p class="codehead">infra/terraform/envs/dev/main.tf (extracto)</p>
+<pre>terraform {
+  backend "s3" {
+    bucket       = "skyroute-tfstate-dev"
+    key          = "lakehouse/terraform.tfstate"
+    region       = "eu-west-3"
+    use_lockfile = true          # bloqueo nativo en S3, sin DynamoDB
+  }
+}
+
+module "lake" {
+  source      = "../../modules/s3_lake"
+  bucket_name = "skyroute-lake-dev"
+  lifecycle_landing_days = 30
+}
+
+resource "aws_glue_catalog_database" "layer" {
+  for_each = toset(["bronze", "silver", "gold", "ops"])
+  name     = "skyroute_${each.key}"
+}
+
+resource "aws_athena_workgroup" "analytics" {
+  name = "skyroute-analytics"
+  configuration {
+    enforce_workgroup_configuration = true
+    bytes_scanned_cutoff_per_query  = 1073741824   # 1 GB: corta consultas caras
+  }
+}</pre>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Pipeline CI</th><th>En cada pull request</th><th>Al fusionar en main</th></tr></thead>
+    <tbody>
+      <tr><td>Terraform</td><td><code>fmt</code>, <code>validate</code>, tflint, checkov, <code>plan</code> comentado en el PR</td><td><code>apply</code> en dev; prod con aprobación manual</td></tr>
+      <tr><td>Spark</td><td>ruff, pytest con SparkSession local y tablas Iceberg temporales</td><td>Subida del paquete a S3 para los jobs Glue</td></tr>
+      <tr><td>dbt</td><td>Slim CI: <code>dbt build --select state:modified+ --defer</code> en un esquema efímero</td><td>Publicación de docs y del manifest de referencia</td></tr>
+      <tr><td>Contratos</td><td><code>datacontract lint</code> + detección de cambios rompientes</td><td>Publicación en el catálogo</td></tr>
+    </tbody>
+  </table></div>
+  <p>La autenticación de GitHub Actions con AWS se hace por OIDC (un rol con confianza en el repositorio), sin claves de acceso guardadas en secretos. Es una pregunta habitual de seguridad.</p>
+</section>
+
+<!-- 11 -->
+<section id="run">
+  <span class="secnum">11</span>
+  <h2>RUN: incidentes que vas a provocar y resolver</h2>
+  <p>La oferta insiste en el RUN y en las causas raíz. Haz "game days": rompe algo a propósito con un comando <code>make chaos-…</code>, observa si tu monitorización lo detecta, arréglalo y escribe un post-mortem. Dos o tres post-mortems bien escritos valen más que cualquier certificación en esta entrevista.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Incidente simulado</th><th>Cómo se detecta</th><th>Corrección</th><th>Prevención (causa raíz)</th></tr></thead>
+    <tbody>
+      <tr><td>Deriva de esquema: <code>price</code> pasa de número a string</td><td><code>contract_check</code> falla, alerta SNS</td><td>Cuarentena, cast controlado, reproceso del día</td><td>Contrato con el equipo productor, evolución de esquema explícita</td></tr>
+      <tr><td>Eventos tardíos de 3 días</td><td>Reconciliación de sesiones con diferencias</td><td>Ventana de relectura en Silver y Gold</td><td>Relectura parametrizable y documentada en el contrato</td></tr>
+      <tr><td>Archivo reenviado dos veces</td><td>Test de unicidad en la rama WAP</td><td>Nada que corregir: el MERGE es idempotente</td><td>Demuestra por qué Bronze guarda <code>_source_file</code></td></tr>
+      <tr><td>API de tipos de cambio caída</td><td>Sensor agota timeout, aviso de frescura</td><td>Último tipo conocido marcado como estimado</td><td>Regla de negocio validada con el PO y registrada en el contrato</td></tr>
+      <tr><td>Miles de archivos pequeños, Athena lento</td><td>Duración de consultas y número de archivos por partición</td><td><code>rewrite_data_files</code></td><td>DAG semanal de mantenimiento, ajuste del tamaño de lote</td></tr>
+      <tr><td>Consulta sin filtro de partición escanea todo</td><td>Workgroup Athena corta la consulta a 1 GB</td><td>Reescribir con predicado sobre la partición</td><td>Test en CI que revisa el plan de los modelos más pesados</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Plantilla de post-mortem (sin culpables)</h3>
+  <ol>
+    <li>Impacto: qué producto de datos, qué usuarios, cuánto tiempo.</li>
+    <li>Cronología: detección, diagnóstico, mitigación, resolución (con horas).</li>
+    <li>Causa raíz con "5 porqués", separando el disparador de la causa de fondo.</li>
+    <li>Qué funcionó y qué no en la detección.</li>
+    <li>Acciones con responsable y fecha: tests, alertas, cambios de contrato.</li>
+  </ol>
+  <p>Ensaya también el <strong>backfill</strong>: "corrige la regla de atribución y recalcula 90 días". Debes poder explicar que lo lanzas con Airflow por rangos de fechas, con concurrencia limitada, y que si sale mal haces <code>rollback_to_snapshot</code> en Iceberg.</p>
+</section>
+
+<!-- 12 -->
+<section id="costes">
+  <span class="secnum">12</span>
+  <h2>Costes y la cuenta Free Tier de AWS</h2>
+  <div class="callout">
+    <p><strong>Ojo: el Free Tier ya no es "12 meses gratis".</strong> Las cuentas nuevas creadas desde julio de 2025 reciben créditos (100 USD al alta, hasta 100 USD más completando actividades) y eligen entre plan Free y plan Paid. En el plan Free la cuenta se cierra al agotar los créditos o a los 6 meses. Planifica el proyecto para terminarlo dentro de esa ventana, o pasa al plan Paid con presupuesto y alertas si algún servicio no está disponible en el plan Free.</p>
+  </div>
+  <p>Estrategia: el desarrollo y la orquestación corren en tu máquina con Docker (gratis); AWS aloja el almacenamiento, el catálogo, Athena y unos pocos jobs Glue para demostrar el despliegue real. Con el volumen propuesto, el gasto total debería quedar muy por debajo de los créditos.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Servicio</th><th>Uso en el proyecto</th><th>Orden de magnitud</th><th>Riesgo</th></tr></thead>
+    <tbody>
+      <tr><td>S3</td><td>Lake de unos pocos GB + state de Terraform</td><td class="num">céntimos/mes</td><td><span class="pill ok">bajo</span></td></tr>
+      <tr><td>Glue Data Catalog</td><td>Decenas de tablas</td><td class="num">≈ 0 (nivel gratuito)</td><td><span class="pill ok">bajo</span></td></tr>
+      <tr><td>Athena</td><td>dbt + consultas, con límite de 1 GB por consulta</td><td class="num">céntimos a pocos €</td><td><span class="pill ok">bajo</span></td></tr>
+      <tr><td>Lambda + EventBridge</td><td>Generador cada 15 min</td><td class="num">≈ 0 (siempre gratis)</td><td><span class="pill ok">bajo</span></td></tr>
+      <tr><td>AWS Glue jobs</td><td>Algunas ejecuciones Spark de demostración (2 DPU, ejecución Flex)</td><td class="num">céntimos por ejecución</td><td><span class="pill warn">medio</span> si se programan a diario</td></tr>
+      <tr><td>Amazon MWAA</td><td>No se usa: Airflow local</td><td class="num">cientos €/mes</td><td><span class="pill bad">evitar</span></td></tr>
+      <tr><td>NAT Gateway, Redshift, EMR siempre encendido</td><td>No se usan</td><td class="num">cobran por hora</td><td><span class="pill bad">evitar</span></td></tr>
+    </tbody>
+  </table></div>
+  <p class="muted">Cifras orientativas: compruébalas en la calculadora de precios de AWS antes de lanzar nada. Primer recurso de Terraform que creas: un <code>aws_budgets_budget</code> de 10 USD con alertas al 50 %, 80 % y 100 %.</p>
+</section>
+
+<!-- 13 -->
+<section id="plan">
+  <span class="secnum">13</span>
+  <h2>Plan por fases (unas 8 semanas a 10 h/semana)</h2>
+  <ol class="steps">
+    <li><strong>Fundaciones</strong>Cuenta AWS con MFA y usuario no root, presupuesto, repo, bootstrap de Terraform (state, rol OIDC), CI básica. <span class="muted">Hecho cuando: un PR muestra un plan de Terraform y el merge lo aplica.</span></li>
+    <li><strong>Generador y landing</strong>Simulador OTA coherente, Lambda + EventBridge, Postgres local, archivos en <code>landing/</code>. <span class="muted">Hecho cuando: hay 6 meses de histórico y llegan micro-lotes nuevos.</span></li>
+    <li><strong>Bronze y Silver con Spark + Iceberg</strong>Jobs PySpark con tests, MERGE, sesionización, SCD2, conversión de divisas. <span class="muted">Hecho cuando: relanzar un día da exactamente el mismo resultado.</span></li>
+    <li><strong>Gold con dbt</strong>Staging, modelo dimensional, atribución en tres modelos, ROAS, funnel, RFM, tests, contratos, exposures, docs. <span class="muted">Hecho cuando: el glosario de KPIs coincide con el SQL.</span></li>
+    <li><strong>Orquestación end to end</strong>DAG diario, Cosmos para dbt, sensores, reintentos, backfill de 90 días, DAG semanal de mantenimiento Iceberg. <span class="muted">Hecho cuando: un backfill completo termina sin intervención.</span></li>
+    <li><strong>Calidad y observabilidad</strong>WAP con ramas Iceberg, Elementary, tabla <code>ops.dq_results</code>, alertas SNS, métricas de coste. <span class="muted">Hecho cuando: un dato malo nunca llega a main.</span></li>
+    <li><strong>Gobierno</strong>Contratos ODCS en CI, Marquez con lineage de punta a punta, OpenMetadata, Lake Formation con columnas PII ocultas. <span class="muted">Hecho cuando: puedes enseñar el impacto de un fallo en 2 clics.</span></li>
+    <li><strong>RUN y presentación</strong>Seis game days, dos o tres post-mortems, runbooks, README con diagrama, vídeo de demo de 5 minutos. <span class="muted">Hecho cuando: alguien externo puede levantar el proyecto con el README.</span></li>
+  </ol>
+</section>
+
+<!-- 14 -->
+<section id="dominar">
+  <span class="secnum">14</span>
+  <h2>Lo que debes dominar para sustentarlo</h2>
+  <p>Preguntas que te puede hacer un entrevistador técnico, con la idea central que debe tener tu respuesta. Despliega cada una; ensáyalas en voz alta usando ejemplos de tu proyecto.</p>
+
+  <p class="qgroup">Spark / PySpark</p>
+  <details class="qa"><summary>Un job tarda 10 veces más en una partición que en las demás. ¿Qué haces?</summary><div class="a"><p>Es data skew. Lo confirmo en la Spark UI (una tarea mucho más larga en el stage, shuffle read desigual). Opciones: activar AQE con <code>skewJoin</code>, broadcast join si la tabla pequeña cabe en memoria, salting de la clave caliente, o filtrar y tratar aparte los valores nulos o "unknown", que son la causa clásica.</p></div></details>
+  <details class="qa"><summary>Transformaciones narrow vs wide, y por qué importa el shuffle</summary><div class="a"><p>Narrow (filter, select, map) no mueve datos entre particiones; wide (groupBy, join, distinct, window) provoca shuffle a disco y red, y es lo caro. Optimizar Spark es sobre todo reducir y equilibrar shuffles: filtrar pronto, proyectar columnas, broadcast, ajustar <code>spark.sql.shuffle.partitions</code> o dejar que AQE lo haga.</p></div></details>
+  <details class="qa"><summary>¿Cómo pruebas un job PySpark?</summary><div class="a"><p>Lógica en funciones puras DataFrame → DataFrame, tests con pytest y una SparkSession local, comparación con chispa, casos límite (duplicados, nulos, eventos tardíos). El I/O (lectura/escritura de tablas) va separado de la transformación.</p></div></details>
+  <details class="qa"><summary>¿Por qué el problema de archivos pequeños y cómo lo evitas?</summary><div class="a"><p>Cada archivo cuesta una petición a S3 y una entrada de metadatos: miles de archivos de 1 MB matan la lectura. Lo evito con <code>write.distribution-mode=hash</code> o <code>repartition</code> por partición antes de escribir, micro-lotes menos frecuentes en Bronze y compactación periódica con <code>rewrite_data_files</code>.</p></div></details>
+
+  <p class="qgroup">Apache Iceberg y Lakehouse</p>
+  <details class="qa"><summary>¿Qué aporta Iceberg frente a Parquet "a pelo" en S3 con Hive?</summary><div class="a"><p>Transacciones ACID y aislamiento de snapshots, MERGE/UPDATE/DELETE, evolución de esquema segura (columnas por ID, no por posición o nombre), particionado oculto y evolutivo, poda por estadísticas sin listar directorios, time travel y rollback. Con Hive, un listado de S3 y un esquema frágil.</p></div></details>
+  <details class="qa"><summary>¿Copy-on-write o merge-on-read para la tabla de reservas?</summary><div class="a"><p>Depende del patrón. Silver bookings recibe actualizaciones frecuentes de estado: MoR para escrituras baratas, con compactación programada. Los marts Gold se leen mucho y se escriben una vez al día: CoW. Lo importante es justificarlo con la proporción lecturas/escrituras.</p></div></details>
+  <details class="qa"><summary>¿Por qué Medallion? ¿No son demasiadas copias?</summary><div class="a"><p>Cada capa tiene una garantía distinta: Bronze, reprocesabilidad y auditoría; Silver, verdad técnica limpia y reutilizable por varios dominios; Gold, definición de negocio. Separarlas aísla los fallos y los cambios de reglas. El coste en S3 es pequeño frente al coste de no poder reprocesar. No siempre hacen falta tres capas físicas; algunas tablas Gold pueden ser vistas.</p></div></details>
+
+  <p class="qgroup">dbt</p>
+  <details class="qa"><summary>Estrategias incrementales en dbt-athena con Iceberg</summary><div class="a"><p><code>append</code> (solo añade, riesgo de duplicados), <code>insert_overwrite</code> (reemplaza particiones completas, ideal para recalcular días), <code>merge</code> (upsert por <code>unique_key</code>, solo con Iceberg). Siempre con una ventana de relectura para datos tardíos, y <code>--full-refresh</code> como plan de recuperación.</p></div></details>
+  <details class="qa"><summary>¿Qué es un contrato de modelo dbt y en qué se diferencia de un test?</summary><div class="a"><p>El contrato se comprueba antes de construir: nombres y tipos de columnas y restricciones. Si no coincide, el modelo no se crea. Un test se ejecuta después, sobre los datos. Contrato = forma; test = contenido. Juntos con <code>versions</code> permiten evolucionar un modelo público sin romper consumidores.</p></div></details>
+  <details class="qa"><summary>¿Cómo organizas un proyecto dbt grande y su CI?</summary><div class="a"><p>Capas staging (1:1 con sources, renombrado y tipado), intermediate (lógica reutilizable), marts (por dominio). Tags y selectores para orquestar. Slim CI con <code>state:modified+</code> y <code>--defer</code> para construir solo lo cambiado, comparando con el manifest de producción.</p></div></details>
+
+  <p class="qgroup">Airflow</p>
+  <details class="qa"><summary>¿Qué hace que un DAG sea idempotente?</summary><div class="a"><p>Que cada tarea dependa solo de su intervalo lógico, nunca de <code>now()</code>, y que su escritura sea un reemplazo (overwrite de partición o MERGE) en vez de un append ciego. Así, reintentos y backfills dan el mismo resultado.</p></div></details>
+  <details class="qa"><summary>¿Qué cambia en Airflow 3 respecto a Airflow 2?</summary><div class="a"><p>Las tareas se comunican con un API server en lugar de acceder directamente a la base de metadatos (Task SDK, <code>airflow.sdk</code>), los Datasets pasan a llamarse Assets para scheduling por datos, hay versionado de DAGs y una UI nueva. Mencionar que tu DAG ya usa <code>airflow.sdk</code> demuestra que estás al día.</p></div></details>
+  <details class="qa"><summary>¿Por qué no hacer el procesamiento de datos dentro de Airflow?</summary><div class="a"><p>Airflow es un orquestador: sus workers no escalan como un motor de cómputo y el código de nivel superior de un DAG se parsea continuamente. El trabajo pesado va a Spark, Athena o Glue; Airflow lanza, espera, reintenta y alerta. XCom solo para metadatos pequeños.</p></div></details>
+
+  <p class="qgroup">AWS y Terraform</p>
+  <details class="qa"><summary>¿Glue, EMR Serverless o EMR on EC2?</summary><div class="a"><p>Glue: serverless, integración nativa con el catálogo, ideal para jobs batch medianos y equipos pequeños. EMR Serverless: Spark más reciente y configurable, sin gestionar clústeres. EMR on EC2/EKS: volúmenes grandes y estables, instancias spot, control total, más operación. Elijo según volumen, frecuencia, necesidad de tuning y capacidad del equipo para operar.</p></div></details>
+  <details class="qa"><summary>¿Cómo controlas el coste de Athena?</summary><div class="a"><p>Se paga por byte escaneado: Parquet comprimido, poda por partición y por estadísticas de Iceberg, proyectar solo columnas necesarias, compactación, workgroups con límite por consulta y métricas por equipo. En dbt, revisar los modelos que más escanean.</p></div></details>
+  <details class="qa"><summary>Terraform: state, locking, drift y módulos</summary><div class="a"><p>El state mapea el código a recursos reales; va remoto en S3 con bloqueo (<code>use_lockfile</code>) para que dos applies no se pisen. Drift = cambios manuales detectados con <code>plan</code>; se corrigen en código o con <code>import</code>. Módulos reutilizables y un directorio por entorno, con variables distintas.</p></div></details>
+  <details class="qa"><summary>IAM y Lake Formation: ¿cómo diseñas los permisos?</summary><div class="a"><p>Mínimo privilegio por función: un rol de ingesta que escribe en landing y Bronze, uno de transformación que lee Bronze y escribe Silver/Gold, uno de lectura solo Gold. Lake Formation añade permisos por tabla, columna y fila sobre el catálogo, y etiquetas (LF-tags) para escalar la gestión.</p></div></details>
+
+  <p class="qgroup">Transverse y negocio</p>
+  <details class="qa"><summary>Un PO te pide "el ROAS por canal". ¿Qué preguntas antes de escribir código?</summary><div class="a"><p>¿Ingresos brutos o netos de cancelaciones? ¿Qué modelo y ventana de atribución? ¿Con o sin IVA, en qué divisa? ¿Grano (día, campaña, dispositivo)? ¿Para qué decisión y con qué frescura? ¿Quién valida la cifra? Eso se convierte en una historia con criterios de aceptación, un contrato y tests.</p></div></details>
+  <details class="qa"><summary>¿Qué es un data contract y quién es responsable de él?</summary><div class="a"><p>Un acuerdo versionado entre productor y consumidor sobre esquema, semántica, calidad, SLA y propietario. Lo posee el equipo productor; el consumidor lo aprueba en cambios mayores. Su valor está en ejecutarlo automáticamente (CI y pipeline), no en tenerlo como documentación.</p></div></details>
+  <details class="qa"><summary>Cuéntame un incidente en producción y cómo encontraste la causa raíz</summary><div class="a"><p>Usa uno de tus game days con estructura STAR: contexto, impacto medido, cómo lo detectaste, hipótesis descartadas, causa raíz, corrección y la acción preventiva que lo hace imposible de repetir. Termina con lo que cambiaste en la monitorización.</p></div></details>
+</section>
+
+<!-- 15 -->
+<section id="frances">
+  <span class="secnum">15</span>
+  <h2>Kit para la entrevista en Nantes</h2>
+  <p>La misión es en Francia y la entrevista probablemente será en francés. Ten preparado el pitch y el vocabulario de equipo.</p>
+  <div class="callout">
+    <p><strong>Pitch (français, ~45 s)</strong></p>
+    <p class="fr">« Pour préparer ce type de mission, j'ai construit de bout en bout une plateforme data marketing pour une agence de voyages en ligne fictive. Les flux clickstream, réservations, dépenses média et CRM arrivent dans S3 ; Spark les transforme en tables Iceberg fiables avec des MERGE idempotents et de l'historisation SCD2 ; dbt sur Athena expose des data products – ROAS, attribution, funnel – protégés par des contrats et des tests. Airflow orchestre l'ensemble, Terraform déploie l'infrastructure, et la qualité repose sur un pattern write-audit-publish. J'ai aussi travaillé le RUN : supervision, lineage OpenLineage et post-mortems sur des incidents que j'ai provoqués volontairement. »</p>
+  </div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Término en francés</th><th>Significado en la misión</th></tr></thead>
+    <tbody>
+      <tr><td><span class="fr">le BUILD / le RUN</span></td><td>Construcción de nuevos productos / operación y soporte de lo que ya está en producción</td></tr>
+      <tr><td><span class="fr">MCO (maintien en condition opérationnelle)</span></td><td>Mantenimiento correctivo y preventivo de la plataforma</td></tr>
+      <tr><td><span class="fr">MEP (mise en production)</span></td><td>Despliegue a producción</td></tr>
+      <tr><td><span class="fr">recette</span></td><td>Pruebas de aceptación con negocio (UAT)</td></tr>
+      <tr><td><span class="fr">analyse des causes racines</span></td><td>Análisis de causa raíz (RCA)</td></tr>
+      <tr><td><span class="fr">astreinte</span></td><td>Guardia fuera de horario</td></tr>
+      <tr><td><span class="fr">ordonnanceur</span></td><td>Orquestador (Airflow)</td></tr>
+      <tr><td><span class="fr">volumétrie</span></td><td>Volumen de datos que se procesa</td></tr>
+      <tr><td><span class="fr">référentiel</span></td><td>Datos maestros o de referencia</td></tr>
+      <tr><td><span class="fr">expression de besoin</span></td><td>Necesidad formulada por el Product Owner</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Qué llevar a la entrevista</h3>
+  <ul>
+    <li>El diagrama de arquitectura de esta página, en una sola imagen.</li>
+    <li>El repositorio público con README, ADRs y post-mortems.</li>
+    <li>Un vídeo de 5 minutos: un DAG en verde, un test que bloquea un dato malo, el grafo de lineage y el coste total de AWS.</li>
+    <li>Tres historias preparadas: una decisión de arquitectura discutible, un incidente y una conversación con un PO que cambió el requisito.</li>
+  </ul>
+  <footer>Proyecto de preparación. Skyroute es una empresa ficticia y todos los datos son sintéticos. Precios y condiciones de AWS a verificar en la documentación oficial antes de empezar.</footer>
+</section>
+</main>
+</div>
+</body>
+</html>
