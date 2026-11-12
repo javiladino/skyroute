@@ -72,3 +72,10 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 
 ### Files (skyroute, rama main, sin commit)
 - `docs/design/CONTEXT.md`, `README.md`, `CHANGELOG.md`, `reppit-orchestration/context.md` (modified)
+
+### foundations — Topic abierto (Fase 1)
+- Scaffold de `foundations/context.md`; Fase 1 pasa a In progress en README. Siguiente: Research.
+
+### Files (skyroute, rama main, sin commit)
+- `docs/design/foundations/context.md` (new)
+- `docs/design/CONTEXT.md`, `README.md`, `CHANGELOG.md` (modified)

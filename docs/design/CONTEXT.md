@@ -24,11 +24,11 @@ Se cargan por tarea, no todas a la vez. Están en `.claude/skills/`.
 ## Active Context
 
 **Orden de carga:** este archivo → `<topic>/context.md` del topic activo → los archivos que su document map marca `always` → solo los archivos que nombre la tarea. No cargues `CHANGELOG.md`, `evidence/`, `archive/` ni una carpeta entera salvo que la tarea nombre el archivo.
-**Topics activos:** ninguno.
+**Topics activos:** `foundations` (Fase 1, Fundaciones; recién abierto, sin research).
 
-**Current state (2026-11-12):** Rama `main`, sin commit desde la sesión 3. Las etapas RePPIT se ejecutan con `session-orchestration` (Conventions Design write ownership, Subagent roles y Verification ownership); `stage-author` y `executor` creados, todos los agentes con `model: inherit`; `stage-author` probado en segundo plano con escritura en `working/`. `platform-blueprint`, `agent-workflow` y `reppit-orchestration` cerrados. No hay código, Terraform ni recursos AWS. Fase 1 sin empezar.
+**Current state (2026-11-12):** Rama `main`, sin commit desde la sesión 3. Las etapas RePPIT se ejecutan con `session-orchestration` (Conventions Design write ownership, Subagent roles y Verification ownership); `stage-author` y `executor` creados, todos los agentes con `model: inherit`; `stage-author` probado en segundo plano con escritura en `working/`. `platform-blueprint`, `agent-workflow` y `reppit-orchestration` cerrados. No hay código, Terraform ni recursos AWS. Fase 1 abierta como topic `foundations`.
 
-**Siguiente:** commit; abrir el topic de la Fase 1 (Fundaciones).
+**Siguiente:** Research de `foundations` en una sesión `claude --agent infra-lead`.
 **Problemas conocidos:** Design write ownership se hace cumplir solo por prompt y por herramientas: el allow de `Edit` sobre `working/` no distingue agentes.
 
 ## Conventions
