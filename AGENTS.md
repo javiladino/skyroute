@@ -43,8 +43,13 @@ Las reglas del proyecto están en `docs/design/CONTEXT.md` § Conventions. Ese e
 - IaC only
 - Apply gate
 - Idempotency
-- Single design writer
-- Read-only subagents
+- Design write ownership
+- Subagent roles
+- Skills location
+- Simple shell commands
+- Verification ownership
+- AGENTS.md budget
+- Git workflow
 
 Las reglas de un solo topic están en `docs/design/<topic>/context.md` § Rulings.
 
@@ -79,9 +84,10 @@ Todo trabajo de diseño o código no trivial sigue las cinco etapas, cada una co
 | Research | `reppit-research` | `docs/design/<topic>/working/research.md` |
 | Propose | `reppit-propose` | `docs/design/<topic>/working/proposal.md` |
 | Plan | `reppit-plan` | `docs/design/<topic>/working/plan.md` |
-| Implement | `reppit-implement` | lee `working/plan.md`; cambia el código que lista |
+| Implement | `reppit-implement` | lee `working/plan.md`; cambia el código que lista. Implementer: `executor` |
 | Test | `reppit-test` | `docs/design/<topic>/working/test.md` |
 
+- Las etapas se ejecutan con la skill `session-orchestration`: los stage files los escribe `stage-author`, la implementación y los checks `executor`, y la review `adversarial-reviewer` (agentes en `.claude/agents/`).
 - No pases a Plan hasta que el owner elija propuesta y quede en `proposal.md` § Decision.
 - No pases de una etapa a la siguiente sin el visto bueno del owner.
 - Al cerrar el ciclo, mueve el deliverable a `current/` y los drafts gastados a `archive/` (skill `design-memory`).
@@ -113,8 +119,3 @@ Toda sesión que haya escrito en `docs/design/` termina así, según la skill `d
    ```
 
 5. Cita al owner la línea de resumen del script (`N FAIL, M WARN`). No des una sesión por cerrada sin ella.
-
-## Git
-
-- No hagas commit ni push sin que el owner lo pida.
-- Si estás en `main` y vas a hacer cambios de código, crea antes una rama.

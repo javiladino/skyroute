@@ -2,7 +2,7 @@
 
 **Owner:** javiladino
 **Tracker:** ninguno
-**Status:** memoria de diseño montada; Fase 1 sin empezar.
+**Status:** memoria de diseño y flujo de agentes listos; Fase 1 sin empezar.
 
 ## Resumen
 
@@ -25,8 +25,9 @@ Proyecto de portfolio para un puesto de Data Engineer Senior: una plataforma de 
 
 | Topic | Título | Status |
 |-------|--------|--------|
-| [`platform-blueprint`](platform-blueprint/context.md) | Blueprint de la plataforma y descripción de producto | In progress |
-| [`agent-workflow`](agent-workflow/context.md) | Archivos raíz, agentes y hooks para trabajar con agentes | In progress |
+| [`platform-blueprint`](platform-blueprint/context.md) | Blueprint de la plataforma y descripción de producto | Done |
+| [`agent-workflow`](agent-workflow/context.md) | Archivos raíz, agentes y hooks para trabajar con agentes | Done |
+| [`reppit-orchestration`](reppit-orchestration/context.md) | Etapas RePPIT con session-orchestration: roles, agentes y permisos | In progress |
 
 ## Documentos
 
@@ -38,6 +39,8 @@ Proyecto de portfolio para un puesto de Data Engineer Senior: una plataforma de 
 | agent-workflow | Instrucciones para agentes | [AGENTS.md](../../AGENTS.md) |
 | agent-workflow | Específico de Claude Code | [CLAUDE.md](../../CLAUDE.md) |
 | agent-workflow | README raíz | [README.md](../../README.md) |
+| agent-workflow, reppit-orchestration | Agentes (9) | [.claude/agents/](../../.claude/agents/) |
+| agent-workflow | Permisos y hooks | [settings.json](../../.claude/settings.json) |
 | platform-blueprint | Blueprint original (evidencia) | [skyroute-blueprint.html](platform-blueprint/evidence/skyroute-blueprint.html) |
 
 ## Open decisions

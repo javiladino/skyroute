@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "1"
+  },
+  "permissions": {
+    "deny": [
+      "Bash(terraform plan*)",
+      "Bash(terraform apply*)",
+      "Bash(terraform destroy*)",
+      "Bash(terraform import*)",
+      "Bash(terraform state*)",
+      "Bash(terraform -chdir* plan*)",
+      "Bash(terraform -chdir* apply*)",
+      "Bash(terraform -chdir* destroy*)",
+      "Bash(terraform -chdir* import*)",
+      "Bash(terraform -chdir* state*)",
+      "Bash(aws)",
+      "Bash(aws *)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/*.tfvars)"
+    ],
+    "ask": [
+      "Bash(git commit*)",
+      "Bash(git push*)"
+    ],
+    "allow": [
+      "Bash(terraform fmt*)",
+      "Bash(terraform -chdir* fmt*)",
+      "Bash(terraform validate*)",
+      "Bash(terraform -chdir* validate*)",
+      "Bash(tflint*)",
+      "Bash(checkov*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(python3 .claude/skills/design-memory/scripts/design_check.py*)",
+      "WebSearch",
+      "WebFetch(domain:docs.aws.amazon.com)",
+      "WebFetch(domain:aws.amazon.com)",
+      "WebFetch(domain:developer.hashicorp.com)",
+      "WebFetch(domain:registry.terraform.io)",
+      "WebFetch(domain:docs.github.com)",
+      "WebFetch(domain:docs.getdbt.com)",
+      "WebFetch(domain:iceberg.apache.org)",
+      "WebFetch(domain:spark.apache.org)",
+      "WebFetch(domain:airflow.apache.org)",
+      "WebFetch(domain:code.claude.com)",
+      "Edit(/docs/design/*/working/**)",
+      "Bash(pytest*)",
+      "Bash(ruff*)"
+    ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/design-memory/scripts/design-check-on-stop.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/terraform-fmt.sh",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
+}

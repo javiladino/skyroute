@@ -1,7 +1,7 @@
 # platform-blueprint — Contexto
 
 **Tracker:** ninguno
-**Status:** In progress · **Owner:** javiladino
+**Status:** Done · **Owner:** javiladino
 
 ## Orientación
 
@@ -12,6 +12,8 @@
 _Ninguna regla propia del topic todavía. Las nueve reglas del blueprint pasaron el scope test como reglas de proyecto y viven en `CONTEXT.md` § Conventions._
 
 ## Journal (newest first)
+
+**2026-11-12 (cierre):** Topic cerrado. El deliverable `current/project/README.md` y el blueprint en `evidence/` quedan como están; no había drafts en `working/`. Las Conventions que salieron de aquí siguen en `CONTEXT.md`. Close-out: design_check 0 FAIL.
 
 **2026-11-12:** Sesión 1. Scaffold de la memoria de diseño (proyecto + este topic). Extraídas del blueprint nueve Conventions aprobadas por el owner y escrito el deliverable `current/project/README.md`. Fases 1–8 y cinco decisiones abiertas registradas en el README de diseño, sin topics. Close-out: design_check 0 FAIL; Active Context al día; README coincide; 9 reglas, todas de proyecto, en Conventions.
 
