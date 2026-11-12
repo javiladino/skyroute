@@ -65,3 +65,10 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 ### Files (skyroute, rama main, sin commit)
 - `.claude/agents/*.md` ×9, `AGENTS.md` (modified)
 - `docs/design/CONTEXT.md`, `README.md`, `CHANGELOG.md`, `reppit-orchestration/context.md` (modified)
+
+### reppit-orchestration — Smoke test y cierre del topic
+- Prueba superada: `stage-author` (Sonnet), lanzado en segundo plano, escribió `working/smoke.md` con Write sin bloqueo de permisos; archivo borrado tras comprobarlo.
+- Retirado el problema conocido "agentes no cargados en la sesión que los creó". Topic `reppit-orchestration` cerrado (Done).
+
+### Files (skyroute, rama main, sin commit)
+- `docs/design/CONTEXT.md`, `README.md`, `CHANGELOG.md`, `reppit-orchestration/context.md` (modified)

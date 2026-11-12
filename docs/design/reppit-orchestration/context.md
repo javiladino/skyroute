@@ -1,7 +1,7 @@
 # reppit-orchestration — Contexto
 
 **Tracker:** ninguno
-**Status:** In progress · **Owner:** javiladino
+**Status:** Done · **Owner:** javiladino
 
 ## Orientación
 
@@ -19,6 +19,8 @@
 - **Modelo de los agentes (javiladino, 2026-11-12 20:00):** los agentes de `.claude/agents/` usan `model: inherit`; el modelo de cada subagente lo fija el prompt de cada sesión (contrato 4 de `session-orchestration`).
 
 ## Journal (newest first)
+
+**2026-11-12 (cierre):** Smoke test superado: `stage-author` (Sonnet), en segundo plano, escribió `working/smoke.md` con Write sin bloqueo de settings; comprobado con Read y borrado. Quitado de CONTEXT el problema conocido de agentes no cargados. Topic cerrado (Done); sin commit. Close-out: deliverables fuera de `docs/design/`, nada que mover a `current/` ni `archive/`; Active Context al día; README coincide; sin rulings nuevos.
 
 **2026-11-12 (sesión corta):** Nueva Convention "Verification ownership" (opción b del owner); fuera de Open decisions y de Problemas conocidos. Revertida "Modelo de los agentes": los 9 agentes vuelven a `model: inherit`. Búsqueda de "Single design writer" y "Read-only subagents": cero apariciones en CONTEXT, AGENTS, CLAUDE y agentes. Prueba de `stage-author` en segundo plano no ejecutada: `Agent type 'stage-author' not found` (agentes no cargados en esta sesión); queda pendiente para una sesión nueva, por eso el topic sigue abierto. Close-out: design_check 0 FAIL; Active Context al día; README coincide; 1 Convention y 2 rulings del topic, con scope test.
 

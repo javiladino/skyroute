@@ -27,7 +27,7 @@ Proyecto de portfolio para un puesto de Data Engineer Senior: una plataforma de 
 |-------|--------|--------|
 | [`platform-blueprint`](platform-blueprint/context.md) | Blueprint de la plataforma y descripción de producto | Done |
 | [`agent-workflow`](agent-workflow/context.md) | Archivos raíz, agentes y hooks para trabajar con agentes | Done |
-| [`reppit-orchestration`](reppit-orchestration/context.md) | Etapas RePPIT con session-orchestration: roles, agentes y permisos | In progress |
+| [`reppit-orchestration`](reppit-orchestration/context.md) | Etapas RePPIT con session-orchestration: roles, agentes y permisos | Done |
 
 ## Documentos
 

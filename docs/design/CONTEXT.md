@@ -24,12 +24,12 @@ Se cargan por tarea, no todas a la vez. Están en `.claude/skills/`.
 ## Active Context
 
 **Orden de carga:** este archivo → `<topic>/context.md` del topic activo → los archivos que su document map marca `always` → solo los archivos que nombre la tarea. No cargues `CHANGELOG.md`, `evidence/`, `archive/` ni una carpeta entera salvo que la tarea nombre el archivo.
-**Topics activos:** `reppit-orchestration` (session-orchestration adoptada para RePPIT; falta la prueba de permisos de `stage-author` en segundo plano).
+**Topics activos:** ninguno.
 
-**Current state (2026-11-12):** Rama `main`, sin commit desde la sesión 3. Adoptada `session-orchestration` para las etapas RePPIT (topic `reppit-orchestration`): Conventions de escritura, roles de subagentes y verificación escritas; agentes `stage-author` y `executor` creados; todos los agentes con `model: inherit` (el modelo se fija en cada prompt de sesión); permisos de settings para subagentes en segundo plano. `platform-blueprint` y `agent-workflow` cerrados. No hay código, Terraform ni recursos AWS. Fase 1 sin empezar.
+**Current state (2026-11-12):** Rama `main`, sin commit desde la sesión 3. Las etapas RePPIT se ejecutan con `session-orchestration` (Conventions Design write ownership, Subagent roles y Verification ownership); `stage-author` y `executor` creados, todos los agentes con `model: inherit`; `stage-author` probado en segundo plano con escritura en `working/`. `platform-blueprint`, `agent-workflow` y `reppit-orchestration` cerrados. No hay código, Terraform ni recursos AWS. Fase 1 sin empezar.
 
-**Siguiente:** en una sesión nueva, prueba de `stage-author` en segundo plano escribiendo `reppit-orchestration/working/smoke.md`; commit; abrir el topic de la Fase 1 (Fundaciones).
-**Problemas conocidos:** los agentes de `.claude/agents/` no están cargados en la sesión que los creó (`Agent type 'stage-author' not found`); hay que probarlos en una sesión nueva. Design write ownership se hace cumplir solo por prompt y por herramientas: el allow de `Edit` sobre `working/` no distingue agentes.
+**Siguiente:** commit; abrir el topic de la Fase 1 (Fundaciones).
+**Problemas conocidos:** Design write ownership se hace cumplir solo por prompt y por herramientas: el allow de `Edit` sobre `working/` no distingue agentes.
 
 ## Conventions
 
