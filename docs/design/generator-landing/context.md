@@ -5,7 +5,7 @@
 
 ## Orientación
 
-Fase 2 — Generador y landing (README § Fases): "Simulador OTA coherente, Lambda + EventBridge, Postgres local, archivos en `landing/`. Hecho cuando hay 6 meses de histórico y llegan micro-lotes nuevos." Qué simula el generador y qué entra en `landing/`: `platform-blueprint/current/project/README.md` § Fuentes simuladas. Restricciones: Conventions Region, IaC only, Apply gate, No hourly-billed resources, Medallion layers, Idempotency y Bootstrap identity; Ruling Foundations design (`foundations/context.md`). Hechos de partida: `ci-apply` hoy solo tiene permisos sobre el backend del state, y cualquier recurso de esta fase obliga a ampliarlos dentro de la boundary `ci-boundary`; la cuenta sigue en plan Free, que se cierra a los 6 meses o al agotar los créditos. Rama: `docs/generator-landing-research`. Etapa en curso: Research.
+Fase 2 — Generador y landing (README § Fases): "Simulador OTA coherente, Lambda + EventBridge, Postgres local, archivos en `landing/`. Hecho cuando hay 6 meses de histórico y llegan micro-lotes nuevos." Qué simula el generador y qué entra en `landing/`: `platform-blueprint/current/project/README.md` § Fuentes simuladas. Restricciones: Conventions Region, IaC only, Apply gate, No hourly-billed resources, Medallion layers, Idempotency y Bootstrap identity; Ruling Foundations design (`foundations/context.md`). Hechos de partida: `ci-apply` hoy solo tiene permisos sobre el backend del state, y cualquier recurso de esta fase obliga a ampliarlos dentro de la boundary `ci-boundary`; la cuenta sigue en plan Free, que se cierra a los 6 meses o al agotar los créditos. Rama: `docs/generator-landing-propose`. Etapa en curso: Propose hecho (Propuesta 1 elegida); siguiente Plan.
 
 ## Rulings
 
@@ -22,7 +22,14 @@ Fase 2 — Generador y landing (README § Fases): "Simulador OTA coherente, Lamb
   - Schedule (T13/T21): ENABLED en prod y DISABLED en dev, según una variable. Topes: concurrencia reservada de 1, RetryPolicy acotada, logs con 14 días de retención y una alarma de Invocations que avisa por SNS al email.
   - Plan Free (T12/T14): la cuenta sigue en Free. Antes de Plan, el owner aporta la salida de `aws freetier get-account-plan-state` y `aws budgets describe-budget`. Region se prueba con el primer apply a dev.
 
+- **Propose decisions (javiladino, 2026-11-13 23:00):** Precisan el Ruling Research decisions; la discusión está en `working/proposal.md`.
+  - Lock (precisa "Plan en PR"): `-lock=false` es obligatorio en `ci-plan`, y `ci-plan` pierde `PutObject`/`DeleteObject` sobre el `.tflock`.
+  - Boundary (precisa "Boundary"): hay una boundary de workload por entorno (`workload-boundary-dev`, `workload-boundary-prod`) con ARN `skyroute-<env>-*`, y cada `ci-apply-<env>` solo puede crear o adjuntar la de su entorno.
+  - Propuesta elegida: la Propuesta 1 (un módulo `modules/generator-landing`, zip con stdlib, arm64, roles `ci-apply-dev`/`ci-apply-prod` en archivos separados). Plan parte de ella.
+
 ## Journal (newest first)
+
+**2026-11-13 (Propose):** stage-author (Opus) escribió `working/proposal.md` con 3 propuestas. Revisión en paralelo: adversarial-reviewer (Opus, GO-WITH-FIXES, 13 hallazgos), security-reviewer (Opus, 18 hallazgos) y cost-guard (Sonnet, coste de 0,05 a 0,9 USD/mes y los topes de timeout y memoria de la Lambda). El owner resolvió dos puntos que tocaban el Ruling (Ruling Propose decisions: lock y boundary por entorno). Un stage-author (Sonnet) aplicó todo, y otro (Sonnet) arregló una fila de una tabla. El owner eligió la Propuesta 1; el orquestador la registró en `## Decision`. Triage: `proposal.md` y `research.md` quedan en `working/` como entrada de Plan. Pendiente para el cierre del ciclo: enmendar el Ruling Foundations design (de dos a tres roles de CI y las boundaries de workload). Siguiente: Plan.
 
 **2026-11-13 (acciones del owner):** El owner puso `can_admins_bypass: false` en el environment `dev`; el orquestador lo verificó con `gh api`. El owner aportó dos salidas, que executor guardó en `evidence/`. Plan Free: ACTIVE, 170,55 USD de créditos, vence el 2027-01-22. Budget: `IncludeCredit: false`, así que las alertas miden el coste antes de aplicar créditos (V23 verificado). La parte de T21 que dependía de los créditos queda resuelta; la de un schedule a 0 USD sigue en pie. Nueva decisión abierta en el README: paso a Paid antes de que venza el plan.
 
@@ -40,6 +47,7 @@ Rutas relativas a esta carpeta.
 |------|------|------|--------------|
 | `evidence/freetier-plan-state.json` | reference | on-demand | Salida de `aws freetier get-account-plan-state` aportada por el owner el 2026-11-13: plan Free ACTIVE, 170,55 USD, vence el 2027-01-22 |
 | `evidence/describe-budget-costtypes.json` | reference | on-demand | Salida de `aws budgets describe-budget` de `skyroute-monthly-10usd` con `--query` (sin notificaciones ni email), aportada por el owner el 2026-11-13: CostTypes con `IncludeCredit: false` |
+| `working/proposal.md` | draft | on-demand | Propose de la Fase 2: 3 propuestas revisadas y corregidas, skips de checkov, recomendación; `## Decision`: Propuesta 1 |
 | `working/research.md` | draft | on-demand | Research de la Fase 2: criterio C1-C6, hechos (a)/(b)/(c), secretos, PII, coste, 5 componentes, tensiones T1-T22, preguntas al owner, no verificado |
 | `working/research/generator-data.md` | reference | on-demand | Nota de área: 5 fuentes, coherencia entre ids, determinismo por fecha lógica, volumen de 6 meses, librerías, BCE |
 | `working/research/lambda-eventbridge.md` | reference | on-demand | Nota de área: Scheduler frente a reglas, runtime y empaquetado, logs, coste, plan Free, pausas |
