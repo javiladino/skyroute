@@ -2,7 +2,7 @@
 
 **Owner:** javiladino
 **Tracker:** ninguno
-**Status:** Fase 1 hecha (2026-11-13): bootstrap de Terraform, state remoto en S3, roles OIDC de CI y plan/apply en GitHub Actions; Fase 2 sin empezar.
+**Status:** Fase 1 hecha (2026-11-13): bootstrap de Terraform, state remoto en S3, roles OIDC de CI y plan/apply en GitHub Actions; Fase 2 en Research (topic `generator-landing`): Research hecho, Propose a continuación.
 
 ## Resumen
 
@@ -13,7 +13,7 @@ Proyecto de portfolio para un puesto de Data Engineer Senior: una plataforma de 
 | Fase | Resultado (hecho cuando…) | Estado |
 |------|---------------------------|--------|
 | **1** — Fundaciones | Cuenta AWS con MFA y usuario no root, presupuesto, repo, bootstrap de Terraform (state, rol OIDC), CI básica. Hecho cuando un PR muestra un plan de Terraform y el merge lo aplica. | Done 2026-11-13 ([`foundations`](foundations/context.md); PR #1) |
-| **2** — Generador y landing | Simulador OTA coherente, Lambda + EventBridge, Postgres local, archivos en `landing/`. Hecho cuando hay 6 meses de histórico y llegan micro-lotes nuevos. | Planned - no topic |
+| **2** — Generador y landing | Simulador OTA coherente, Lambda + EventBridge, Postgres local, archivos en `landing/`. Hecho cuando hay 6 meses de histórico y llegan micro-lotes nuevos. | In progress ([`generator-landing`](generator-landing/context.md); Research) |
 | **3** — Bronze y Silver con Spark + Iceberg | Jobs PySpark con tests, MERGE, sesionización, SCD2, conversión de divisas. Hecho cuando relanzar un día da exactamente el mismo resultado. | Planned - no topic |
 | **4** — Gold con dbt | Staging, modelo dimensional, atribución en tres modelos, ROAS, funnel, RFM, tests, contratos, exposures, docs. Hecho cuando el glosario de KPIs coincide con el SQL. | Planned - no topic |
 | **5** — Orquestación end to end | DAG diario, Cosmos para dbt, sensores, reintentos, backfill de 90 días, DAG semanal de mantenimiento Iceberg. Hecho cuando un backfill completo termina sin intervención. | Planned - no topic |
@@ -29,6 +29,7 @@ Proyecto de portfolio para un puesto de Data Engineer Senior: una plataforma de 
 | [`agent-workflow`](agent-workflow/context.md) | Archivos raíz, agentes y hooks para trabajar con agentes | Done |
 | [`reppit-orchestration`](reppit-orchestration/context.md) | Etapas RePPIT con session-orchestration: roles, agentes y permisos | Done |
 | [`foundations`](foundations/context.md) | Fase 1 — Fundaciones: cuenta, presupuesto, bootstrap de Terraform, OIDC y CI | Done |
+| [`generator-landing`](generator-landing/context.md) | Fase 2 — Generador y landing: simulador OTA, Lambda + EventBridge, Postgres local, `landing/` | In progress |
 
 ## Documentos
 
@@ -36,6 +37,7 @@ Proyecto de portfolio para un puesto de Data Engineer Senior: una plataforma de 
 |-------|-----------|------|
 | — | Contexto para agentes | [CONTEXT.md](CONTEXT.md) |
 | — | Changelog | [CHANGELOG.md](CHANGELOG.md) |
+| — | Findings | [findings.md](findings.md) |
 | platform-blueprint | Descripción de producto (deliverable) | [README.md](platform-blueprint/current/project/README.md) |
 | agent-workflow | Instrucciones para agentes | [AGENTS.md](../../AGENTS.md) |
 | agent-workflow | Específico de Claude Code | [CLAUDE.md](../../CLAUDE.md) |
@@ -53,5 +55,7 @@ Proyecto de portfolio para un puesto de Data Engineer Senior: una plataforma de 
 | Motor de checks de calidad en la rama WAP de Silver | PySpark checks propios / Soda Core | Proposed |
 | Modo de escritura Iceberg por tabla | Copy-on-write / merge-on-read (el blueprint sugiere MoR en Silver bookings y CoW en Gold, a justificar por ratio lecturas/escrituras) | Proposed |
 | Herramienta de dashboard de marketing | Streamlit / Evidence | Proposed |
+| Paso a plan Paid antes de que venza el Free (2027-01-22; quedan 170,55 USD de créditos a 2026-11-13) | Pasar a Paid antes de la Fase 5 / seguir en Free y aceptar el cierre | Proposed (de `generator-landing`, `evidence/freetier-plan-state.json`) |
+| Credenciales de AWS para lo que corre en local (Airflow, Spark, export de Postgres a `landing/`) | Tercer rol OIDC / identidad con MFA y sesión temporal / todo en servicios AWS | Proposed (de `generator-landing`, T6) |
 
 _Estados: **Proposed** (opciones listadas, nada elegido) · **Accepted** (elegida; la razón va al CHANGELOG) · **Deprecated** · **Superseded**._

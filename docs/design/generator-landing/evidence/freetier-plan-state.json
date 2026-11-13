@@ -1,0 +1,10 @@
+{
+    "accountId": "437266392155",
+    "accountPlanType": "FREE",
+    "accountPlanStatus": "ACTIVE",
+    "accountPlanRemainingCredits": {
+        "amount": 170.55,
+        "unit": "USD"
+    },
+    "accountPlanExpirationDate": "2027-01-22T11:46:47.120000+00:00"
+}

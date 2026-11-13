@@ -1,0 +1,20 @@
+{
+    "Name": "skyroute-monthly-10usd",
+    "Limit": {
+        "Amount": "10.0",
+        "Unit": "USD"
+    },
+    "CostTypes": {
+        "IncludeTax": true,
+        "IncludeSubscription": true,
+        "UseBlended": false,
+        "IncludeRefund": false,
+        "IncludeCredit": false,
+        "IncludeUpfront": true,
+        "IncludeRecurring": true,
+        "IncludeOtherSubscription": true,
+        "IncludeSupport": true,
+        "IncludeDiscount": true,
+        "UseAmortized": false
+    }
+}
