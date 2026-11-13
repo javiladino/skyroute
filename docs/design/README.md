@@ -2,7 +2,7 @@
 
 **Owner:** javiladino
 **Tracker:** ninguno
-**Status:** memoria de diseño y flujo de agentes listos; Fase 1 sin empezar.
+**Status:** Fase 1 hecha (2026-11-13): bootstrap de Terraform, state remoto en S3, roles OIDC de CI y plan/apply en GitHub Actions; Fase 2 sin empezar.
 
 ## Resumen
 
@@ -12,7 +12,7 @@ Proyecto de portfolio para un puesto de Data Engineer Senior: una plataforma de 
 
 | Fase | Resultado (hecho cuando…) | Estado |
 |------|---------------------------|--------|
-| **1** — Fundaciones | Cuenta AWS con MFA y usuario no root, presupuesto, repo, bootstrap de Terraform (state, rol OIDC), CI básica. Hecho cuando un PR muestra un plan de Terraform y el merge lo aplica. | In progress ([`foundations`](foundations/context.md)) |
+| **1** — Fundaciones | Cuenta AWS con MFA y usuario no root, presupuesto, repo, bootstrap de Terraform (state, rol OIDC), CI básica. Hecho cuando un PR muestra un plan de Terraform y el merge lo aplica. | Done 2026-11-13 ([`foundations`](foundations/context.md); PR #1) |
 | **2** — Generador y landing | Simulador OTA coherente, Lambda + EventBridge, Postgres local, archivos en `landing/`. Hecho cuando hay 6 meses de histórico y llegan micro-lotes nuevos. | Planned - no topic |
 | **3** — Bronze y Silver con Spark + Iceberg | Jobs PySpark con tests, MERGE, sesionización, SCD2, conversión de divisas. Hecho cuando relanzar un día da exactamente el mismo resultado. | Planned - no topic |
 | **4** — Gold con dbt | Staging, modelo dimensional, atribución en tres modelos, ROAS, funnel, RFM, tests, contratos, exposures, docs. Hecho cuando el glosario de KPIs coincide con el SQL. | Planned - no topic |
@@ -28,7 +28,7 @@ Proyecto de portfolio para un puesto de Data Engineer Senior: una plataforma de 
 | [`platform-blueprint`](platform-blueprint/context.md) | Blueprint de la plataforma y descripción de producto | Done |
 | [`agent-workflow`](agent-workflow/context.md) | Archivos raíz, agentes y hooks para trabajar con agentes | Done |
 | [`reppit-orchestration`](reppit-orchestration/context.md) | Etapas RePPIT con session-orchestration: roles, agentes y permisos | Done |
-| [`foundations`](foundations/context.md) | Fase 1 — Fundaciones: cuenta, presupuesto, bootstrap de Terraform, OIDC y CI | In progress |
+| [`foundations`](foundations/context.md) | Fase 1 — Fundaciones: cuenta, presupuesto, bootstrap de Terraform, OIDC y CI | Done |
 
 ## Documentos
 

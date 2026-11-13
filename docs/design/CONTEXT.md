@@ -24,11 +24,11 @@ Se cargan por tarea, no todas a la vez. Están en `.claude/skills/`.
 ## Active Context
 
 **Orden de carga:** este archivo → `<topic>/context.md` del topic activo → los archivos que su document map marca `always` → solo los archivos que nombre la tarea. No cargues `CHANGELOG.md`, `evidence/`, `archive/` ni una carpeta entera salvo que la tarea nombre el archivo.
-**Topics activos:** `foundations` (Fase 1, Fundaciones; Research, Propose y Plan hechos, en `working/`).
+**Topics activos:** ninguno.
 
-**Current state (2026-11-13):** Rama `infra-foundations`; Rama subida con todo en commit, incluidos `bootstrap/backend.tf`, `evidence/bootstrap-plan.txt` y `test.md`. El owner aplicó el bootstrap (bucket de state en eu-west-3, OIDC, roles de CI, budget) y migró su state a S3 (verificado). Test: 62 PASS y 3 PENDIENTE (A10, B6 parcial, F1); budget y recursos manuales borrados, verificados; checkov pasa en local con el comando de la CI y falta confirmar el nuevo run de la CI. Las etapas RePPIT se ejecutan con `session-orchestration` (Conventions Design write ownership, Subagent roles y Verification ownership). `platform-blueprint`, `agent-workflow` y `reppit-orchestration` cerrados. No hay código, Terraform ni recursos AWS. Propose de `foundations` decidido: Ruling Foundations design en `foundations/context.md` (cuenta en Free, sin KMS, dos roles de CI).
+**Current state (2026-11-13):** Fase 1 hecha: `foundations` cerrado (Done) en la rama `docs/foundations-close`, pendiente de PR a `main`. En AWS existen, creados por Terraform, el budget de 10 USD, el bucket de state en eu-west-3, el proveedor OIDC y los roles `ci-plan` y `ci-apply`. La PR publica el plan y el merge aplica en dev y prod, con aprobación manual en `prod`. El código está en `main` (PR #1). Las etapas RePPIT se ejecutan con `session-orchestration` (Conventions Design write ownership, Subagent roles y Verification ownership). `platform-blueprint`, `agent-workflow`, `reppit-orchestration` y `foundations` están cerrados.
 
-**Siguiente:** el owner ejecuta la Fase 7 de `foundations` según `docs/runbooks/foundations-bootstrap.md`; con su evidencia se cierra Test y el topic.
+**Siguiente:** fusionar `docs/foundations-close`; después, abrir el topic de la Fase 2.
 **Problemas conocidos:** Design write ownership se hace cumplir solo por prompt y por herramientas: el allow de `Edit` sobre `working/` no distingue agentes.
 
 ## Conventions
