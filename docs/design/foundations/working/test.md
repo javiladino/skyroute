@@ -8,7 +8,7 @@ type: Test
 
 ## Verdict: PENDIENTE
 
-Los 59 checks que dan PASS (57 ejecutados por un agente más B9 y M1, con evidencia del owner; 0 FAIL; la review es GO-WITH-FIXES con los fixes aplicados): fmt, validate y tflint en los tres root modules, y todos los Grep de Region, IaC only, Apply gate, seguridad del state, No hourly-billed y Budget/bucket. Quedan 4 filas PENDIENTE (owner/CI): T4, A10, B6 y F1. A10 se ejecutó en solo lectura y hoy muestra que la configuración de los environments y de la branch protection todavía no está hecha (ver fila).
+Los 60 checks que dan PASS (58 ejecutados por un agente más B9 y M1, con evidencia del owner; 0 FAIL; la review es GO-WITH-FIXES con los fixes aplicados): fmt, validate y tflint en los tres root modules, checkov local (T4), y todos los Grep de Region, IaC only, Apply gate, seguridad del state, No hourly-billed y Budget/bucket. Quedan 3 filas PENDIENTE (owner/CI): A10, B6 y F1. A10 se ejecutó en solo lectura y hoy muestra que la configuración de los environments y de la branch protection todavía no está hecha (ver fila).
 Ajustes decididos por el owner/orquestador: tflint con `--config=<abs>/infra/terraform/.tflint.hcl` (la fila T3 del plan no lo incluye); `validate` sin repetir `init -backend=false` (ya hecho); sin tests protegidos porque no existen archivos de test. Los Grep se ejecutaron con `rg`/`grep` sin pipes, una orden por llamada. Rutas abreviadas: `TF` = `infra/terraform`, `BS` = `infra/terraform/bootstrap`, `WF` = `.github/workflows`.
 
 ## Checks
@@ -18,8 +18,8 @@ Ajustes decididos por el owner/orquestador: tflint con `--config=<abs>/infra/ter
 | T1 | fmt | plan T1 | `terraform fmt -check -recursive infra/terraform` | sin salida, exit 0 | PASS |
 | T2 | validate x3 | plan T2 | `terraform -chdir=infra/terraform/{bootstrap,envs/dev,envs/prod} validate` | "Success! The configuration is valid." en los tres | PASS |
 | T3 | tflint x3 | plan T3 | `tflint --chdir=infra/terraform/{bootstrap,envs/dev,envs/prod} --config=<abs>/infra/terraform/.tflint.hcl` | sin salida, exit 0 en los tres (nota: el plan omite `--config`) | PASS |
-| T4 | checkov en CI | plan T4 | no ejecutado (no instalado localmente; solo CI) | Necesita: URL del run de Actions con `static-checks` en verde | PENDIENTE (owner/CI) |
-| T4b | checkov en terraform-plan.yml | plan T4b | `rg -n 'checkov\|id-token\|environment:\|^  [a-z-]+:$' WF/terraform-plan.yml` | checkov en job `static-checks` (L110-131); `id-token: write` solo en job `plan` (L22); sin `environment:` | PASS |
+| T4 | checkov (ejecución real, local) | plan T4 | `checkov -d infra/terraform --framework terraform --quiet --compact` con checkov 3.4.5 en un venv del scratchpad (mismo comando que `WF/terraform-plan.yml` L131 y misma versión que su L128 `pip install "checkov==3.4.5"`); ejecutado por el executor y repetido por el orquestador (la salida del orquestador es la evidencia) | `Passed checks: 35, Failed checks: 0, Skipped checks: 6`. Falta confirmar el re-run de CI tras el push (ver Follow-up) | PASS (orquestador, local) |
+| T4b | estático: el job checkov existe en terraform-plan.yml (no prueba que checkov pase) | plan T4b | `rg -n 'checkov\|id-token\|environment:\|^  [a-z-]+:$' WF/terraform-plan.yml` | checkov en job `static-checks` (L110-131); `id-token: write` solo en job `plan` (L22); sin `environment:` | PASS |
 | R1 | region eu-west-3 | plan R1 | `rg -n 'region\s*=\s*"eu-west-3"' TF --glob '*.tf'` | 5: versions.tf:13, dev/backend.tf:14,20, prod/backend.tf:14,20 (backend + provider en dev y prod; provider en bootstrap) | PASS |
 | R2 | ninguna otra región | plan R2 | `rg -nP 'region\s*=\s*"(?!eu-west-3)' TF` | 0 | PASS |
 | R3 | sin eu-north-1 en .tf | plan R3 | `rg -n 'eu-north-1' TF --glob '*.tf'` | 0 | PASS |
@@ -76,7 +76,7 @@ Ajustes decididos por el owner/orquestador: tflint con `--config=<abs>/infra/ter
 
 | T1r | fmt tras los fixes de la review | plan T1 (re-ejecución) | `terraform fmt -check -recursive infra/terraform` | sin salida, exit 0 | PASS (orquestador) |
 | T2r | validate x3 tras los fixes | plan T2 (re-ejecución) | `terraform -chdir=infra/terraform/{bootstrap,envs/dev,envs/prod} validate` | "Success! The configuration is valid." x3 | PASS (orquestador) |
-| T4c | skips de checkov en el state bucket | review hallazgo 1 | `grep -c 'checkov:skip=' infra/terraform/bootstrap/state_bucket.tf` | 4 | PASS (orquestador) |
+| T4c | estático: recuento de `checkov:skip=` (no prueba que checkov pase; ver T4) | review hallazgo 1 | `grep -c 'checkov:skip=' infra/terraform/bootstrap/state_bucket.tf` y `owner_user.tf` | 6 skips en total: 4 en `state_bucket.tf` + 2 en `owner_user.tf` (CKV_AWS_273 y CKV_AWS_274, que citan la Convention "Bootstrap identity") | PASS (orquestador) |
 | REV | Review adversarial (d264a40..9b70313) | reppit-test | adversarial-reviewer (Opus) | GO-WITH-FIXES; fixes 1, 2 y 6 aplicados, 3 nits como follow-up | PASS |
 | M1 | Migración del state del bootstrap a S3 | plan Fase 7 paso 2 | evidencia del owner (salida en chat, 2026-11-13): `aws s3 ls`, `terraform state list`, `terraform plan`, `find` | `aws s3 ls` muestra `bootstrap/terraform.tfstate` en `skyroute-tfstate-437266392155-eu-west-3`; `terraform state list` devuelve 18 recursos (4 importados + 14 añadidos, coincide con B9); `terraform plan` devuelve "No changes"; borrados `terraform.tfstate`, `terraform.tfstate.backup`, el `.tfplan` y la copia de respaldo del owner; `find` no halla ningún `*.tfstate` fuera de `.terraform/` | PASS (evidencia del owner) |
 
@@ -85,7 +85,7 @@ Evidencia aportada por el owner en la Fase 7 (Convention Verification ownership;
 - Apply del paso 1 (aportada por el owner, texto en chat, 2026-11-13): "Apply complete! Resources: 4 imported, 14 added, 0 changed, 0 destroyed." Bucket `skyroute-tfstate-437266392155-eu-west-3` creado en eu-west-3. Coincide con el plan de B9 (4 import, 14 add).
 - Paso 2, migración del state (verificación del owner de 2026-11-13, salida citada en chat): `aws s3 ls` muestra `bootstrap/terraform.tfstate` en el bucket `skyroute-tfstate-437266392155-eu-west-3`; `terraform state list` devuelve 18 recursos (4 importados + 14 añadidos, coherente con B9); `terraform plan` devuelve "No changes"; se borraron el `terraform.tfstate` local, el `terraform.tfstate.backup`, el `.tfplan` y la copia de respaldo del owner, y `find` no encuentra ningún `*.tfstate` fuera de `.terraform/`. Corrección: el registro anterior daba el `terraform init -migrate-state` por hecho a partir de una afirmación previa, y era prematuro. En ese momento no se había hecho: Terraform informaba "Backend initialization required" y el bucket estaba vacío. Este registro lo corrige. No sustituye a B6.
 
-Resumen: 59 PASS, 0 FAIL, 4 PENDIENTE (T4, A10, B6, F1). Las 4 filas nuevas (T1r, T2r, T4c, REV) vienen de la review y de la re-ejecución del orquestador tras los fixes; M1 se añade con la evidencia del owner sobre la migración del state. El `git status` final se comprobó al cerrar la sesión (solo `test.md` nuevo).
+Resumen: 60 PASS, 0 FAIL, 3 PENDIENTE (A10, B6, F1). Las 4 filas nuevas (T1r, T2r, T4c, REV) vienen de la review y de la re-ejecución del orquestador tras los fixes; M1 se añade con la evidencia del owner sobre la migración del state. El `git status` final se comprobó al cerrar la sesión (solo `test.md` nuevo).
 
 ## Review
 
@@ -102,12 +102,15 @@ Verificado OK por el reviewer: permisos de ci-plan y ci-apply suficientes para e
 
 Fila REV: PASS, porque los fixes 1, 2 y 6 están aplicados y los 3 nits restantes son follow-up menor fuera del alcance del plan.
 
+Corrección de un PASS engañoso (2026-11-13): ninguna fila había ejecutado checkov. T4 estaba PENDIENTE y T4b/T4c eran grep estáticos que se leyeron como si checkov pasara. El run de CI de la PR falló (`Passed 35, Failed 2, Skipped 4`: CKV_AWS_273 `aws_iam_user.owner` y CKV_AWS_274 `aws_iam_group_policy_attachment.admins_administrator_access`). Misma versión en local y CI (3.4.5), así que no cambia el pin. El owner aceptó 273/274 como riesgos: nueva Convention "Bootstrap identity" en `CONTEXT.md` y 2 skips en línea en `infra/terraform/bootstrap/owner_user.tf` que la citan (sin desactivación en todo el repo). T4 pasa ahora con una ejecución real (`Passed 35, Failed 0, Skipped 6`); T4b y T4c se renombran como comprobaciones estáticas.
+
 ## Follow-up
 
 - Review nits 3, 4 y 5: incluir `bootstrap/` en fmt/tflint de CI, quitar el `tflint --init` duplicado del bucle y decidir qué hacer con las PR desde forks (fallan en OIDC sin comentario).
-- Las 4 filas PENDIENTE (T4, B6, F1, A10) necesitan evidencia del owner o de CI (runbook Fase 7). A10 hoy muestra environments sin `deployment_branch_policy`, sin protection rules, `can_admins_bypass: true` y `main` sin branch protection. El veredicto sigue PENDIENTE.
+- Las 3 filas PENDIENTE (B6, F1, A10) necesitan evidencia del owner o de CI (runbook Fase 7). A10 hoy muestra environments sin `deployment_branch_policy`, sin protection rules, `can_admins_bypass: true` y `main` sin branch protection. El veredicto sigue PENDIENTE.
 
-- T4, B6, F1: aportar la evidencia indicada en cada fila (owner/CI, Convention Verification ownership).
+- B6, F1: aportar la evidencia indicada en cada fila (owner/CI, Convention Verification ownership).
+- T4: el owner confirma que el re-run de CI tras el push deja `static-checks` en verde (URL del run). No bloquea el PASS local de T4.
 - A10: el owner debe configurar en la UI deployment branches solo `main` en `dev` y `prod`, revisor requerido en `prod` con "Prevent self-review" desactivado, bypass de administradores desactivado (hoy `can_admins_bypass: true`) y branch protection de `main` con PR requerida (hoy 404). Después, repetir los tres `gh api` de A10.
 - T3: la fila del plan no incluye `--config`; corregir el plan o `AGENTS.md` si ese es el comando canónico.
 - Observación en P1: el plan dice que `docs/design/CONTEXT.md` no se toca y que no cambia nada fuera de Files Changed, pero el commit 9b70313 modifica `CONTEXT.md`, `CHANGELOG.md` y `foundations/context.md` (actualización de memoria de diseño). El orquestador decide si es deriva aceptable.

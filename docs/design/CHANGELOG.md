@@ -128,3 +128,9 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 ### Files (skyroute, rama infra-foundations, sin commit)
 - `docs/design/foundations/evidence/bootstrap-plan.txt`, `infra/terraform/bootstrap/backend.tf` (new)
 - `docs/design/foundations/working/test.md`, `CONTEXT.md`, `CHANGELOG.md`, `foundations/context.md` (modified)
+
+### foundations — checkov en la PR
+- Nueva Convention Bootstrap identity: el usuario de arranque con `AdministratorAccess` es un riesgo aceptado; CKV_AWS_273 y CKV_AWS_274 se omiten solo en sus dos recursos. checkov local con el comando de la CI: 35 passed, 0 failed, 6 skipped. Corregido en `test.md` el PASS engañoso (greps estáticos, no ejecuciones de checkov).
+
+### Files (skyroute, rama infra-foundations)
+- `infra/terraform/bootstrap/owner_user.tf`, `AGENTS.md`, `docs/design/CONTEXT.md`, `CHANGELOG.md`, `foundations/context.md`, `foundations/working/test.md` (modified)

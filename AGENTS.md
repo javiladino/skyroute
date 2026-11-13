@@ -50,6 +50,7 @@ Las reglas del proyecto están en `docs/design/CONTEXT.md` § Conventions. Ese e
 - Verification ownership
 - AGENTS.md budget
 - Git workflow
+- Bootstrap identity
 
 Las reglas de un solo topic están en `docs/design/<topic>/context.md` § Rulings.
 

@@ -23,6 +23,7 @@ import {
 }
 
 resource "aws_iam_user" "owner" {
+  #checkov:skip=CKV_AWS_273:Convention Bootstrap identity: identidad humana de arranque sin Identity Center en plan Free; MFA, sin access keys.
   name = "skyroute-dev"
   path = "/"
 }
@@ -33,6 +34,7 @@ resource "aws_iam_group" "admins" {
 }
 
 resource "aws_iam_group_policy_attachment" "admins_administrator_access" {
+  #checkov:skip=CKV_AWS_274:Convention Bootstrap identity: AdministratorAccess solo para la identidad humana de arranque, riesgo aceptado por el owner.
   group      = aws_iam_group.admins.name
   policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
 }
