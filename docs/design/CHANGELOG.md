@@ -158,3 +158,16 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 ### Files (skyroute, rama infra-foundations)
 - `docs/design/foundations/evidence/describe-budgets.json` (new)
 - `docs/design/foundations/working/test.md`, `CONTEXT.md`, `CHANGELOG.md`, `foundations/context.md` (modified)
+
+### generator-landing — Topic abierto (Fase 2)
+- Scaffold del topic `generator-landing` (Fase 2 — Generador y landing) en la rama `docs/generator-landing-research`.
+- Research: cinco notas de área y `working/research.md`, revisado en una ronda (adversarial, seguridad y coste) y corregido. Quedan 22 tensiones con las Conventions, sin resolver. Hallazgo verificado sobre la Fase 1: `ci-apply` (trust `environment:dev`) puede escribir el state de prod, y `dev` tiene `can_admins_bypass: true` (T17). Pendiente: visto bueno del owner.
+- El owner aprobó Research y decidió en grill-me 10 puntos (Ruling Research decisions en `generator-landing/context.md`). Entre ellos: el histórico de `landing/` se regenera bajo demanda y el backfill lo hace la Lambda; se separan `ci-apply-dev` y `ci-apply-prod`; se crea una `workload-boundary` propia; el bucket de datos va sin versioning y con SSE-S3; el schedule queda ENABLED solo en prod; la cuenta sigue en plan Free.
+- Convention Apply gate aclarada: el owner re-aplica `bootstrap/` en cada cambio, con el state remoto y su plan como evidencia; la CI nunca aplica bootstrap.
+- Nuevo `findings.md` con 3 entradas. Nueva decisión abierta: credenciales de AWS para lo que corre en local.
+- Acciones del owner: `can_admins_bypass: false` en `dev`, verificado. Plan Free ACTIVE, con 170,55 USD y vencimiento el 2027-01-22. Budget con `IncludeCredit: false`. Las dos salidas están en `generator-landing/evidence/`. Nueva decisión abierta: paso a Paid.
+
+### Files (skyroute, rama docs/generator-landing-research, sin commit)
+- `docs/design/generator-landing/context.md`, `working/research.md`, `working/research/{generator-data,lambda-eventbridge,postgres-local,landing-s3,ci-permissions}.md` (new)
+- `docs/design/findings.md` (new)
+- `docs/design/CONTEXT.md`, `docs/design/README.md`, `docs/design/CHANGELOG.md` (modified)
