@@ -1,0 +1,22 @@
+name: skyroute-postgres
+
+services:
+  postgres:
+    image: postgres:18.7
+    # POSTGRES_PASSWORD viene de .env (ignorado por git); `make env` lo crea desde .env.example.
+    env_file:
+      - path: ../../.env
+        required: false
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ./init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
