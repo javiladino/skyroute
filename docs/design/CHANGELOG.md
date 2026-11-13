@@ -97,3 +97,20 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 ### Files (skyroute, rama infra-foundations, sin commit)
 - `docs/design/foundations/working/proposal.md` (new)
 - `docs/design/CONTEXT.md`, `README.md`, `CHANGELOG.md`, `foundations/context.md` (modified)
+
+## 2026-11-13
+
+### foundations — Plan (sesión infra-lead)
+- `working/plan.md`: 7 fases, la última solo del owner y la CI; una ronda de revisión (adversarial-reviewer GO-WITH-FIXES, security-reviewer, cost-guard) y corrección.
+- Conventions IaC only y Apply gate aclaradas con el owner: excepción para los recursos previos al bootstrap (usuario, grupo y pertenencia importados; budget y bucket manuales que borra el owner); "los roles de CI". El bucket manual está en eu-north-1 y no se adopta.
+
+### Files (skyroute, rama infra-foundations, sin commit)
+- `docs/design/foundations/working/plan.md` (new)
+- `docs/design/CONTEXT.md`, `CHANGELOG.md`, `foundations/context.md` (modified)
+
+### foundations — Implement, fases 1-6 (sesión infra-lead)
+- Bootstrap de Terraform (budget, bucket de state, OIDC, roles `ci-plan`/`ci-apply` con boundary, imports del usuario del owner), backends de dev y prod, workflows de plan y apply, `.tflint.hcl`, runbook y comandos de `AGENTS.md`. fmt, validate y tflint pasan; checkov y la Fase 7 quedan para la CI y el owner.
+
+### Files (skyroute, rama infra-foundations, sin commit)
+- `infra/terraform/**`, `.github/workflows/terraform-{plan,apply}.yml`, `docs/runbooks/foundations-bootstrap.md` (new)
+- `AGENTS.md`, `docs/design/foundations/working/plan.md` (modified)
