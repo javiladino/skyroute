@@ -5,7 +5,7 @@
 
 ## Orientación
 
-Fase 2 — Generador y landing (README § Fases): "Simulador OTA coherente, Lambda + EventBridge, Postgres local, archivos en `landing/`. Hecho cuando hay 6 meses de histórico y llegan micro-lotes nuevos." Qué simula el generador y qué entra en `landing/`: `platform-blueprint/current/project/README.md` § Fuentes simuladas. Restricciones: Conventions Region, IaC only, Apply gate, No hourly-billed resources, Medallion layers, Idempotency y Bootstrap identity; Ruling Foundations design (`foundations/context.md`). Hechos de partida: `ci-apply` hoy solo tiene permisos sobre el backend del state, y cualquier recurso de esta fase obliga a ampliarlos dentro de la boundary `ci-boundary`; la cuenta sigue en plan Free, que se cierra a los 6 meses o al agotar los créditos. Rama: `docs/generator-landing-propose`. Etapa en curso: Propose hecho (Propuesta 1 elegida); siguiente Plan.
+Fase 2 — Generador y landing (README § Fases): "Simulador OTA coherente, Lambda + EventBridge, Postgres local, archivos en `landing/`. Hecho cuando hay 6 meses de histórico y llegan micro-lotes nuevos." Qué simula el generador y qué entra en `landing/`: `platform-blueprint/current/project/README.md` § Fuentes simuladas. Restricciones: Conventions Region, IaC only, Apply gate, No hourly-billed resources, Medallion layers, Idempotency y Bootstrap identity; Ruling Foundations design (`foundations/context.md`). Hechos de partida: `ci-apply` hoy solo tiene permisos sobre el backend del state, y cualquier recurso de esta fase obliga a ampliarlos dentro de la boundary `ci-boundary`; la cuenta sigue en plan Free, que se cierra a los 6 meses o al agotar los créditos. Rama: `docs/generator-landing-plan`. Etapa en curso: Plan hecho y aprobado (Ruling Plan decisions); siguiente Implement.
 
 ## Rulings
 
@@ -27,7 +27,24 @@ Fase 2 — Generador y landing (README § Fases): "Simulador OTA coherente, Lamb
   - Boundary (precisa "Boundary"): hay una boundary de workload por entorno (`workload-boundary-dev`, `workload-boundary-prod`) con ARN `skyroute-<env>-*`, y cada `ci-apply-<env>` solo puede crear o adjuntar la de su entorno.
   - Propuesta elegida: la Propuesta 1 (un módulo `modules/generator-landing`, zip con stdlib, arm64, roles `ci-apply-dev`/`ci-apply-prod` en archivos separados). Plan parte de ella.
 
+- **Plan decisions (javiladino, 2026-11-13):** El owner aceptó todas las opciones por defecto de `working/plan.md` § Future Considerations y dio el visto bueno al plan.
+  - Transición: los roles nuevos se crean antes de destruir `ci-apply`, en dos re-applies del owner (Fases 5 y 8). Solo hay ventana sin rol de apply en la vuelta atrás.
+  - Alcance: solo lo de la Propuesta 1 (clickstream en `landing/` y Reservas en Postgres local). Las otras fuentes quedan fuera (OQ8).
+  - OQ6: `ci-boundary` común, ampliada con los ARN de los dos entornos.
+  - OQ10: `ci-plan` recibe `lambda:GetFunction`, solo sobre `function:skyroute-*-generator`.
+  - OQ11: `aws_s3_account_public_access_block` en `bootstrap/`.
+  - OQ1/OQ4: generador solo con stdlib, con duplicados y tardíos sembrados por la semilla.
+  - OQ2: tramos de 1 día con `backfill_timeout` de 300 s.
+  - OQ3: la alarma salta con más de 120 Invocations en 1 h.
+  - OQ5: `ALARM_EMAIL` como variable de repositorio.
+  - OQ7: SQL generado con stdlib y cargado con `psql` dentro del contenedor.
+  - OQ9: D es la fecha del primer slot del schedule de prod, que el owner registra tras la Fase 9.
+  - PC2: slots UTC `00`..`95`.
+  - Checks: PC6 (cuota de concurrencia) la aporta el owner antes de la Fase 9. PC1 y PC5 se comprueban en el primer apply a dev, y PC3 en la PR-T1.
+
 ## Journal (newest first)
+
+**2026-11-13 (Plan):** stage-author (Opus) escribió `working/plan.md`: 10 fases, con las 5, 8 y 10 a cargo del owner. Revisión en paralelo: adversarial-reviewer (Opus, NEEDS-REVISION, 13 hallazgos), security-reviewer (Opus, 11 hallazgos) y cost-guard (Sonnet, de 0,02 a 0,3 USD/mes). executor (Sonnet) comprobó con `gh api` que los environments `dev` y `prod` solo admiten despliegues desde `main` y tienen `can_admins_bypass: false`; el hallazgo high de seguridad no se sostiene. Un stage-author (Sonnet) aplicó los 28 hallazgos. El owner resolvió dos choques (transición y alcance), aceptó todas las opciones por defecto y aprobó el plan (Ruling Plan decisions). Desviación anotada: `aws:SourceArn` del Scheduler apunta al schedule group, como pide la guía de AWS. Triage: `plan.md`, `proposal.md` y `research.md` quedan en `working/`. Siguiente: Implement.
 
 **2026-11-13 (Propose):** stage-author (Opus) escribió `working/proposal.md` con 3 propuestas. Revisión en paralelo: adversarial-reviewer (Opus, GO-WITH-FIXES, 13 hallazgos), security-reviewer (Opus, 18 hallazgos) y cost-guard (Sonnet, coste de 0,05 a 0,9 USD/mes y los topes de timeout y memoria de la Lambda). El owner resolvió dos puntos que tocaban el Ruling (Ruling Propose decisions: lock y boundary por entorno). Un stage-author (Sonnet) aplicó todo, y otro (Sonnet) arregló una fila de una tabla. El owner eligió la Propuesta 1; el orquestador la registró en `## Decision`. Triage: `proposal.md` y `research.md` quedan en `working/` como entrada de Plan. Pendiente para el cierre del ciclo: enmendar el Ruling Foundations design (de dos a tres roles de CI y las boundaries de workload). Siguiente: Plan.
 
@@ -47,6 +64,7 @@ Rutas relativas a esta carpeta.
 |------|------|------|--------------|
 | `evidence/freetier-plan-state.json` | reference | on-demand | Salida de `aws freetier get-account-plan-state` aportada por el owner el 2026-11-13: plan Free ACTIVE, 170,55 USD, vence el 2027-01-22 |
 | `evidence/describe-budget-costtypes.json` | reference | on-demand | Salida de `aws budgets describe-budget` de `skyroute-monthly-10usd` con `--query` (sin notificaciones ni email), aportada por el owner el 2026-11-13: CostTypes con `IncludeCredit: false` |
+| `working/plan.md` | draft | on-demand | Plan de la Fase 2 (Propuesta 1), aprobado: 10 fases (las 5, 8 y 10 las ejecuta el owner), Files Changed, checks TS-*, OQ1-OQ11 y PC1-PC7 resueltas en el Ruling Plan decisions |
 | `working/proposal.md` | draft | on-demand | Propose de la Fase 2: 3 propuestas revisadas y corregidas, skips de checkov, recomendación; `## Decision`: Propuesta 1 |
 | `working/research.md` | draft | on-demand | Research de la Fase 2: criterio C1-C6, hechos (a)/(b)/(c), secretos, PII, coste, 5 componentes, tensiones T1-T22, preguntas al owner, no verificado |
 | `working/research/generator-data.md` | reference | on-demand | Nota de área: 5 fuentes, coherencia entre ids, determinismo por fecha lógica, volumen de 6 meses, librerías, BCE |
