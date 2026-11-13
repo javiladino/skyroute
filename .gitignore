@@ -50,6 +50,7 @@ data/
 # Secretos y entorno
 .env
 .env.*
+!.env.example
 
 # Claude Code (local, no compartido)
 .claude/settings.local.json
