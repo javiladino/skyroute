@@ -31,6 +31,7 @@ Pasos que ejecuta solo el owner. Ningún agente corre `terraform plan`, `terrafo
    ```
 
 2. `terraform init -migrate-state` y responde `yes`.
+3. Compara `terraform state list` con el remoto y, si coincide, borra `terraform.tfstate` y `terraform.tfstate.backup` locales en `infra/terraform/bootstrap/`: contienen el email en claro.
 
 ## 3. Verificar y limpiar
 
@@ -69,3 +70,5 @@ Comprueba la configuración con la verificación A10 del plan de foundations.
 ## Antes de cerrar la cuenta Free
 
 La cuenta Free pierde sus recursos al terminar, incluido el bucket de state. Exporta el state antes (`terraform state pull > backup.tfstate` en cada root module) y guárdalo fuera de AWS.
+
+Para borrar después el bucket de state (por ejemplo, al cerrar la cuenta Free): la política del bucket tiene un Deny de `s3:DeleteBucket` para Principal `"*"` y el recurso lleva `prevent_destroy`. Antes hay que quitar ese statement de la política y `prevent_destroy` del código.

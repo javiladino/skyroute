@@ -2,6 +2,11 @@ resource "aws_s3_bucket" "state" {
   bucket        = var.state_bucket_name
   force_destroy = false
 
+  #checkov:skip=CKV_AWS_145:Decisión del owner SSE-S3, sin KMS (Convention No hourly-billed resources).
+  #checkov:skip=CKV_AWS_144:Convention Region, todo en eu-west-3; bucket de state de un solo entorno, sin réplica cross-region.
+  #checkov:skip=CKV_AWS_18:Un bucket de logs adicional queda fuera de alcance de Fase 1 por coste y alcance.
+  #checkov:skip=CKV2_AWS_62:No hay consumidores de eventos del state, no se necesitan notificaciones.
+
   lifecycle {
     prevent_destroy = true
   }

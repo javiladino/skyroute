@@ -5,13 +5,15 @@
 
 ## Orientación
 
-Fase 1 — Fundaciones (README § Fases): cuenta AWS con MFA y usuario no root, presupuesto, repo, bootstrap de Terraform (state remoto, rol OIDC para GitHub Actions) y CI básica. Hecho cuando un PR muestra un plan de Terraform y el merge lo aplica. Restricciones: Conventions Region, IaC only, Apply gate y No hourly-billed resources. Decisión abierta que toca a esta fase: plan de cuenta AWS (README § Open decisions). Siguiente etapa: Test (`reppit-test`) con `infra-lead` como orquestador; Implement hecho salvo la Fase 7, que ejecutan el owner y la CI (`docs/runbooks/foundations-bootstrap.md`); propuesta elegida en `working/proposal.md` § Decision.
+Fase 1 — Fundaciones (README § Fases): cuenta AWS con MFA y usuario no root, presupuesto, repo, bootstrap de Terraform (state remoto, rol OIDC para GitHub Actions) y CI básica. Hecho cuando un PR muestra un plan de Terraform y el merge lo aplica. Restricciones: Conventions Region, IaC only, Apply gate y No hourly-billed resources. Decisión abierta que toca a esta fase: plan de cuenta AWS (README § Open decisions). Siguiente: Fase 7 del owner y la CI (`docs/runbooks/foundations-bootstrap.md`); con su evidencia (URL del comentario de plan, run de apply y checkov, salidas de `aws`) se cierra Test (`working/test.md`, hoy PENDIENTE) y el ciclo; propuesta elegida en `working/proposal.md` § Decision.
 
 ## Rulings
 
 - **Foundations design (javiladino, 2026-11-12 18:00):** Proposal 1 con dos roles de CI: state con SSE-S3 (sin KMS), cuenta AWS en plan Free (Paid aplazado), owner con IAM user y MFA (sin Organizations ni Identity Center), roles `ci-plan` (`sub` `pull_request`) y `ci-apply` (`sub` `environment:dev`/`environment:prod`, environments solo desde `main`). Discusión: `working/proposal.md` § Decision.
 
 ## Journal (newest first)
+
+**2026-11-13 (Test):** Commit `9b70313` (Plan e Implement). `working/test.md` (executor, Sonnet) con base `d264a40`: 57 PASS, 0 FAIL, 5 PENDIENTE (T4 checkov, B6, B9, F1, A10), todos a la espera de evidencia del owner o la CI. Revisión del diff (adversarial-reviewer, Opus): GO-WITH-FIXES. Con el visto bueno del owner, executor añadió 4 `#checkov:skip` justificados en `state_bucket.tf` y dos notas al runbook; quedan 3 nits como follow-up. El orquestador repitió fmt, validate ×3 y el conteo de skips. Veredicto PENDIENTE. Siguiente: Fase 7 del owner según el runbook y, con su evidencia, cerrar Test.
 
 **2026-11-13 (Implement):** Visto bueno del owner al plan. Respuestas incorporadas al plan: environments ya creados en GitHub, grupo `admins` con AdministratorAccess, bucket `skyroute-tfstate-437266392155-eu-west-3`, checkov solo en CI. Fases 1-6 ejecutadas por un executor cada una (Opus en las 2 y 3, Sonnet en el resto); el orquestador volvió a ejecutar cada validación. Decisiones del owner sobre la deriva, ya registradas en el plan: `*` solo en Deny; Deny que protege `ci-boundary`; sin filtros `paths`, con `concurrency`; el runbook nombra el bucket manual. Verificación final: `terraform fmt -check` limpio, `validate` correcto en los 3 root modules, tflint sin hallazgos. Sin comprobar: sintaxis YAML (no hay actionlint ni PyYAML) y checkov (solo en CI). Fase 7 pendiente del owner. Siguiente: Test (`reppit-test`).
 
@@ -32,6 +34,7 @@ Rutas relativas a esta carpeta.
 | `working/research.md` | draft | on-demand | Stage file Research: estado del repo, hechos externos de las cuatro áreas, tensiones con Conventions, no verificado |
 | `working/proposal.md` | draft | on-demand | Stage file Propose: tres propuestas revisadas, tabla de recomendación y § Decision (P1 con dos roles) |
 | `working/plan.md` | draft | on-demand | Stage file Plan: 7 fases (6 de executor, 1 del owner y la CI), Files Changed, Testing Strategy para reppit-test |
+| `working/test.md` | draft | on-demand | Stage file Test: 62 checks (57 PASS, 5 PENDIENTE del owner o la CI), Review GO-WITH-FIXES, follow-ups |
 | `working/research/terraform-layout.md` | draft | on-demand | Nota de área: layout bootstrap/modules/envs, backend S3 `use_lockfile`, bootstrap del bucket, versiones |
 | `working/research/cicd-oidc.md` | draft | on-demand | Nota de área: OIDC GitHub→AWS, formatos `sub`, plan en PR y apply al fusionar, environments |
 | `working/research/iam-security.md` | draft | on-demand | Nota de área: acceso del owner (IAM user / Identity Center), rol de CI, protección del bucket de state |
