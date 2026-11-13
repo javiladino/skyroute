@@ -50,6 +50,7 @@ Las reglas del proyecto están en `docs/design/CONTEXT.md` § Conventions. Ese e
 - Verification ownership
 - AGENTS.md budget
 - Git workflow
+- Bootstrap identity
 
 Las reglas de un solo topic están en `docs/design/<topic>/context.md` § Rulings.
 
@@ -100,7 +101,12 @@ Todavía no hay código. Rellena estos comandos cuando exista cada componente:
 # TODO: lint Python        (ruff …)
 # TODO: tests Spark        (pytest spark/tests)
 # TODO: dbt                (dbt build …)
-# TODO: Terraform estático (terraform fmt -check, validate, tflint, checkov)
+terraform fmt -check -recursive infra/terraform
+# validate: antes, terraform -chdir=infra/terraform/<root-module> init -backend=false
+terraform -chdir=infra/terraform/<root-module> validate
+# tflint: antes, tflint --init --config=infra/terraform/.tflint.hcl; nunca con --recursive
+tflint --chdir=infra/terraform/<root-module> --config=$PWD/infra/terraform/.tflint.hcl
+# checkov -d infra/terraform: corre solo en CI (job static-checks de terraform-plan.yml), no localmente
 # TODO: contratos          (datacontract lint / test)
 # TODO: entorno local      (make up)
 ```

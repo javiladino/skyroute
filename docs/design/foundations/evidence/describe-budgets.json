@@ -1,0 +1,43 @@
+{
+    "Budget": {
+        "BudgetName": "skyroute-monthly-10usd",
+        "BudgetLimit": {
+            "Amount": "10.0",
+            "Unit": "USD"
+        },
+        "CostTypes": {
+            "IncludeTax": true,
+            "IncludeSubscription": true,
+            "UseBlended": false,
+            "IncludeRefund": false,
+            "IncludeCredit": false,
+            "IncludeUpfront": true,
+            "IncludeRecurring": true,
+            "IncludeOtherSubscription": true,
+            "IncludeSupport": true,
+            "IncludeDiscount": true,
+            "UseAmortized": false
+        },
+        "TimeUnit": "MONTHLY",
+        "TimePeriod": {
+            "Start": "2026-11-01T01:00:00+01:00",
+            "End": "2087-06-15T02:00:00+02:00"
+        },
+        "CalculatedSpend": {
+            "ActualSpend": {
+                "Amount": "0.0",
+                "Unit": "USD"
+            },
+            "ForecastedSpend": {
+                "Amount": "0.123",
+                "Unit": "USD"
+            }
+        },
+        "BudgetType": "COST",
+        "LastUpdatedTime": "2026-11-13T14:36:27.572000+01:00",
+        "HealthStatus": {
+            "Status": "HEALTHY",
+            "LastUpdatedTime": "2026-11-13T14:36:20.726000+01:00"
+        }
+    }
+}

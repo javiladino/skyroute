@@ -79,3 +79,65 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 ### Files (skyroute, rama main, sin commit)
 - `docs/design/foundations/context.md` (new)
 - `docs/design/CONTEXT.md`, `README.md`, `CHANGELOG.md` (modified)
+
+### foundations — Research (sesión infra-lead)
+- `working/research.md` consolidado a partir de cuatro notas de área (terraform-layout, cicd-oidc, iam-security, account-cost); una ronda de revisión (adversarial-reviewer GO-WITH-FIXES, security-reviewer, cost-guard) y corrección de 22 hallazgos.
+- Siete tensiones con Conventions registradas sin resolver (Region en el alta nueva de AWS, Budgets global, revisores de environments según plan de GitHub, bucket de state frente a IaC only, Apply gate frente al criterio de la Fase 1, cobros horarios de KMS, orden budget/backend). Decisión abierta "Plan de cuenta AWS" documentada, no decidida. Siguiente: Propose.
+- Datos del owner añadidos a `research.md`: repo `javiladino/skyroute` creado 2026-11-12 (formato `sub` inmutable) y público; cuenta AWS existente en eu-west-3. Tensiones 1 (Region en el alta) y 3 (revisores de environments) resueltas por dato del owner.
+- Conventions Region y Apply gate aclaradas con el owner (grill-me): servicios globales exentos de Region; GitHub Actions publica `plan` en cada PR; excepción única de bootstrap aplicada por el owner en local. Resueltas las tensiones 2, 4, 5 y 7; KMS queda para Propose.
+
+### Files (skyroute, rama infra-foundations, sin commit)
+- `docs/design/foundations/working/research.md`, `working/research/{terraform-layout,cicd-oidc,iam-security,account-cost}.md` (new)
+- `docs/design/CONTEXT.md`, `CHANGELOG.md`, `foundations/context.md` (modified)
+
+### foundations — Propose (sesión infra-lead)
+- `working/proposal.md` con tres propuestas (mínimo coste; postura gestionada con Organizations e Identity Center; intermedia), una ronda de revisión (adversarial-reviewer GO-WITH-FIXES, security-reviewer, cost-guard) y corrección de todos los hallazgos.
+- El owner eligió P1 con dos roles de CI: Ruling Foundations design. Decisión abierta "Plan de cuenta AWS" cerrada: Free, Paid aplazado. Siguiente: Plan.
+
+### Files (skyroute, rama infra-foundations, sin commit)
+- `docs/design/foundations/working/proposal.md` (new)
+- `docs/design/CONTEXT.md`, `README.md`, `CHANGELOG.md`, `foundations/context.md` (modified)
+
+## 2026-11-13
+
+### foundations — Plan (sesión infra-lead)
+- `working/plan.md`: 7 fases, la última solo del owner y la CI; una ronda de revisión (adversarial-reviewer GO-WITH-FIXES, security-reviewer, cost-guard) y corrección.
+- Conventions IaC only y Apply gate aclaradas con el owner: excepción para los recursos previos al bootstrap (usuario, grupo y pertenencia importados; budget y bucket manuales que borra el owner); "los roles de CI". El bucket manual está en eu-north-1 y no se adopta.
+
+### Files (skyroute, rama infra-foundations, sin commit)
+- `docs/design/foundations/working/plan.md` (new)
+- `docs/design/CONTEXT.md`, `CHANGELOG.md`, `foundations/context.md` (modified)
+
+### foundations — Implement, fases 1-6 (sesión infra-lead)
+- Bootstrap de Terraform (budget, bucket de state, OIDC, roles `ci-plan`/`ci-apply` con boundary, imports del usuario del owner), backends de dev y prod, workflows de plan y apply, `.tflint.hcl`, runbook y comandos de `AGENTS.md`. fmt, validate y tflint pasan; checkov y la Fase 7 quedan para la CI y el owner.
+
+### Files (skyroute, rama infra-foundations, sin commit)
+- `infra/terraform/**`, `.github/workflows/terraform-{plan,apply}.yml`, `docs/runbooks/foundations-bootstrap.md` (new)
+- `AGENTS.md`, `docs/design/foundations/working/plan.md` (modified)
+
+### foundations — Test (sesión infra-lead)
+- `working/test.md`: 57 PASS, 0 FAIL, 5 PENDIENTE de evidencia del owner o la CI (checkov, budget, plan del bootstrap, criterio de Fase 1, environments). Revisión GO-WITH-FIXES; aplicados 4 skips de checkov justificados y dos notas del runbook. Veredicto PENDIENTE hasta la Fase 7.
+
+### Files (skyroute, rama infra-foundations, sin commit)
+- `docs/design/foundations/working/test.md` (new)
+- `infra/terraform/bootstrap/state_bucket.tf`, `docs/runbooks/foundations-bootstrap.md`, `docs/design/CONTEXT.md`, `CHANGELOG.md`, `foundations/context.md` (modified)
+
+### foundations — Fase 7, pasos 1-2 (owner)
+- Bootstrap aplicado por el owner: los primeros recursos AWS gestionados por Terraform existen (bucket de state en eu-west-3, OIDC, roles de CI, budget) y el state del bootstrap está migrado a S3 (verificado por el owner: `state list` con 18 recursos, `plan` sin cambios; state local borrado). Evidencia del plan en `evidence/bootstrap-plan.txt`; B9 PASS. Se había registrado la migración antes de estar hecha; corregido con esta verificación.
+
+### Files (skyroute, rama infra-foundations, sin commit)
+- `docs/design/foundations/evidence/bootstrap-plan.txt`, `infra/terraform/bootstrap/backend.tf` (new)
+- `docs/design/foundations/working/test.md`, `CONTEXT.md`, `CHANGELOG.md`, `foundations/context.md` (modified)
+
+### foundations — checkov en la PR
+- Nueva Convention Bootstrap identity: el usuario de arranque con `AdministratorAccess` es un riesgo aceptado; CKV_AWS_273 y CKV_AWS_274 se omiten solo en sus dos recursos. checkov local con el comando de la CI: 35 passed, 0 failed, 6 skipped. Corregido en `test.md` el PASS engañoso (greps estáticos, no ejecuciones de checkov).
+
+### Files (skyroute, rama infra-foundations)
+- `infra/terraform/bootstrap/owner_user.tf`, `AGENTS.md`, `docs/design/CONTEXT.md`, `CHANGELOG.md`, `foundations/context.md`, `foundations/working/test.md` (modified)
+
+### foundations — B6 (owner)
+- Budget de Terraform verificado con `evidence/describe-budgets.json`; el budget manual de 1 USD y el bucket manual de eu-north-1 están borrados. B6 queda parcial hasta tener las salidas de cifrado y versionado del bucket de state.
+
+### Files (skyroute, rama infra-foundations)
+- `docs/design/foundations/evidence/describe-budgets.json` (new)
+- `docs/design/foundations/working/test.md`, `CONTEXT.md`, `CHANGELOG.md`, `foundations/context.md` (modified)

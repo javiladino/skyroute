@@ -1,0 +1,2 @@
+# Copia este archivo a terraform.tfvars (gitignored) y pon tu email real.
+budget_email = "tu-email@example.com"
