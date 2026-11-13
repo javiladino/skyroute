@@ -149,6 +149,12 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 - `docs/design/foundations/{working → current}/{plan,test}.md`, `{working → archive}/{research.md,research/*,proposal.md}` (moved)
 - `docs/design/CONTEXT.md`, `README.md`, `CHANGELOG.md`, `foundations/context.md`, `foundations/current/test.md` (modified)
 
+### foundations — Aprobación manual de prod verificada
+- En el merge de la PR #2, apply-prod esperó la aprobación del owner en el environment `prod` y después se aplicó (run 43462639280). Follow-up resuelto en `current/test.md`.
+
+### Files (skyroute, rama docs/foundations-prod-approval)
+- `docs/design/foundations/current/test.md`, `CONTEXT.md`, `CHANGELOG.md`, `foundations/context.md` (modified)
+
 ### Files (skyroute, rama infra-foundations)
 - `docs/design/foundations/evidence/describe-budgets.json` (new)
 - `docs/design/foundations/working/test.md`, `CONTEXT.md`, `CHANGELOG.md`, `foundations/context.md` (modified)
