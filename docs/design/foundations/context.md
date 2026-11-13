@@ -13,6 +13,8 @@ Fase 1 — Fundaciones (README § Fases): cuenta AWS con MFA y usuario no root, 
 
 ## Journal (newest first)
 
+**2026-11-13 (aprobación de prod):** PR #2 fusionada (merge `09ad353`). El orquestador verificó con `gh` el run de apply 43462639280: apply-dev en success y apply-prod en `waiting` hasta la aprobación de `javiladino` en `prod` ("Merge solo de documentación; plan-prod sin cambios en la PR #2"); después, success. Follow-up resuelto y registrado en `current/test.md` (executor). Siguen abiertos los 3 nits de CI y alinear `encrypt = true`.
+
 **2026-11-13 (cierre):** Ciclo cerrado en la rama `docs/foundations-close` (desde `origin/main`, con el merge `ec5cfdd`). `plan.md` y `test.md` pasan a `current/`; `research.md`, sus cuatro notas y `proposal.md`, a `archive/`. Status Done. Las rutas internas de los stage files citan su ubicación de entonces (`working/…`). Follow-up abierto: comprobar en el próximo merge que apply-prod espera la aprobación, los 3 nits de CI y alinear `encrypt = true` en envs/* y el runbook.
 
 **2026-11-13 (Test PASS):** El owner añadió `required_reviewers` (`javiladino`, Prevent self-review desactivado) y desactivó el bypass de admins en `prod`. Lo verificó el orquestador con `gh api …/environments/prod`. A10 pasa a PASS; `test.md`: 65 PASS, 0 FAIL, 0 PENDIENTE, veredicto PASS. Follow-up: comprobar en el próximo merge que apply-prod espera la aprobación, más los 3 nits de CI de la revisión. Siguiente: cierre del ciclo, si el owner lo aprueba.
@@ -27,7 +29,7 @@ Fase 1 — Fundaciones (README § Fases): cuenta AWS con MFA y usuario no root, 
 
 **2026-11-13 (Test):** Commit `9b70313` (Plan e Implement). `working/test.md` (executor, Sonnet) con base `d264a40`: 57 PASS, 0 FAIL, 5 PENDIENTE (T4 checkov, B6, B9, F1, A10), todos a la espera de evidencia del owner o la CI. Revisión del diff (adversarial-reviewer, Opus): GO-WITH-FIXES. Con el visto bueno del owner, executor añadió 4 `#checkov:skip` justificados en `state_bucket.tf` y dos notas al runbook; quedan 3 nits como follow-up. El orquestador repitió fmt, validate ×3 y el conteo de skips. Veredicto PENDIENTE. Siguiente: Fase 7 del owner según el runbook y, con su evidencia, cerrar Test.
 
-**2026-11-13 (Implement):** Visto bueno del owner al plan. Respuestas incorporadas al plan: environments ya creados en GitHub, grupo `admins` con AdministratorAccess, bucket `skyroute-tfstate-437266392155-eu-west-3`, checkov solo en CI. Fases 1-6 ejecutadas por un executor cada una (Opus en las 2 y 3, Sonnet en el resto); el orquestador volvió a ejecutar cada validación. Decisiones del owner sobre la deriva, ya registradas en el plan: `*` solo en Deny; Deny que protege `ci-boundary`; sin filtros `paths`, con `concurrency`; el runbook nombra el bucket manual. Verificación final: `terraform fmt -check` limpio, `validate` correcto en los 3 root modules, tflint sin hallazgos. Sin comprobar: sintaxis YAML (no hay actionlint ni PyYAML) y checkov (solo en CI). Fase 7 pendiente del owner. Siguiente: Test (`reppit-test`).
+- 2026-11-13: Implement, fases 1-6, hecho (un executor por fase; la deriva, decidida por el owner, quedó en el plan).
 
 - 2026-11-13: Plan hecho (7 fases, una ronda de revisión); bucket manual en eu-north-1 no adoptado; Conventions IaC only y Apply gate aclaradas.
 

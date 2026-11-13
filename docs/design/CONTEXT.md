@@ -26,9 +26,9 @@ Se cargan por tarea, no todas a la vez. Están en `.claude/skills/`.
 **Orden de carga:** este archivo → `<topic>/context.md` del topic activo → los archivos que su document map marca `always` → solo los archivos que nombre la tarea. No cargues `CHANGELOG.md`, `evidence/`, `archive/` ni una carpeta entera salvo que la tarea nombre el archivo.
 **Topics activos:** ninguno.
 
-**Current state (2026-11-13):** Fase 1 hecha: `foundations` cerrado (Done) en la rama `docs/foundations-close`, pendiente de PR a `main`. En AWS existen, creados por Terraform, el budget de 10 USD, el bucket de state en eu-west-3, el proveedor OIDC y los roles `ci-plan` y `ci-apply`. La PR publica el plan y el merge aplica en dev y prod, con aprobación manual en `prod`. El código está en `main` (PR #1). Las etapas RePPIT se ejecutan con `session-orchestration` (Conventions Design write ownership, Subagent roles y Verification ownership). `platform-blueprint`, `agent-workflow`, `reppit-orchestration` y `foundations` están cerrados.
+**Current state (2026-11-13):** Fase 1 hecha: `foundations` cerrado (Done) y fusionado en `main` (PR #2). La aprobación manual de prod está verificada en el run 43462639280; su registro va en la rama `docs/foundations-prod-approval`. En AWS existen, creados por Terraform, el budget de 10 USD, el bucket de state en eu-west-3, el proveedor OIDC y los roles `ci-plan` y `ci-apply`. La PR publica el plan y el merge aplica en dev y prod, con aprobación manual en `prod`. El código está en `main` (PR #1). Las etapas RePPIT se ejecutan con `session-orchestration` (Conventions Design write ownership, Subagent roles y Verification ownership). `platform-blueprint`, `agent-workflow`, `reppit-orchestration` y `foundations` están cerrados.
 
-**Siguiente:** fusionar `docs/foundations-close`; después, abrir el topic de la Fase 2.
+**Siguiente:** fusionar `docs/foundations-prod-approval`; después, abrir el topic de la Fase 2.
 **Problemas conocidos:** Design write ownership se hace cumplir solo por prompt y por herramientas: el allow de `Edit` sobre `working/` no distingue agentes.
 
 ## Conventions
