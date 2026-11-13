@@ -134,3 +134,10 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 
 ### Files (skyroute, rama infra-foundations)
 - `infra/terraform/bootstrap/owner_user.tf`, `AGENTS.md`, `docs/design/CONTEXT.md`, `CHANGELOG.md`, `foundations/context.md`, `foundations/working/test.md` (modified)
+
+### foundations — B6 (owner)
+- Budget de Terraform verificado con `evidence/describe-budgets.json`; el budget manual de 1 USD y el bucket manual de eu-north-1 están borrados. B6 queda parcial hasta tener las salidas de cifrado y versionado del bucket de state.
+
+### Files (skyroute, rama infra-foundations)
+- `docs/design/foundations/evidence/describe-budgets.json` (new)
+- `docs/design/foundations/working/test.md`, `CONTEXT.md`, `CHANGELOG.md`, `foundations/context.md` (modified)
