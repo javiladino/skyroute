@@ -121,3 +121,10 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 ### Files (skyroute, rama infra-foundations, sin commit)
 - `docs/design/foundations/working/test.md` (new)
 - `infra/terraform/bootstrap/state_bucket.tf`, `docs/runbooks/foundations-bootstrap.md`, `docs/design/CONTEXT.md`, `CHANGELOG.md`, `foundations/context.md` (modified)
+
+### foundations — Fase 7, pasos 1-2 (owner)
+- Bootstrap aplicado por el owner: los primeros recursos AWS gestionados por Terraform existen (bucket de state en eu-west-3, OIDC, roles de CI, budget) y el state del bootstrap está migrado a S3 (verificado por el owner: `state list` con 18 recursos, `plan` sin cambios; state local borrado). Evidencia del plan en `evidence/bootstrap-plan.txt`; B9 PASS. Se había registrado la migración antes de estar hecha; corregido con esta verificación.
+
+### Files (skyroute, rama infra-foundations, sin commit)
+- `docs/design/foundations/evidence/bootstrap-plan.txt`, `infra/terraform/bootstrap/backend.tf` (new)
+- `docs/design/foundations/working/test.md`, `CONTEXT.md`, `CHANGELOG.md`, `foundations/context.md` (modified)

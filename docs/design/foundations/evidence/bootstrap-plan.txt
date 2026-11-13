@@ -1,0 +1,306 @@
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # aws_budgets_budget.monthly will be created
+  + resource "aws_budgets_budget" "monthly" {
+      + account_id        = (known after apply)
+      + arn               = (known after apply)
+      + budget_type       = "COST"
+      + id                = (known after apply)
+      + limit_amount      = "10"
+      + limit_unit        = "USD"
+      + name              = "skyroute-monthly-10usd"
+      + name_prefix       = (known after apply)
+      + tags_all          = (known after apply)
+      + time_period_end   = "2087-06-15_00:00"
+      + time_period_start = (known after apply)
+      + time_unit         = "MONTHLY"
+
+      + cost_filter (known after apply)
+
+      + cost_types {
+          + include_credit             = false
+          + include_discount           = true
+          + include_other_subscription = true
+          + include_recurring          = true
+          + include_refund             = false
+          + include_subscription       = true
+          + include_support            = true
+          + include_tax                = true
+          + include_upfront            = true
+          + use_amortized              = false
+          + use_blended                = false
+        }
+
+      + notification {
+          # At least one attribute in this block is (or was) sensitive,
+          # so its contents will not be displayed.
+        }
+      + notification {
+          # At least one attribute in this block is (or was) sensitive,
+          # so its contents will not be displayed.
+        }
+      + notification {
+          # At least one attribute in this block is (or was) sensitive,
+          # so its contents will not be displayed.
+        }
+    }
+
+  # aws_iam_group.admins will be imported
+    resource "aws_iam_group" "admins" {
+        arn       = "arn:aws:iam::437266392155:group/admins"
+        id        = "admins"
+        name      = "admins"
+        path      = "/"
+        unique_id = "AGPAWLTY3URNXRINZAELO"
+    }
+
+  # aws_iam_group_policy_attachment.admins_administrator_access will be imported
+    resource "aws_iam_group_policy_attachment" "admins_administrator_access" {
+        group      = "admins"
+        id         = "admins-arn:aws:iam::aws:policy/AdministratorAccess"
+        policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+    }
+
+  # aws_iam_openid_connect_provider.github will be created
+  + resource "aws_iam_openid_connect_provider" "github" {
+      + arn             = (known after apply)
+      + client_id_list  = [
+          + "sts.amazonaws.com",
+        ]
+      + id              = (known after apply)
+      + tags_all        = (known after apply)
+      + thumbprint_list = (known after apply)
+      + url             = "https://token.actions.githubusercontent.com"
+    }
+
+  # aws_iam_policy.ci_boundary will be created
+  + resource "aws_iam_policy" "ci_boundary" {
+      + arn              = (known after apply)
+      + attachment_count = (known after apply)
+      + description      = "Permissions boundary de los roles de CI (ci-plan, ci-apply)."
+      + id               = (known after apply)
+      + name             = "ci-boundary"
+      + name_prefix      = (known after apply)
+      + path             = "/"
+      + policy           = (known after apply)
+      + policy_id        = (known after apply)
+      + tags_all         = (known after apply)
+    }
+
+  # aws_iam_role.ci_apply will be created
+  + resource "aws_iam_role" "ci_apply" {
+      + arn                   = (known after apply)
+      + assume_role_policy    = (known after apply)
+      + create_date           = (known after apply)
+      + description           = "Rol de CI para terraform apply desde los environments dev y prod."
+      + force_detach_policies = false
+      + id                    = (known after apply)
+      + managed_policy_arns   = (known after apply)
+      + max_session_duration  = 3600
+      + name                  = "ci-apply"
+      + name_prefix           = (known after apply)
+      + path                  = "/"
+      + permissions_boundary  = (known after apply)
+      + tags_all              = (known after apply)
+      + unique_id             = (known after apply)
+
+      + inline_policy (known after apply)
+    }
+
+  # aws_iam_role.ci_plan will be created
+  + resource "aws_iam_role" "ci_plan" {
+      + arn                   = (known after apply)
+      + assume_role_policy    = (known after apply)
+      + create_date           = (known after apply)
+      + description           = "Rol de CI para terraform plan en pull_request."
+      + force_detach_policies = false
+      + id                    = (known after apply)
+      + managed_policy_arns   = (known after apply)
+      + max_session_duration  = 3600
+      + name                  = "ci-plan"
+      + name_prefix           = (known after apply)
+      + path                  = "/"
+      + permissions_boundary  = (known after apply)
+      + tags_all              = (known after apply)
+      + unique_id             = (known after apply)
+
+      + inline_policy (known after apply)
+    }
+
+  # aws_iam_role_policy.ci_apply will be created
+  + resource "aws_iam_role_policy" "ci_apply" {
+      + id          = (known after apply)
+      + name        = "ci-apply-backend"
+      + name_prefix = (known after apply)
+      + policy      = (known after apply)
+      + role        = (known after apply)
+    }
+
+  # aws_iam_role_policy.ci_plan will be created
+  + resource "aws_iam_role_policy" "ci_plan" {
+      + id          = (known after apply)
+      + name        = "ci-plan-backend"
+      + name_prefix = (known after apply)
+      + policy      = (known after apply)
+      + role        = (known after apply)
+    }
+
+  # aws_iam_user.owner will be imported
+    resource "aws_iam_user" "owner" {
+        arn                  = "arn:aws:iam::437266392155:user/skyroute-dev"
+        id                   = "skyroute-dev"
+        name                 = "skyroute-dev"
+        path                 = "/"
+        permissions_boundary = null
+        tags                 = {}
+        tags_all             = {}
+        unique_id            = "AIDAWLTY3URNV7POVJ4DS"
+    }
+
+  # aws_iam_user_group_membership.owner_admins will be imported
+    resource "aws_iam_user_group_membership" "owner_admins" {
+        groups = [
+            "admins",
+        ]
+        id     = "terraform-y5V6D6TWGFwAiGsuRmZulNvkTw"
+        user   = "skyroute-dev"
+    }
+
+  # aws_s3_bucket.state will be created
+  + resource "aws_s3_bucket" "state" {
+      + acceleration_status         = (known after apply)
+      + acl                         = (known after apply)
+      + arn                         = (known after apply)
+      + bucket                      = "skyroute-tfstate-437266392155-eu-west-3"
+      + bucket_domain_name          = (known after apply)
+      + bucket_namespace            = (known after apply)
+      + bucket_prefix               = (known after apply)
+      + bucket_region               = (known after apply)
+      + bucket_regional_domain_name = (known after apply)
+      + force_destroy               = false
+      + hosted_zone_id              = (known after apply)
+      + id                          = (known after apply)
+      + object_lock_enabled         = (known after apply)
+      + policy                      = (known after apply)
+      + region                      = "eu-west-3"
+      + request_payer               = (known after apply)
+      + tags_all                    = (known after apply)
+      + website_domain              = (known after apply)
+      + website_endpoint            = (known after apply)
+
+      + cors_rule (known after apply)
+
+      + grant (known after apply)
+
+      + lifecycle_rule (known after apply)
+
+      + logging (known after apply)
+
+      + object_lock_configuration (known after apply)
+
+      + replication_configuration (known after apply)
+
+      + server_side_encryption_configuration (known after apply)
+
+      + versioning (known after apply)
+
+      + website (known after apply)
+    }
+
+  # aws_s3_bucket_lifecycle_configuration.state will be created
+  + resource "aws_s3_bucket_lifecycle_configuration" "state" {
+      + bucket                                 = (known after apply)
+      + expected_bucket_owner                  = (known after apply)
+      + id                                     = (known after apply)
+      + region                                 = "eu-west-3"
+      + transition_default_minimum_object_size = "all_storage_classes_128K"
+
+      + rule {
+          + id     = "expire-noncurrent-versions"
+          + status = "Enabled"
+            # (1 unchanged attribute hidden)
+
+          + abort_incomplete_multipart_upload {
+              + days_after_initiation = 7
+            }
+
+          + expiration {
+              + days                         = 0
+              + expired_object_delete_marker = true
+            }
+
+          + filter {
+                # (1 unchanged attribute hidden)
+            }
+
+          + noncurrent_version_expiration {
+              + noncurrent_days = 90
+            }
+        }
+    }
+
+  # aws_s3_bucket_ownership_controls.state will be created
+  + resource "aws_s3_bucket_ownership_controls" "state" {
+      + bucket = (known after apply)
+      + id     = (known after apply)
+      + region = "eu-west-3"
+
+      + rule {
+          + object_ownership = "BucketOwnerEnforced"
+        }
+    }
+
+  # aws_s3_bucket_policy.state will be created
+  + resource "aws_s3_bucket_policy" "state" {
+      + bucket = (known after apply)
+      + id     = (known after apply)
+      + policy = (known after apply)
+      + region = "eu-west-3"
+    }
+
+  # aws_s3_bucket_public_access_block.state will be created
+  + resource "aws_s3_bucket_public_access_block" "state" {
+      + block_public_acls       = true
+      + block_public_policy     = true
+      + bucket                  = (known after apply)
+      + id                      = (known after apply)
+      + ignore_public_acls      = true
+      + region                  = "eu-west-3"
+      + restrict_public_buckets = true
+    }
+
+  # aws_s3_bucket_server_side_encryption_configuration.state will be created
+  + resource "aws_s3_bucket_server_side_encryption_configuration" "state" {
+      + bucket = (known after apply)
+      + id     = (known after apply)
+      + region = "eu-west-3"
+
+      + rule {
+          + blocked_encryption_types = (known after apply)
+          + bucket_key_enabled       = (known after apply)
+
+          + apply_server_side_encryption_by_default {
+              + kms_master_key_id = (known after apply)
+              + sse_algorithm     = "AES256"
+            }
+        }
+    }
+
+  # aws_s3_bucket_versioning.state will be created
+  + resource "aws_s3_bucket_versioning" "state" {
+      + bucket = (known after apply)
+      + id     = (known after apply)
+      + region = "eu-west-3"
+
+      + versioning_configuration {
+          + mfa_delete = (known after apply)
+          + status     = "Enabled"
+        }
+    }
+
+Plan: 4 to import, 14 to add, 0 to change, 0 to destroy.

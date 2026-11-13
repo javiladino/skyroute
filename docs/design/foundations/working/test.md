@@ -8,7 +8,7 @@ type: Test
 
 ## Verdict: PENDIENTE
 
-Los 57 checks que un agente puede ejecutar dan PASS (0 FAIL; la review es GO-WITH-FIXES con los fixes aplicados): fmt, validate y tflint en los tres root modules, y todos los Grep de Region, IaC only, Apply gate, seguridad del state, No hourly-billed y Budget/bucket. Quedan 5 filas PENDIENTE (owner/CI): T4, A10, B6, B9 y F1. A10 se ejecutó en solo lectura y hoy muestra que la configuración de los environments y de la branch protection todavía no está hecha (ver fila).
+Los 59 checks que dan PASS (57 ejecutados por un agente más B9 y M1, con evidencia del owner; 0 FAIL; la review es GO-WITH-FIXES con los fixes aplicados): fmt, validate y tflint en los tres root modules, y todos los Grep de Region, IaC only, Apply gate, seguridad del state, No hourly-billed y Budget/bucket. Quedan 4 filas PENDIENTE (owner/CI): T4, A10, B6 y F1. A10 se ejecutó en solo lectura y hoy muestra que la configuración de los environments y de la branch protection todavía no está hecha (ver fila).
 Ajustes decididos por el owner/orquestador: tflint con `--config=<abs>/infra/terraform/.tflint.hcl` (la fila T3 del plan no lo incluye); `validate` sin repetir `init -backend=false` (ya hecho); sin tests protegidos porque no existen archivos de test. Los Grep se ejecutaron con `rg`/`grep` sin pipes, una orden por llamada. Rutas abreviadas: `TF` = `infra/terraform`, `BS` = `infra/terraform/bootstrap`, `WF` = `.github/workflows`.
 
 ## Checks
@@ -70,7 +70,7 @@ Ajustes decididos por el owner/orquestador: tflint con `--config=<abs>/infra/ter
 | B6 | cifrado, versionado, budget en AWS | plan B6 | no ejecutado (comandos `aws`, solo owner) | Necesita: salida de `aws s3api get-bucket-encryption`, `get-bucket-versioning` y `aws budgets describe-budgets` (AES256; Enabled; 10 USD) | PENDIENTE (owner) |
 | B7 | include_credit | plan B7 | `rg -n 'include_credit\s*=\s*false\|include_refund\s*=\s*false' BS/budget.tf` | L9 | PASS |
 | B8 | include_refund | plan B8 | mismo comando que B7 | L10 | PASS |
-| B9 | plan con 0 cambios tras el apply | plan B9 | no ejecutado (terraform plan, solo owner) | Necesita: salida de `terraform plan` en `bootstrap/` con 0 cambios en user, grupo, attachment y membresía | PENDIENTE (owner) |
+| B9 | plan del paso 1: los 4 imports sin cambios | plan B9 | evidencia del owner: `docs/design/foundations/evidence/bootstrap-plan.txt`; `grep -n 'Plan:'`, `grep -n 'will be imported'`, `grep -n 'will be updated in-place'` | L306 `Plan: 4 to import, 14 to add, 0 to change, 0 to destroy.`; 4 `will be imported` (L53 aws_iam_group.admins, L62 aws_iam_group_policy_attachment.admins_administrator_access, L153 aws_iam_user.owner, L165 aws_iam_user_group_membership.owner_admins); `will be updated in-place`: 0 | PASS (evidencia del owner) |
 | F1 | PR muestra plan y merge lo aplica | plan F1 | no ejecutado (CI/owner) | Necesita: URL del comentario de plan en la PR de prueba y URL del run de `terraform-apply.yml` con `apply-dev` en verde | PENDIENTE (owner/CI) |
 | P1 | Archivos protegidos | plan (Files Changed) | `git diff d264a40 --stat` | Sin tests protegidos: no existen archivos de test. 22 archivos, 1360 inserciones, 8 borrados: 2 workflows, AGENTS.md, 3 archivos de memoria de diseño (CHANGELOG.md, CONTEXT.md, foundations/context.md), working/plan.md, runbook, `.tflint.hcl`, 10 archivos de bootstrap (con su lock) y `envs/{dev,prod}` (backend.tf y lock) | PASS (con observación, ver Follow-up) |
 
@@ -78,8 +78,14 @@ Ajustes decididos por el owner/orquestador: tflint con `--config=<abs>/infra/ter
 | T2r | validate x3 tras los fixes | plan T2 (re-ejecución) | `terraform -chdir=infra/terraform/{bootstrap,envs/dev,envs/prod} validate` | "Success! The configuration is valid." x3 | PASS (orquestador) |
 | T4c | skips de checkov en el state bucket | review hallazgo 1 | `grep -c 'checkov:skip=' infra/terraform/bootstrap/state_bucket.tf` | 4 | PASS (orquestador) |
 | REV | Review adversarial (d264a40..9b70313) | reppit-test | adversarial-reviewer (Opus) | GO-WITH-FIXES; fixes 1, 2 y 6 aplicados, 3 nits como follow-up | PASS |
+| M1 | Migración del state del bootstrap a S3 | plan Fase 7 paso 2 | evidencia del owner (salida en chat, 2026-11-13): `aws s3 ls`, `terraform state list`, `terraform plan`, `find` | `aws s3 ls` muestra `bootstrap/terraform.tfstate` en `skyroute-tfstate-437266392155-eu-west-3`; `terraform state list` devuelve 18 recursos (4 importados + 14 añadidos, coincide con B9); `terraform plan` devuelve "No changes"; borrados `terraform.tfstate`, `terraform.tfstate.backup`, el `.tfplan` y la copia de respaldo del owner; `find` no halla ningún `*.tfstate` fuera de `.terraform/` | PASS (evidencia del owner) |
 
-Resumen: 57 PASS, 0 FAIL, 5 PENDIENTE (T4, A10, B6, B9, F1). Las 4 filas nuevas (T1r, T2r, T4c, REV) vienen de la review y de la re-ejecución del orquestador tras los fixes. El `git status` final se comprobó al cerrar la sesión (solo `test.md` nuevo).
+Evidencia aportada por el owner en la Fase 7 (Convention Verification ownership; el Apply gate impide que el agente la ejecute). El account ID que aparece en ella lo acepta el owner, sin anonimizar:
+
+- Apply del paso 1 (aportada por el owner, texto en chat, 2026-11-13): "Apply complete! Resources: 4 imported, 14 added, 0 changed, 0 destroyed." Bucket `skyroute-tfstate-437266392155-eu-west-3` creado en eu-west-3. Coincide con el plan de B9 (4 import, 14 add).
+- Paso 2, migración del state (verificación del owner de 2026-11-13, salida citada en chat): `aws s3 ls` muestra `bootstrap/terraform.tfstate` en el bucket `skyroute-tfstate-437266392155-eu-west-3`; `terraform state list` devuelve 18 recursos (4 importados + 14 añadidos, coherente con B9); `terraform plan` devuelve "No changes"; se borraron el `terraform.tfstate` local, el `terraform.tfstate.backup`, el `.tfplan` y la copia de respaldo del owner, y `find` no encuentra ningún `*.tfstate` fuera de `.terraform/`. Corrección: el registro anterior daba el `terraform init -migrate-state` por hecho a partir de una afirmación previa, y era prematuro. En ese momento no se había hecho: Terraform informaba "Backend initialization required" y el bucket estaba vacío. Este registro lo corrige. No sustituye a B6.
+
+Resumen: 59 PASS, 0 FAIL, 4 PENDIENTE (T4, A10, B6, F1). Las 4 filas nuevas (T1r, T2r, T4c, REV) vienen de la review y de la re-ejecución del orquestador tras los fixes; M1 se añade con la evidencia del owner sobre la migración del state. El `git status` final se comprobó al cerrar la sesión (solo `test.md` nuevo).
 
 ## Review
 
@@ -99,9 +105,9 @@ Fila REV: PASS, porque los fixes 1, 2 y 6 están aplicados y los 3 nits restante
 ## Follow-up
 
 - Review nits 3, 4 y 5: incluir `bootstrap/` en fmt/tflint de CI, quitar el `tflint --init` duplicado del bucle y decidir qué hacer con las PR desde forks (fallan en OIDC sin comentario).
-- Las 5 filas PENDIENTE (T4, B6, B9, F1, A10) necesitan evidencia del owner o de CI (runbook Fase 7). A10 hoy muestra environments sin `deployment_branch_policy`, sin protection rules, `can_admins_bypass: true` y `main` sin branch protection. El veredicto sigue PENDIENTE.
+- Las 4 filas PENDIENTE (T4, B6, F1, A10) necesitan evidencia del owner o de CI (runbook Fase 7). A10 hoy muestra environments sin `deployment_branch_policy`, sin protection rules, `can_admins_bypass: true` y `main` sin branch protection. El veredicto sigue PENDIENTE.
 
-- T4, B6, B9, F1: aportar la evidencia indicada en cada fila (owner/CI, Convention Verification ownership).
+- T4, B6, F1: aportar la evidencia indicada en cada fila (owner/CI, Convention Verification ownership).
 - A10: el owner debe configurar en la UI deployment branches solo `main` en `dev` y `prod`, revisor requerido en `prod` con "Prevent self-review" desactivado, bypass de administradores desactivado (hoy `can_admins_bypass: true`) y branch protection de `main` con PR requerida (hoy 404). Después, repetir los tres `gh api` de A10.
 - T3: la fila del plan no incluye `--config`; corregir el plan o `AGENTS.md` si ese es el comando canónico.
 - Observación en P1: el plan dice que `docs/design/CONTEXT.md` no se toca y que no cambia nada fuera de Files Changed, pero el commit 9b70313 modifica `CONTEXT.md`, `CHANGELOG.md` y `foundations/context.md` (actualización de memoria de diseño). El orquestador decide si es deriva aceptable.
