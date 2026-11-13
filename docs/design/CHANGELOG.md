@@ -171,3 +171,11 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 - `docs/design/generator-landing/context.md`, `working/research.md`, `working/research/{generator-data,lambda-eventbridge,postgres-local,landing-s3,ci-permissions}.md` (new)
 - `docs/design/findings.md` (new)
 - `docs/design/CONTEXT.md`, `docs/design/README.md`, `docs/design/CHANGELOG.md` (modified)
+
+### generator-landing — Propose
+- `working/proposal.md` con 3 propuestas, revisadas (adversarial, security, cost-guard) y corregidas. El owner eligió la Propuesta 1: un módulo, zip con stdlib, arm64 y `ci-apply-dev`/`ci-apply-prod`.
+- Nuevo Ruling Propose decisions: `-lock=false` obligatorio en `ci-plan` y una boundary de workload por entorno.
+
+### Files (skyroute, rama docs/generator-landing-propose, sin commit)
+- `docs/design/generator-landing/working/proposal.md` (new)
+- `docs/design/generator-landing/context.md`, `docs/design/CONTEXT.md`, `docs/design/README.md`, `docs/design/CHANGELOG.md` (modified)

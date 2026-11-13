@@ -2,7 +2,7 @@
 
 **Owner:** javiladino
 **Tracker:** ninguno
-**Status:** Fase 1 hecha (2026-11-13): bootstrap de Terraform, state remoto en S3, roles OIDC de CI y plan/apply en GitHub Actions; Fase 2 en Research (topic `generator-landing`): Research hecho, Propose a continuación.
+**Status:** Fase 1 hecha (2026-11-13): bootstrap de Terraform, state remoto en S3, roles OIDC de CI y plan/apply en GitHub Actions; Fase 2 en curso (topic `generator-landing`): Research y Propose hechos (Propuesta 1 elegida), Plan a continuación.
 
 ## Resumen
 
@@ -13,7 +13,7 @@ Proyecto de portfolio para un puesto de Data Engineer Senior: una plataforma de 
 | Fase | Resultado (hecho cuando…) | Estado |
 |------|---------------------------|--------|
 | **1** — Fundaciones | Cuenta AWS con MFA y usuario no root, presupuesto, repo, bootstrap de Terraform (state, rol OIDC), CI básica. Hecho cuando un PR muestra un plan de Terraform y el merge lo aplica. | Done 2026-11-13 ([`foundations`](foundations/context.md); PR #1) |
-| **2** — Generador y landing | Simulador OTA coherente, Lambda + EventBridge, Postgres local, archivos en `landing/`. Hecho cuando hay 6 meses de histórico y llegan micro-lotes nuevos. | In progress ([`generator-landing`](generator-landing/context.md); Research) |
+| **2** — Generador y landing | Simulador OTA coherente, Lambda + EventBridge, Postgres local, archivos en `landing/`. Hecho cuando hay 6 meses de histórico y llegan micro-lotes nuevos. | In progress ([`generator-landing`](generator-landing/context.md); Propose hecho) |
 | **3** — Bronze y Silver con Spark + Iceberg | Jobs PySpark con tests, MERGE, sesionización, SCD2, conversión de divisas. Hecho cuando relanzar un día da exactamente el mismo resultado. | Planned - no topic |
 | **4** — Gold con dbt | Staging, modelo dimensional, atribución en tres modelos, ROAS, funnel, RFM, tests, contratos, exposures, docs. Hecho cuando el glosario de KPIs coincide con el SQL. | Planned - no topic |
 | **5** — Orquestación end to end | DAG diario, Cosmos para dbt, sensores, reintentos, backfill de 90 días, DAG semanal de mantenimiento Iceberg. Hecho cuando un backfill completo termina sin intervención. | Planned - no topic |
