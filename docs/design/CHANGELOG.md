@@ -179,3 +179,11 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 ### Files (skyroute, rama docs/generator-landing-propose, sin commit)
 - `docs/design/generator-landing/working/proposal.md` (new)
 - `docs/design/generator-landing/context.md`, `docs/design/CONTEXT.md`, `docs/design/README.md`, `docs/design/CHANGELOG.md` (modified)
+
+### generator-landing — Plan
+- `working/plan.md`: 10 fases para la Propuesta 1. La transición de `ci-apply` se hace en dos re-applies de bootstrap que ejecuta el owner (Fases 5 y 8); el backfill y el schedule también son del owner (Fase 10).
+- Una ronda de revisión: adversarial (NEEDS-REVISION), security y cost-guard. Los 28 hallazgos están aplicados. El owner aceptó todas las opciones por defecto y aprobó el plan (Ruling Plan decisions).
+
+### Files (skyroute, rama docs/generator-landing-plan, sin commit)
+- `docs/design/generator-landing/working/plan.md` (new)
+- `docs/design/generator-landing/context.md`, `docs/design/CONTEXT.md`, `docs/design/CHANGELOG.md` (modified)
