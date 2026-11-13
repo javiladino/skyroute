@@ -136,7 +136,18 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 - `infra/terraform/bootstrap/owner_user.tf`, `AGENTS.md`, `docs/design/CONTEXT.md`, `CHANGELOG.md`, `foundations/context.md`, `foundations/working/test.md` (modified)
 
 ### foundations — B6 (owner)
-- Budget de Terraform verificado con `evidence/describe-budgets.json`; el budget manual de 1 USD y el bucket manual de eu-north-1 están borrados. B6 queda parcial hasta tener las salidas de cifrado y versionado del bucket de state.
+- Budget de Terraform verificado con `evidence/describe-budgets.json`; el budget manual de 1 USD y el bucket manual de eu-north-1 están borrados. Con las salidas de cifrado (AES256) y versionado (Enabled) del bucket de state que aportó el owner, B6 pasa a PASS.
+
+### foundations — PR #1 fusionada
+- Criterio de la Fase 1 cumplido: la PR muestra el plan de Terraform y el merge lo aplica (runs 43446309534 y 43449637195). Test FAIL por A10: el environment `prod` no tiene revisor obligatorio y apply-prod se aplicó sin aprobación.
+- Corregido por el owner (revisor obligatorio en `prod`, sin bypass de admins) y verificado con `gh`. Test PASS: 65 de 65.
+
+### foundations — Topic cerrado (Fase 1 hecha)
+- Deliverables en `current/` (`plan.md`, `test.md`); research, notas de área y propuesta en `archive/`. Status Done; README actualizado (Fase 1 Done).
+
+### Files (skyroute, rama docs/foundations-close)
+- `docs/design/foundations/{working → current}/{plan,test}.md`, `{working → archive}/{research.md,research/*,proposal.md}` (moved)
+- `docs/design/CONTEXT.md`, `README.md`, `CHANGELOG.md`, `foundations/context.md`, `foundations/current/test.md` (modified)
 
 ### Files (skyroute, rama infra-foundations)
 - `docs/design/foundations/evidence/describe-budgets.json` (new)

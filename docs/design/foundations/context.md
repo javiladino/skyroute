@@ -1,19 +1,25 @@
 # foundations — Contexto
 
 **Tracker:** ninguno
-**Status:** In progress · **Owner:** javiladino
+**Status:** Done · **Owner:** javiladino
 
 ## Orientación
 
-Fase 1 — Fundaciones (README § Fases): cuenta AWS con MFA y usuario no root, presupuesto, repo, bootstrap de Terraform (state remoto, rol OIDC para GitHub Actions) y CI básica. Hecho cuando un PR muestra un plan de Terraform y el merge lo aplica. Restricciones: Conventions Region, IaC only, Apply gate y No hourly-billed resources. Decisión abierta que toca a esta fase: plan de cuenta AWS (README § Open decisions). Siguiente: Fase 7 del owner y la CI (`docs/runbooks/foundations-bootstrap.md`); con su evidencia (URL del comentario de plan, run de apply y checkov, salidas de `aws`) se cierra Test (`working/test.md`, hoy PENDIENTE) y el ciclo; propuesta elegida en `working/proposal.md` § Decision.
+Fase 1 — Fundaciones (README § Fases): cuenta AWS con MFA y usuario no root, presupuesto, repo, bootstrap de Terraform (state remoto, rol OIDC para GitHub Actions) y CI básica. Hecho cuando un PR muestra un plan de Terraform y el merge lo aplica. Restricciones: Conventions Region, IaC only, Apply gate y No hourly-billed resources. Decisión abierta que toca a esta fase: plan de cuenta AWS (README § Open decisions). Cerrado el 2026-11-13: Test PASS (`current/test.md`) y lo construido descrito en `current/plan.md`; la propuesta elegida está en `archive/proposal.md` § Decision. Operación: `docs/runbooks/foundations-bootstrap.md`.
 
 ## Rulings
 
-- **Foundations design (javiladino, 2026-11-12 18:00):** Proposal 1 con dos roles de CI: state con SSE-S3 (sin KMS), cuenta AWS en plan Free (Paid aplazado), owner con IAM user y MFA (sin Organizations ni Identity Center), roles `ci-plan` (`sub` `pull_request`) y `ci-apply` (`sub` `environment:dev`/`environment:prod`, environments solo desde `main`). Discusión: `working/proposal.md` § Decision.
+- **Foundations design (javiladino, 2026-11-12 18:00):** Proposal 1 con dos roles de CI: state con SSE-S3 (sin KMS), cuenta AWS en plan Free (Paid aplazado), owner con IAM user y MFA (sin Organizations ni Identity Center), roles `ci-plan` (`sub` `pull_request`) y `ci-apply` (`sub` `environment:dev`/`environment:prod`, environments solo desde `main`). Discusión: `archive/proposal.md` § Decision.
 
 ## Journal (newest first)
 
-**2026-11-13 (B6):** El owner aportó `evidence/describe-budgets.json`, regenerada filtrada a `skyroute-monthly-10usd` porque la primera captura incluía un budget ajeno al proyecto. La evidencia no tiene email: 10 USD al mes, tipo COST, sin créditos ni reembolsos. Salidas del owner: el budget manual y el bucket de eu-north-1 están borrados (B6b y B6c PASS). B6 queda PENDIENTE (parcial): faltan `get-bucket-encryption` y `get-bucket-versioning` del bucket de state; el executor lo había puesto en PASS y se corrigió. Test: 62 PASS, 3 PENDIENTE (A10, B6, F1).
+**2026-11-13 (cierre):** Ciclo cerrado en la rama `docs/foundations-close` (desde `origin/main`, con el merge `ec5cfdd`). `plan.md` y `test.md` pasan a `current/`; `research.md`, sus cuatro notas y `proposal.md`, a `archive/`. Status Done. Las rutas internas de los stage files citan su ubicación de entonces (`working/…`). Follow-up abierto: comprobar en el próximo merge que apply-prod espera la aprobación, los 3 nits de CI y alinear `encrypt = true` en envs/* y el runbook.
+
+**2026-11-13 (Test PASS):** El owner añadió `required_reviewers` (`javiladino`, Prevent self-review desactivado) y desactivó el bypass de admins en `prod`. Lo verificó el orquestador con `gh api …/environments/prod`. A10 pasa a PASS; `test.md`: 65 PASS, 0 FAIL, 0 PENDIENTE, veredicto PASS. Follow-up: comprobar en el próximo merge que apply-prod espera la aprobación, más los 3 nits de CI de la revisión. Siguiente: cierre del ciclo, si el owner lo aprueba.
+
+**2026-11-13 (A10 y F1):** PR #1 fusionada. Verificado con `gh` de solo lectura (executor), y el orquestador repitió `environments/prod` y el run de apply. F1 PASS: comentarios de plan de dev y prod con "No changes", run de plan 43446309534 en success con checkov, y run de apply 43449637195 en `main` (merge `ec5cfdd`) en success con apply-dev y apply-prod. A10 FAIL: `prod` solo tiene `branch_policy`, sin `required_reviewers`, y `can_admins_bypass: true`, así que apply-prod se aplicó sin aprobación manual, contra la Convention Apply gate. Sí cumplen la política de rama `main` en dev y prod y el ruleset de `main` (PR obligatoria). `test.md`: 64 PASS, 1 FAIL; veredicto FAIL.
+
+**2026-11-13 (B6):** El owner aportó `evidence/describe-budgets.json`, regenerada filtrada a `skyroute-monthly-10usd` porque la primera captura incluía un budget ajeno al proyecto. La evidencia no tiene email: 10 USD al mes, tipo COST, sin créditos ni reembolsos. Salidas del owner: el budget manual y el bucket de eu-north-1 están borrados (B6b y B6c PASS). El executor había puesto B6 en PASS sin la evidencia del bucket de state y se corrigió a parcial. Después el owner aportó `get-bucket-encryption` (AES256, SSE-C bloqueado) y `get-bucket-versioning` (Enabled), y B6 pasó a PASS. Test: 63 PASS, 2 PENDIENTE (A10, F1).
 
 **2026-11-13 (checkov en la PR):** El checkov de la CI falló en la PR (35 passed, 2 failed, 4 skipped) con CKV_AWS_273 y CKV_AWS_274 en `bootstrap/owner_user.tf`. El owner los acepta como riesgo. Nueva Convention Bootstrap identity en CONTEXT.md, con su nombre añadido a la lista de `AGENTS.md`, y dos skips inline que la citan (executor). Causa del PASS engañoso: ninguna fila de `test.md` ejecutó checkov. T4 estaba PENDIENTE, y T4b y T4c eran greps estáticos. Local y CI usan la misma versión (3.4.5) y el mismo comando, así que no hace falta cambiar el pin. Ejecución local en un venv del scratchpad con el comando de la CI, repetida por el orquestador: 35 passed, 0 failed, 6 skipped. `test.md` corregido (executor). Pendiente: que el owner confirme el nuevo run de la CI tras el push.
 
@@ -23,9 +29,9 @@ Fase 1 — Fundaciones (README § Fases): cuenta AWS con MFA y usuario no root, 
 
 **2026-11-13 (Implement):** Visto bueno del owner al plan. Respuestas incorporadas al plan: environments ya creados en GitHub, grupo `admins` con AdministratorAccess, bucket `skyroute-tfstate-437266392155-eu-west-3`, checkov solo en CI. Fases 1-6 ejecutadas por un executor cada una (Opus en las 2 y 3, Sonnet en el resto); el orquestador volvió a ejecutar cada validación. Decisiones del owner sobre la deriva, ya registradas en el plan: `*` solo en Deny; Deny que protege `ci-boundary`; sin filtros `paths`, con `concurrency`; el runbook nombra el bucket manual. Verificación final: `terraform fmt -check` limpio, `validate` correcto en los 3 root modules, tflint sin hallazgos. Sin comprobar: sintaxis YAML (no hay actionlint ni PyYAML) y checkov (solo en CI). Fase 7 pendiente del owner. Siguiente: Test (`reppit-test`).
 
-**2026-11-13 (Plan):** Commit `d264a40` (Research y Propose). Intake con el owner: modelos como en Propose; primer apply con usuario IAM puente (`skyroute-dev`, grupo `admins`, `aws login`), importado con grupo y pertenencia; versiones no actuales 90 días; IDs `sub` vía `gh api` (executor). El bucket manual está en eu-north-1 (salida del owner): no se adopta, el bootstrap crea uno en eu-west-3. Conventions IaC only y Apply gate aclaradas (recursos previos al bootstrap; "los roles de CI"). `working/plan.md` (stage-author, Opus); revisión (adversarial-reviewer GO-WITH-FIXES, security-reviewer, cost-guard) y corrección (stage-author, Sonnet). Versiones locales: tflint 0.65.0, terraform 1.17.1, checkov sin instalar. Pendiente: visto bueno del owner para Implement y 4 preguntas del plan.
+- 2026-11-13: Plan hecho (7 fases, una ronda de revisión); bucket manual en eu-north-1 no adoptado; Conventions IaC only y Apply gate aclaradas.
 
-**2026-11-12 (Propose):** Sesión `infra-lead`. Intake con grill-me: cuenta en Free y abierta a Paid; Identity Center con Organizations como una opción. `working/proposal.md` (stage-author, Opus) con tres propuestas; revisión en paralelo (adversarial-reviewer GO-WITH-FIXES y security-reviewer, Opus; cost-guard, Sonnet) y corrección de todos los hallazgos (stage-author, Sonnet). El principal: environments solo desde `main` para que una PR no asuma el rol de apply. Recomendada P3; el owner eligió P1 con dos roles (Ruling Foundations design). Pendiente para Plan: credenciales del primer apply del bootstrap, días de lifecycle de versiones no actuales, IDs numéricos para el `sub`, permisos de Budgets y `envs/*`. Siguiente: Plan (`reppit-plan`).
+- 2026-11-12: Propose hecho (tres propuestas revisadas); el owner eligió P1 con dos roles de CI (Ruling Foundations design).
 
 - 2026-11-12: Research hecho (`working/research.md`, cuatro notas de área, una ronda de revisión); Conventions Region y Apply gate aclaradas con el owner; tensión de KMS a Propose.
 - 2026-11-12: topic abierto (scaffold).
@@ -36,13 +42,13 @@ Rutas relativas a esta carpeta.
 
 | File | Role | Load | Qué contiene |
 |------|------|------|--------------|
-| `working/research.md` | draft | on-demand | Stage file Research: estado del repo, hechos externos de las cuatro áreas, tensiones con Conventions, no verificado |
-| `working/proposal.md` | draft | on-demand | Stage file Propose: tres propuestas revisadas, tabla de recomendación y § Decision (P1 con dos roles) |
-| `working/plan.md` | draft | on-demand | Stage file Plan: 7 fases (6 de executor, 1 del owner y la CI), Files Changed, Testing Strategy para reppit-test |
-| `working/test.md` | draft | on-demand | Stage file Test: 62 checks (57 PASS, 5 PENDIENTE del owner o la CI), Review GO-WITH-FIXES, follow-ups |
+| `current/plan.md` | deliverable | on-demand | Diseño de lo construido en la Fase 1: decisiones, componentes, Files Changed, Testing Strategy |
+| `current/test.md` | deliverable | on-demand | Informe de Test: 65 checks PASS con evidencia, Review y follow-ups |
+| `archive/research.md` | reference | on-demand | Research gastado: estado del repo, hechos de las cuatro áreas, tensiones con Conventions |
+| `archive/proposal.md` | reference | on-demand | Propose gastado: tres propuestas y § Decision (P1 con dos roles), discusión del Ruling Foundations design |
 | `evidence/bootstrap-plan.txt` | reference | on-demand | Salida del plan local del bootstrap (Fase 7, paso 1), aportada por el owner el 2026-11-13; sin email, con el account ID aceptado |
 | `evidence/describe-budgets.json` | reference | on-demand | Salida de `aws budgets describe-budget` de `skyroute-monthly-10usd` (check B6), aportada por el owner el 2026-11-13; sin email |
-| `working/research/terraform-layout.md` | draft | on-demand | Nota de área: layout bootstrap/modules/envs, backend S3 `use_lockfile`, bootstrap del bucket, versiones |
-| `working/research/cicd-oidc.md` | draft | on-demand | Nota de área: OIDC GitHub→AWS, formatos `sub`, plan en PR y apply al fusionar, environments |
-| `working/research/iam-security.md` | draft | on-demand | Nota de área: acceso del owner (IAM user / Identity Center), rol de CI, protección del bucket de state |
-| `working/research/account-cost.md` | draft | on-demand | Nota de área: plan Free/Paid, servicios por región y plan, Budgets, precios eu-west-3 |
+| `archive/research/terraform-layout.md` | reference | on-demand | Nota de área: layout bootstrap/modules/envs, backend S3 `use_lockfile`, bootstrap del bucket, versiones |
+| `archive/research/cicd-oidc.md` | reference | on-demand | Nota de área: OIDC GitHub→AWS, formatos `sub`, plan en PR y apply al fusionar, environments |
+| `archive/research/iam-security.md` | reference | on-demand | Nota de área: acceso del owner (IAM user / Identity Center), rol de CI, protección del bucket de state |
+| `archive/research/account-cost.md` | reference | on-demand | Nota de área: plan Free/Paid, servicios por región y plan, Budgets, precios eu-west-3 |
