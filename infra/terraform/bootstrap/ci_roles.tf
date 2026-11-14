@@ -447,6 +447,10 @@ resource "aws_iam_role_policy" "ci_plan" {
           "lambda:GetFunctionConfiguration",
           "lambda:ListVersionsByFunction",
           "lambda:GetPolicy",
+          "lambda:GetFunctionCodeSigningConfig",
+          "lambda:GetFunctionEventInvokeConfig",
+          "lambda:GetFunctionConcurrency",
+          "lambda:ListTags",
         ]
         Resource = "arn:aws:lambda:${local.aws_region}:${local.account_id}:function:skyroute-*-generator"
       },
@@ -493,6 +497,7 @@ resource "aws_iam_role_policy" "ci_plan" {
           "sns:GetTopicAttributes",
           "sns:ListTagsForResource",
           "sns:ListSubscriptionsByTopic",
+          "sns:GetSubscriptionAttributes",
         ]
         Resource = [local.env_arns["dev"].topic, local.env_arns["prod"].topic]
       },
