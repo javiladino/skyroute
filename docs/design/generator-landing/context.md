@@ -47,6 +47,7 @@ Fase 2 — Generador y landing (README § Fases): "Simulador OTA coherente, Lamb
   - `description` de `ci-boundary`: se conserva el texto original ("ci-plan, ci-apply"), porque cambiarla fuerza el replacement de la boundary (PR #13).
   - `ALARM_EMAIL` (precisa OQ5 del Ruling Plan decisions): pasa de variable de repositorio a **secret**. GitHub solo enmascara `secrets.*`, y con `vars.*` el email saldría en los logs públicos de Actions. Los workflows usan `${{ secrets.ALARM_EMAIL }}`. El email queda en claro en el state, que es un riesgo residual aceptado porque el bucket del state es privado.
   - Alarma de coste: se añade una segunda alarma, de `ConcurrentExecutions` de la función (o de `Duration` si esa métrica no existe sin concurrencia reservada), con el mismo topic. La de Invocations no detecta las ejecuciones largas con `backfill_timeout` alto (cost-guard, Fase 9).
+  - D (OQ9): **2026-11-14**, la fecha del primer slot del schedule de prod (`ingest_date=2026-11-14/slot=36`, escrito a las 09:11:35 UTC tras el apply de la PR-M). El backfill cubre del 2026-05-16 al 2026-11-13 (182 días, 17.472 objetos) y TS-O1 usa `--d 2026-11-14`. Owner, 2026-11-14.
   - Se mantiene el schedule group `default` y su `aws:SourceArn`. Un grupo propio obligaría a otro re-apply de bootstrap, y el rol solo puede invocar esta Lambda.
 
 ## Journal (newest first)
