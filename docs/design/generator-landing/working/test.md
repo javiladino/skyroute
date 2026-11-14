@@ -18,6 +18,7 @@ Este archivo todavía no es el veredicto final de `reppit-test`: ese veredicto l
 | 4 | TS-A1 (PR-B1) | Static checks de PR-B1 (#10) | job `static-checks` de CI, run 43572417056 | plan-dev, plan-prod y static-checks pass; checkov sin hallazgos | PASS |
 | 4 | TS-V2, TS-V3 (`bootstrap`) | fmt y validate de la Fase 4 | `terraform fmt -check -recursive infra/terraform` y `terraform -chdir=infra/terraform/bootstrap validate` (orquestador) | según el orquestador; salida literal no recogida en este archivo | PASS (sin salida literal) |
 | 5 | TS-B1 | Plan del owner solo con create/update de la Fase 5; apply | `terraform -chdir=infra/terraform/bootstrap plan -out=b1.tfplan` y `apply b1.tfplan` (owner) | plan `7 to add, 2 to change, 0 to destroy`; `ci-apply` sin cambios; `Apply complete! Resources: 7 added, 2 changed, 0 destroyed.` | PASS |
+| 6 | TS-W1 (parcial) | Run de `terraform-apply.yml` tras PR-W (#11) con `ci-apply-dev` y `ci-apply-prod` | push a `main` (commit `aeb3e7d4b9f2face485afebb7db521ca88a2ee70`), run 43574299596 (https://github.com/javiladino/skyroute/actions/runs/43574299596), verificado por el orquestador con `gh run view`, 2026-11-14 | conclusión `success`; apply-dev y apply-prod verdes (citas literales en "Fase 6: salida del run") | PASS |
 
 Notas de la Fase 4: la PR-B1 es la #10. La fila TS-A1 cubre PR-B1; la de PR-M queda pendiente.
 
@@ -74,6 +75,30 @@ Apply complete! Resources: 7 added, 2 changed, 0 destroyed.
 
 Evidencia adicional (owner, `gh api`, 2026-11-13): `dev` y `prod` con `can_admins_bypass:false` y branch policy `main`; `prod` con `required_reviewers` javiladino (relacionado con TS-O5, que se repite al ejecutar `reppit-test`).
 
+### Fase 6: salida del run (literal)
+
+Run 43574299596 de `terraform-apply.yml`, lanzado por el push a `main` de la PR-W #11 fusionada (commit `aeb3e7d4b9f2face485afebb7db521ca88a2ee70`). Verificado por el orquestador con `gh run view`, 2026-11-14. Conclusión: `success`.
+
+```text
+Job apply-dev:
+role-to-assume: arn:aws:iam::437266392155:role/ci-apply-dev
+Authenticated as assumedRoleId AROAWLTY3URN7L4YKQ3ZX:GitHubActions
+init: Successfully configured the backend "s3"!
+apply: No changes. Your infrastructure matches the configuration.
+Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
+
+Job apply-prod (con aprobación del owner):
+role-to-assume: arn:aws:iam::437266392155:role/ci-apply-prod
+Authenticated as assumedRoleId AROAWLTY3URNQ2QUSFVKU:GitHubActions
+init: backend s3 configurado
+apply: No changes.
+Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
+```
+
+Nota: el `init` de ambos jobs avisa "Terraform has made some changes to the provider dependency selections recorded in the .terraform.lock.hcl file". No es bloqueante; se revisa al regenerar el lock en la Fase 9.
+
+Nota sobre TS-W1: el `ListBucket` con condición `s3:prefix = envs/<env>/` de los roles nuevos bastó para `init` y `apply` con el state vacío. Es evidencia parcial; la completa llega con recursos en el state (Fase 9).
+
 ## Pendiente
 
 Fase 5 (owner):
@@ -94,7 +119,7 @@ Resto de checks según el plan:
 - Verify y reglas de archivos: TS-V2 a TS-V6 (fmt, validate de dev, prod y bootstrap, tflint de dev y prod, diff de `docs/design/foundations` contra `b21c2f9`, `git diff --name-only b21c2f9`).
 - Unit tests: TS-U1 a TS-U10 (cubiertos en conjunto por los 28 tests de TS-V1; falta la correspondencia fila por fila en el veredicto final).
 - Behavior checks: TS-A1 para PR-M; TS-A2 para PR-M; TS-A3 en la PR-T1 (Fase 10).
-- Fase 6: TS-W1 (run de `terraform-apply.yml` tras PR-W).
+- Fase 6: TS-W1 parcial. Run 43574299596 (apply-dev y apply-prod verdes con los roles nuevos, state vacío; ver "Fase 6: salida del run"). Falta la evidencia completa con recursos en el state (Fase 9).
 - Fase 8: TS-B7 (plan de destroy solo de `ci-apply` y `aws iam get-role --role-name ci-apply` con `NoSuchEntity`).
 - TS-B4 (`grep -c` por Sid y archivo, tras la Fase 7).
 - Fases 9 y 10: TS-C2, TS-C2b, TS-C4, TS-O1, TS-O2, TS-O3, TS-O4, TS-O5 (repetir), TS-O6; fecha D (OQ9) que registra el owner.
