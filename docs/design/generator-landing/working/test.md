@@ -28,6 +28,11 @@ Este archivo todavía no es el veredicto final de `reppit-test`: ese veredicto l
 | 9 | TS-O2 (parcial) | Primer micro-lote del schedule de prod (mitad del criterio de hecho: "el schedule añade micro-lotes") | mismo listado de `landing/` de PC5 (owner, 2026-11-14) | slot 36 (09:00 UTC) de 2026-11-14 escrito por el schedule de prod. `rate(15 minutes)` cuenta desde la creación del schedule (09:10:48 UTC): las invocaciones caen en :10/:25/:40/:55 y el handler redondea a slot; los slots 00-35 de 2026-11-14 no existen (anteriores al schedule). Faltan los dos `aws s3 ls` separados 30 min, lo de dev (ninguno) y `get-schedule` en ambos | PARCIAL (pendiente la comparación a 30 min y dev) |
 | 9 | Cuota Lambda (PC6, trabajo paralelo, PR #14) | Re-apply de `bootstrap/` con `lambda_quota.tf` y estado de la solicitud | `terraform -chdir=infra/terraform/bootstrap plan` y `apply` (owner, 2026-11-14); `aws service-quotas list-requested-service-quota-change-history-by-quota` | plan `1 to add, 0 to change, 0 to destroy`; `aws_servicequotas_service_quota.lambda_concurrent_executions` (L-B99A9384, valor 1000, eu-west-3) `Creation complete after 1s [id=lambda/L-B99A9384]`; `Apply complete! Resources: 1 added, 0 changed, 0 destroyed.`. Solicitud: Status `CASE_OPENED`, CaseId 179464611900230, DesiredValue 1000, creada 2026-11-14T09:48:23+01:00. AWS aún no aprueba | PASS (re-apply); solicitud SIN VEREDICTO (CASE_OPENED; aprobación pendiente, PR-Q, Fase 11) |
 | 9 | D (OQ9) | Fecha concreta de D | decisión del owner, 2026-11-14 | D = 2026-11-14. Backfill: 2026-05-16..2026-11-13, 182 × 96 = 17.472 objetos; TS-O1 con `verify_landing.py --d 2026-11-14` | REGISTRADA (owner) |
+| 10 | TS-A3 | Plan de PR-T1 (#16) con la función y el bucket en el state | job de CI, run 43579984929, re-ejecutado tras el re-apply de ci-plan (PR #17) | prod: `Terraform plan: prod (OK)`, refresh de los 23 recursos sin AccessDenied, único cambio `timeout = 60 -> 300`, `Plan: 0 to add, 1 to change, 0 to destroy.`; dev: `No changes.` (citas en "Fase 10: salida (literal)") | PASS |
+| 10 | PC3 | Lecturas de refresh de `ci-plan` sobre los recursos del módulo | mismo run 43579984929; PR #17 (re-apply de `bootstrap/`, plan `0 to add, 1 to change, 0 to destroy`, `Apply complete! Resources: 0 added, 1 changed, 0 destroyed.`) | primer intento FALLO: AccessDenied en `SNS:GetSubscriptionAttributes` y `lambda:GetFunctionCodeSigningConfig` para `assumed-role/ci-plan` en dev y prod. Tras la PR #17 (añade `lambda:GetFunctionCodeSigningConfig`, `GetFunctionEventInvokeConfig`, `GetFunctionConcurrency`, `ListTags` y `sns:GetSubscriptionAttributes`) el plan pasa sin AccessDenied. OQ10 (`lambda:GetFunction`) confirmada | PASS (tras corrección, PR #17) |
+| 10 | Backfill (PR-T1) | Backfill de 182 días con timeout 300 | apply de PR-T1: run 43587443950 (430e5cf), success; `aws lambda get-function-configuration ... --query Timeout` y bucle de 182 `aws lambda invoke` síncronos (owner, 2026-11-14) | `Timeout` = `300`; prueba de 1 día: `{"objects": 96, "from": "2026-05-16", "to": "2026-05-16"}`; bucle 2026-05-16..2026-11-13 completado sin ningún `FALLO` | COMPLETADO |
+| 10 | TS-O2 (segunda mitad) | El schedule de prod añade micro-lotes consecutivos (mitad del criterio de hecho) | `aws s3 ls s3://skyroute-prod-data-437266392155/landing/clickstream/ingest_date=2026-11-14/ --recursive --profile skyroute-dev` (owner, 2026-11-14) | 9 slots consecutivos (36 a 44), uno cada 15 min, sin huecos; horas locales +01:00 (09:11 a 11:11 UTC): 10:11:35 slot 36, 10:26:36 slot 37, 10:41:35 slot 38, 10:56:36 slot 39, 11:11:36 slot 40, 11:26:35 slot 41, 11:41:35 slot 42, 11:56:35 slot 43, 12:11:35 slot 44 (tamaños 1522 a 2342 bytes). Con TS-O1 (17.472 objetos) quedan cumplidas las dos mitades del criterio de hecho de la Fase 2. Completa la fila TS-O2 (parcial) de la Fase 9 | PASS |
+| 10 | TS-O1 | Backfill completo en `landing/` (criterio de hecho C5) | `aws s3api list-objects-v2 ... --prefix landing/clickstream/` y `python3 generators/verify_landing.py --listing /tmp/landing-listing.json --d 2026-11-14` (owner, 2026-11-14) | `days` 182, `objects_in_range` 17472, `days_not_96` `{}`, `missing` `[]`, `extra` `[]`; 182 × 96 = 17.472, dentro de los 30 días del lifecycle | PASS |
 
 Notas de la Fase 4: la PR-B1 es la #10. La fila TS-A1 cubre PR-B1; la de PR-M queda pendiente.
 
@@ -178,13 +183,47 @@ Cuota de Lambda (trabajo paralelo, PR #14):
 - list-requested-service-quota-change-history-by-quota: Status "CASE_OPENED", CaseId 179464611900230, DesiredValue 1000, Created 2026-11-14T09:48:23+01:00. Pendiente de aprobación por AWS (PR-Q, Fase 11).
 ```
 
+### Fase 10: salida (literal)
+
+```text
+Fase 10 — evidencia (owner javiladino, 2026-11-14)
+
+PR-T1 (#16): plan de PR re-ejecutado tras el re-apply de ci-plan (PR #17, bootstrap 0/1/0) en el run 43579984929:
+- prod: "Terraform plan: prod (OK)"; refresh de los 23 recursos del módulo (incluidos event_invoke_config, scheduler_schedule y las dos alarmas) sin AccessDenied; único cambio "aws_lambda_function.generator ... timeout = 60 -> 300"; "Plan: 0 to add, 1 to change, 0 to destroy."
+- dev: "Terraform plan: dev (OK)"; "No changes. Your infrastructure matches the configuration."
+=> TS-A3 PASS, PC3 PASS (lecturas añadidas: lambda:GetFunctionCodeSigningConfig, GetFunctionEventInvokeConfig, GetFunctionConcurrency, ListTags; sns:GetSubscriptionAttributes), OQ10 (GetFunction) confirmada.
+Primer intento (FALLO, mismo run antes del re-apply): AccessDenied en SNS:GetSubscriptionAttributes y lambda:GetFunctionCodeSigningConfig para assumed-role/ci-plan en dev y prod.
+PR #17 re-apply de bootstrap: plan "0 to add, 1 to change, 0 to destroy" (aws_iam_role_policy.ci_plan); apply "Apply complete! Resources: 0 added, 1 changed, 0 destroyed."
+Apply de PR-T1: run 43587443950 (430e5cf), success.
+
+Backfill:
+$ aws lambda get-function-configuration --function-name skyroute-prod-generator --query Timeout ...
+300
+$ aws lambda invoke ... --payload '{"from":"2026-05-16","to":"2026-05-16"}' /tmp/bf-2026-05-16.json
+{"StatusCode": 200, "ExecutedVersion": "$LATEST"}
+{"objects": 96, "from": "2026-05-16", "to": "2026-05-16"}
+Bucle de 182 invocaciones síncronas de 1 día (2026-05-16 .. 2026-11-13), --cli-read-timeout 0, parada ante FunctionError: completado sin ningún "FALLO".
+
+TS-O1 (criterio de hecho C5):
+$ aws s3api list-objects-v2 --bucket skyroute-prod-data-437266392155 --prefix landing/clickstream/ --region eu-west-3 --profile skyroute-dev --output json > /tmp/landing-listing.json
+$ python3 generators/verify_landing.py --listing /tmp/landing-listing.json --d 2026-11-14
+{
+  "d": "2026-11-14",
+  "days": 182,
+  "objects_in_range": 17472,
+  "days_not_96": {},
+  "missing": [],
+  "extra": []
+}
+=> TS-O1 PASS: 182 días × 96 = 17.472 objetos, sin faltantes ni sobrantes. Tomado dentro de los 30 días del lifecycle.
+```
+
 ## Pendiente
 
-Hechos en la Fase 9 (ver filas de "Evidencia por fase"): PC1, PC5, PC4, subida de cuota aplicada (re-apply 1/0/0) y D registrada (2026-11-14). Siguen abiertos:
-- Cuota: la solicitud está en `CASE_OPENED`; el owner aporta la cuota aprobada (comando de PC6) cuando AWS la apruebe. Después, PR-Q (Fase 11) y TS-C2c.
-- TS-A3 y PC3 (PR-T1, Fase 10): primer plan de PR con la función y el bucket en el state; ahí también OQ10 y TS-W1 completa.
-- TS-O1 (backfill, Fase 10): D = 2026-11-14, rango 2026-05-16..2026-11-13 (182 × 96 = 17.472), `verify_landing.py --d 2026-11-14`, dentro de los 30 días.
-- TS-O2: falta la segunda mitad (dos `aws s3 ls` separados 30 min en prod y dev, `get-schedule` `ENABLED` en prod y `DISABLED` en dev).
+Hechos en la Fase 9 (ver filas de "Evidencia por fase"): PC1, PC5, PC4, subida de cuota aplicada (re-apply 1/0/0) y D registrada (2026-11-14). Hechos en la Fase 10: TS-A3, PC3, TS-O1, TS-O2 (segunda mitad) y OQ10 (filas de "Evidencia por fase"). Siguen abiertos:
+- PR-T2 aplicada: el timeout de prod vuelve a 60 (cambio en `envs/prod/main.tf`, pendiente de PR, plan de CI y apply); evidencia: plan `timeout = 300 -> 60` y `get-function-configuration` con `Timeout = 60`.
+- Cuota: la solicitud está en `CASE_OPENED`; el owner aporta la cuota aprobada (comando de PC6) cuando AWS la apruebe. Después, PR-Q (Fase 11) y TS-C2c (cuota en `CASE_OPENED`).
+- TS-W1 completa (con recursos en el state): sin cita explícita en la evidencia de la Fase 10; confirmar.
 - TS-C4: invocación manual de un slot en dev y `aws s3 ls` de `landing/`; sigue sin evidencia.
 - TS-C2 (arm64 en `get-function-configuration`, `Timeout = 60`, `MemorySize = 256`), TS-C2b, TS-O3, TS-O4 (suscripción SNS) y TS-O6 (retención 14 días): sin evidencia aún.
 - PC7 (zip real de `archive_file`): sin evidencia aún.
