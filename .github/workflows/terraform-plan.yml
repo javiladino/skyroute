@@ -62,7 +62,7 @@ jobs:
           TF_VAR_alarm_email: ${{ secrets.ALARM_EMAIL }}
         run: |
           set +e
-          terraform plan -input=false -no-color -lock=false -lock-timeout=60s > "$RUNNER_TEMP/plan.txt" 2>&1
+          terraform plan -input=false -no-color -lock=false > "$RUNNER_TEMP/plan.txt" 2>&1
           code=$?
           echo "exitcode=$code" >> "$GITHUB_OUTPUT"
           exit 0
