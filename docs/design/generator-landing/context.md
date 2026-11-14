@@ -19,7 +19,7 @@ Fase 2 — Generador y landing (README § Fases): "Simulador OTA coherente, Lamb
   - Plan en PR (T19): riesgo aceptado y acotado. `ci-plan` es de solo lectura y no tiene acciones de datos. Propose valora `-lock=false`.
   - Tiempo lógico (T7/T8/T20): `scheduled-time` redondeado a 15 min da `(run_date, slot)`, y el backfill usa los mismos campos. Los eventos tardíos van en el slot donde llegan. El backfill termina en D-1 y el schedule empieza en D. `updated_at` lo pone el generador.
   - Bucket (T9/T10): uno por entorno, con SSE-S3, TLS-only, bloqueo de acceso público y sin versioning. Los skips de checkov van por recurso y con su motivo.
-  - Schedule (T13/T21): ENABLED en prod y DISABLED en dev, según una variable. Topes: concurrencia reservada de 1, RetryPolicy acotada, logs con 14 días de retención y una alarma de Invocations que avisa por SNS al email.
+  - Schedule (T13/T21): ENABLED en prod y DISABLED en dev, según una variable. Topes: concurrencia reservada de 1 (en suspenso hasta que AWS suba la cuota; ver Ruling Implement decisions), RetryPolicy acotada, logs con 14 días de retención y una alarma de Invocations que avisa por SNS al email.
   - Plan Free (T12/T14): la cuenta sigue en Free. Antes de Plan, el owner aporta la salida de `aws freetier get-account-plan-state` y `aws budgets describe-budget`. Region se prueba con el primer apply a dev.
 
 - **Propose decisions (javiladino, 2026-11-13 23:00):** Precisan el Ruling Research decisions; la discusión está en `working/proposal.md`.
@@ -42,7 +42,21 @@ Fase 2 — Generador y landing (README § Fases): "Simulador OTA coherente, Lamb
   - PC2: slots UTC `00`..`95`.
   - Checks: PC6 (cuota de concurrencia) la aporta el owner antes de la Fase 9. PC1 y PC5 se comprueban en el primer apply a dev, y PC3 en la PR-T1.
 
+- **Implement decisions (javiladino, 2026-11-14):** Enmiendan el Ruling Research decisions (línea Schedule) durante Implement.
+  - Concurrencia (PC6): la cuota "Concurrent executions" (L-B99A9384) de la cuenta en eu-west-3 es 10, y AWS exige dejar 10 sin reservar. Opción C: la Fase 9 se despliega sin `reserved_concurrent_executions`. En paralelo, `bootstrap/` pide por Terraform (`aws_servicequotas_service_quota`) subir la cuota a 1.000, y el owner la aplica en un re-apply. Cuando AWS la apruebe, una PR vuelve a poner la concurrencia reservada de 1. Mientras tanto, los topes son el timeout, la RetryPolicy del Scheduler, la alarma de Invocations y la cuota de 10 de la cuenta. Un backfill puede solaparse con el schedule de prod; las escrituras son idempotentes.
+  - `description` de `ci-boundary`: se conserva el texto original ("ci-plan, ci-apply"), porque cambiarla fuerza el replacement de la boundary (PR #13).
+
 ## Journal (newest first)
+
+**2026-11-14 (Implement, Fases 1-8):** Cada fase de código la implementó un executor (Sonnet) y el orquestador volvió a ejecutar su verify.
+- **PRs:** #7/#9 generador y Postgres (#7 se fusionó en la rama del plan y #9 lo recuperó en `main`), #8 `-lock=false`, #10 bootstrap, #11 workflow de apply, #12 retirada de `ci-apply` y #13 fix de la `description`.
+- **Fase 4:** security-reviewer (Opus) dio "listo con fixes". El owner aceptó tres: el riesgo residual de `PutBucketPolicy`, quitar `UpdateAssumeRolePolicy` y denegar `sns:Subscribe` salvo `email`.
+- **Fase 5 (owner):** 7/2/0. **Fase 6:** run 43574299596, con "No changes" en dev y en prod.
+- **Fase 8 (owner):** el primer plan reemplazaba `ci-boundary` y no se aplicó. Tras la PR #13 dio 0/4/2 y T17 quedó cerrada.
+- **PC6:** la cuota de Lambda es 10 (Ruling Implement decisions, opción C).
+- **Estado:** en curso, la PR de la cuota (`lambda_quota.tf`). `plan.md` y `test.md` están actualizados.
+
+Siguiente: re-apply de la cuota, Fase 9, Fase 10 y la PR-Q.
 
 **2026-11-13 (Plan):** stage-author (Opus) escribió `working/plan.md`: 10 fases, con las 5, 8 y 10 a cargo del owner. Revisión en paralelo: adversarial-reviewer (Opus, NEEDS-REVISION, 13 hallazgos), security-reviewer (Opus, 11 hallazgos) y cost-guard (Sonnet, de 0,02 a 0,3 USD/mes). executor (Sonnet) comprobó con `gh api` que los environments `dev` y `prod` solo admiten despliegues desde `main` y tienen `can_admins_bypass: false`; el hallazgo high de seguridad no se sostiene. Un stage-author (Sonnet) aplicó los 28 hallazgos. El owner resolvió dos choques (transición y alcance), aceptó todas las opciones por defecto y aprobó el plan (Ruling Plan decisions). Desviación anotada: `aws:SourceArn` del Scheduler apunta al schedule group, como pide la guía de AWS. Triage: `plan.md`, `proposal.md` y `research.md` quedan en `working/`. Siguiente: Implement.
 

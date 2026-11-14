@@ -19,6 +19,8 @@ Este archivo todavía no es el veredicto final de `reppit-test`: ese veredicto l
 | 4 | TS-V2, TS-V3 (`bootstrap`) | fmt y validate de la Fase 4 | `terraform fmt -check -recursive infra/terraform` y `terraform -chdir=infra/terraform/bootstrap validate` (orquestador) | según el orquestador; salida literal no recogida en este archivo | PASS (sin salida literal) |
 | 5 | TS-B1 | Plan del owner solo con create/update de la Fase 5; apply | `terraform -chdir=infra/terraform/bootstrap plan -out=b1.tfplan` y `apply b1.tfplan` (owner) | plan `7 to add, 2 to change, 0 to destroy`; `ci-apply` sin cambios; `Apply complete! Resources: 7 added, 2 changed, 0 destroyed.` | PASS |
 | 6 | TS-W1 (parcial) | Run de `terraform-apply.yml` tras PR-W (#11) con `ci-apply-dev` y `ci-apply-prod` | push a `main` (commit `aeb3e7d4b9f2face485afebb7db521ca88a2ee70`), run 43574299596 (https://github.com/javiladino/skyroute/actions/runs/43574299596), verificado por el orquestador con `gh run view`, 2026-11-14 | conclusión `success`; apply-dev y apply-prod verdes (citas literales en "Fase 6: salida del run") | PASS |
+| 8 | TS-B7 | Segundo re-apply de `bootstrap/`: plan solo con destroy de `ci-apply` y su inline; apply; T17 cerrada | `terraform -chdir=infra/terraform/bootstrap plan -out=b2.tfplan` y `apply b2.tfplan` (owner, 2026-11-14, desde `main` e3eca43 con las PR #12 y #13 fusionadas) | plan `0 to add, 4 to change, 2 to destroy`; `Apply complete! Resources: 0 added, 4 changed, 2 destroyed.`; intento 1 no aplicado (citas literales en "Fase 8: salida del owner") | PASS |
+| 9 | PC6 | Cuota de concurrencia de Lambda de la cuenta en eu-west-3 (L-B99A9384) | `aws service-quotas get-service-quota --service-code lambda --quota-code L-B99A9384 --region eu-west-3` (owner, 2026-11-14) | `"Value": 10.0`, `Adjustable: true`. AWS exige dejar 10 sin reservar: `reserved_concurrent_executions = 1` no se puede aplicar. Hallazgo que activa el Ruling Implement decisions (concurrencia, PC6): la Fase 9 se despliega sin concurrencia reservada y `bootstrap/` pide subir la cuota | HALLAZGO (no es PASS/FAIL) |
 
 Notas de la Fase 4: la PR-B1 es la #10. La fila TS-A1 cubre PR-B1; la de PR-M queda pendiente.
 
@@ -98,6 +100,47 @@ Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
 Nota: el `init` de ambos jobs avisa "Terraform has made some changes to the provider dependency selections recorded in the .terraform.lock.hcl file". No es bloqueante; se revisa al regenerar el lock en la Fase 9.
 
 Nota sobre TS-W1: el `ListBucket` con condición `s3:prefix = envs/<env>/` de los roles nuevos bastó para `init` y `apply` con el state vacío. Es evidencia parcial; la completa llega con recursos en el state (Fase 9).
+
+### Fase 8: salida del owner (literal)
+
+```text
+Fase 8 — salida aportada por el owner (javiladino), 2026-11-14, desde main e3eca43 (PRs #12 y #13 fusionadas).
+
+Intento 1 (NO aplicado): plan "1 to add, 6 to change, 3 to destroy". aws_iam_policy.ci_boundary salía como replacement (-/+) porque la description cambiada en la PR-B2 (#12) es inmutable en IAM ("# forces replacement"); permissions_boundary de ci-plan, ci-apply-dev y ci-apply-prod salía "(known after apply)". El orquestador lo paró; el owner borró b2.tfplan. Corrección: PR #13 (description restaurada a "Permissions boundary de los roles de CI (ci-plan, ci-apply).").
+
+Intento 2:
+$ terraform -chdir=infra/terraform/bootstrap plan -out=b2.tfplan
+  # aws_iam_policy.ci_boundary will be updated in-place   (quita role/ci-apply de DenyCiAndOidcChanges)
+  # aws_iam_role.ci_apply will be destroyed                (trust sub = environment:dev y environment:prod; causa de T17)
+  # aws_iam_role_policy.ci_apply will be destroyed
+  # aws_iam_role_policy.ci_apply_dev will be updated in-place   (quita role/ci-apply de DenyCiAndOidcChanges)
+  # aws_iam_role_policy.ci_apply_prod will be updated in-place  (idem)
+  # aws_iam_role_policy.ci_plan will be updated in-place        (idem)
+  Sin replacement; permissions_boundary de los roles sin cambios.
+Plan: 0 to add, 4 to change, 2 to destroy.
+
+$ terraform -chdir=infra/terraform/bootstrap apply b2.tfplan
+aws_iam_role_policy.ci_apply: Destroying... [id=ci-apply:ci-apply-backend]
+aws_iam_role_policy.ci_apply: Destruction complete after 0s
+aws_iam_role.ci_apply: Destroying... [id=ci-apply]
+aws_iam_role.ci_apply: Destruction complete after 0s
+aws_iam_policy.ci_boundary: Modifying... [id=arn:aws:iam::437266392155:policy/ci-boundary]
+aws_iam_policy.ci_boundary: Modifications complete after 1s [id=arn:aws:iam::437266392155:policy/ci-boundary]
+aws_iam_role_policy.ci_plan: Modifying... [id=ci-plan:ci-plan-backend]
+aws_iam_role_policy.ci_apply_dev: Modifying... [id=ci-apply-dev:ci-apply-dev-backend]
+aws_iam_role_policy.ci_apply_prod: Modifying... [id=ci-apply-prod:ci-apply-prod-backend]
+aws_iam_role_policy.ci_plan: Modifications complete after 0s [id=ci-plan:ci-plan-backend]
+aws_iam_role_policy.ci_apply_dev: Modifications complete after 0s [id=ci-apply-dev:ci-apply-dev-backend]
+aws_iam_role_policy.ci_apply_prod: Modifications complete after 1s [id=ci-apply-prod:ci-apply-prod-backend]
+
+Apply complete! Resources: 0 added, 4 changed, 2 destroyed.
+
+Resultado: T17 cerrada (ya no existe ningún rol de apply con trust dev+prod). Fase 7 en código: PR-B2 #12 (556c1c6) + fix #13 (f412faa).
+```
+
+### PC6: cuota de concurrencia (valor aportado por el owner)
+
+Owner (javiladino), 2026-11-14: cuota L-B99A9384 en eu-west-3 con `"Value": 10.0` y `Adjustable: true`. Activa el Ruling Implement decisions (owner javiladino, 2026-11-14), línea "Concurrencia (PC6)": Fase 9 sin `reserved_concurrent_executions`, solicitud de cuota a 1.000 desde `bootstrap/` y PR-Q posterior. Detalle en `working/plan.md`.
 
 ## Pendiente
 

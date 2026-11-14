@@ -103,6 +103,18 @@ En el camino normal no hay ventana: `ci-apply` existe hasta el segundo re-apply 
 - **Segundo re-apply hecho y los roles nuevos fallan:** revierte la PR-B2 y reaplica `bootstrap/` para recrear `ci-apply` con la misma trust; después revierte la PR-W. Entre ambos pasos estás en la ventana sin rol de apply, y el run de `terraform-apply.yml` que dispara el merge de la reversión de PR-B2 se espera fallido (el workflow aún asume los roles nuevos).
 - **Recrear `ci-apply` reabre T17:** el rol acepta `environment:dev` y `environment:prod` y escribe el state de prod. La PR del módulo no se mergea hasta un nuevo destroy de `ci-apply` (nueva PR-B2 y nuevo re-apply).
 
+### Subida de cuota de Lambda
+
+`lambda_quota.tf` pide subir la cuota "Concurrent executions" de Lambda (`L-B99A9384`, eu-west-3) de 10 a 1000, para poder reservar concurrencia. Lo aplica el owner en local, con `skyroute-dev` (Convention Apply gate), con el flujo `plan` y `apply` de arriba.
+
+AWS aprueba la petición de forma asíncrona: puede tardar o rechazarse, y bajar el valor no es posible por API. Comprueba el estado con:
+
+```bash
+aws service-quotas list-requested-service-quota-change-history-by-quota --service-code lambda --quota-code L-B99A9384 --region eu-west-3 --profile skyroute-dev
+```
+
+Cuando el valor aplicado sea >= 11, se abre la PR que restaura `reserved_concurrent_executions = 1`.
+
 ## Antes de cerrar la cuenta Free
 
 La cuenta Free pierde sus recursos al terminar, incluido el bucket de state. Exporta el state antes (`terraform state pull > backup.tfstate` en cada root module) y guárdalo fuera de AWS.
