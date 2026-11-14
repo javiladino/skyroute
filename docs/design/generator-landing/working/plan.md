@@ -342,8 +342,10 @@ Sin mocks de AWS: el handler recibe el writer por inyección; boto3 solo se usa 
 | `DenyAttachRolePolicy` (S2) | 1 (solo `ci-boundary`) | 1 | 1 |
 | `DenyLambdaUrlAndPermission` (S4) | 1 (solo `ci-boundary`) | 1 | 1 |
 | `DenyAttachCrossEnvBoundary` (D2) | 0 | 1 | 1 |
+| `DenyNonEmailSnsSubscribe` | 1 (solo `ci-boundary`) | 1 | 1 |
+| `DenyLogRead` | 2 (`ci-plan` y `ci-boundary`) | 0 | 0 |
 
-Si el executor usa otros nombres de Sid, actualiza esta tabla en el mismo cambio. Antes de la Fase 7 (con `ci-apply` aún presente) cada "2" de `ci_roles.tf` es "3". Si OQ6 elige `ci-boundary-<env>`, la tabla pasa a seis políticas y se rehace en la PR-B1.
+Si el executor usa otros nombres de Sid, actualiza esta tabla en el mismo cambio. Antes de la Fase 7 (con `ci-apply` aún presente) cada "2" de `ci_roles.tf` es "3", salvo `DenyRoleWritesOutsideWorkload` y `DenyPassRoleWrongService`, que valen 2 también antes de la Fase 7 porque el `ci-apply` antiguo nunca los tuvo (solo `ci-boundary` y `ci-plan`). Si OQ6 elige `ci-boundary-<env>`, la tabla pasa a seis políticas y se rehace en la PR-B1.
 
 ## Observability
 
@@ -395,6 +397,7 @@ Gates antes de la PR-B1 (Fase 4): OQ6, OQ10 y OQ11. Gate antes de la Fase 9: PC6
 - La alarma de `Invocations` no detecta un generador parado (Observability, C4).
 - La vuelta atrás de la Fase 8 recrea `ci-apply` y reabre T17 hasta un nuevo destroy (Rollout Strategy).
 - Cuatro copias de Deny más dos boundaries (T22).
+- Riesgo residual de `s3:PutBucketPolicy` en `ci-apply-<env>`, aceptado por el owner (Security Considerations).
 
 ## Dependencies
 
@@ -415,6 +418,10 @@ Gates antes de la PR-B1 (Fase 4): OQ6, OQ10 y OQ11. Gate antes de la Fase 9: PC6
 - Environments de GitHub: `dev` y `prod` con branch policy `main` y sin bypass de admins; `prod` con reviewer (S1, verificado el 2026-11-13; TS-O5). `terraform-plan.yml` no usa environment, de modo que el rol `ci-plan` solo acepta el `sub` `pull_request`.
 - PII sintética con email derivado; `.env` ignorado; `alarm_email` fuera del repo.
 - SSE-S3, TLS-only, public access block; KMS fuera (`foundations/current/plan.md:237`).
+- **Riesgo residual aceptado por el owner (2026-11-14, revisión de seguridad de la Fase 4):** `ci-apply-<env>` tiene `s3:PutBucketPolicy` sobre el bucket de datos de su entorno porque el Ruling Bucket exige política TLS-only; podría poner una política que comparta el bucket con otra cuenta (el account public access block no lo impide y no existe condition key que inspeccione el contenido de la política). Mitigación: el apply solo corre desde `main` (environment con branch policy `main`) y prod exige aprobación del owner.
+- `iam:UpdateAssumeRolePolicy` se retira de los roles de CI sobre roles de workload: el trust se crea una vez; cambiarlo exige re-apply de bootstrap.
+- `sns:Subscribe` denegado salvo protocolo `email`; `DenyLogRead` también en `ci-boundary`.
+- `ci-boundary` usa comodines por servicio sobre los ARN exactos de dev y prod (statement `AllowWorkloadServices`) por el límite de 6.144 caracteres; el permiso efectivo lo fija la inline enumerada de cada rol (boundary = techo). Tamaño estimado 4.300-4.800 caracteres, no medido; lo confirma el plan del owner en la Fase 5.
 
 ## Rollout Strategy
 
