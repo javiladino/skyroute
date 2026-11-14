@@ -45,6 +45,9 @@ Fase 2 — Generador y landing (README § Fases): "Simulador OTA coherente, Lamb
 - **Implement decisions (javiladino, 2026-11-14):** Enmiendan el Ruling Research decisions (línea Schedule) durante Implement.
   - Concurrencia (PC6): la cuota "Concurrent executions" (L-B99A9384) de la cuenta en eu-west-3 es 10, y AWS exige dejar 10 sin reservar. Opción C: la Fase 9 se despliega sin `reserved_concurrent_executions`. En paralelo, `bootstrap/` pide por Terraform (`aws_servicequotas_service_quota`) subir la cuota a 1.000, y el owner la aplica en un re-apply. Cuando AWS la apruebe, una PR vuelve a poner la concurrencia reservada de 1. Mientras tanto, los topes son el timeout, la RetryPolicy del Scheduler, la alarma de Invocations y la cuota de 10 de la cuenta. Un backfill puede solaparse con el schedule de prod; las escrituras son idempotentes.
   - `description` de `ci-boundary`: se conserva el texto original ("ci-plan, ci-apply"), porque cambiarla fuerza el replacement de la boundary (PR #13).
+  - `ALARM_EMAIL` (precisa OQ5 del Ruling Plan decisions): pasa de variable de repositorio a **secret**. GitHub solo enmascara `secrets.*`, y con `vars.*` el email saldría en los logs públicos de Actions. Los workflows usan `${{ secrets.ALARM_EMAIL }}`. El email queda en claro en el state, que es un riesgo residual aceptado porque el bucket del state es privado.
+  - Alarma de coste: se añade una segunda alarma, de `ConcurrentExecutions` de la función (o de `Duration` si esa métrica no existe sin concurrencia reservada), con el mismo topic. La de Invocations no detecta las ejecuciones largas con `backfill_timeout` alto (cost-guard, Fase 9).
+  - Se mantiene el schedule group `default` y su `aws:SourceArn`. Un grupo propio obligaría a otro re-apply de bootstrap, y el rol solo puede invocar esta Lambda.
 
 ## Journal (newest first)
 
