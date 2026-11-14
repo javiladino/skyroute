@@ -177,8 +177,11 @@ locals {
 # AllowWorkloadServices son solo techo: caben en el limite de 6.144 caracteres de
 # una managed policy; las acciones concretas estan en las inline.
 resource "aws_iam_policy" "ci_boundary" {
-  name        = "ci-boundary"
-  description = "Permissions boundary de los roles de CI (ci-plan, ci-apply-dev, ci-apply-prod)."
+  name = "ci-boundary"
+  # La description de una aws_iam_policy es inmutable en IAM: cambiarla fuerza
+  # replacement de la boundary. Se conserva el texto original aunque mencione
+  # ci-apply, retirado en la Fase 7.
+  description = "Permissions boundary de los roles de CI (ci-plan, ci-apply)."
 
   policy = jsonencode({
     Version = "2012-10-17"
