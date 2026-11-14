@@ -38,10 +38,10 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
           terraform_wrapper: false
 
-      - name: Configure AWS credentials (ci-apply)
+      - name: Configure AWS credentials (ci-apply-dev)
         uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
-          role-to-assume: arn:aws:iam::437266392155:role/ci-apply
+          role-to-assume: arn:aws:iam::437266392155:role/ci-apply-dev
           aws-region: eu-west-3
 
       - name: Terraform init
@@ -74,10 +74,10 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
           terraform_wrapper: false
 
-      - name: Configure AWS credentials (ci-apply)
+      - name: Configure AWS credentials (ci-apply-prod)
         uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
-          role-to-assume: arn:aws:iam::437266392155:role/ci-apply
+          role-to-assume: arn:aws:iam::437266392155:role/ci-apply-prod
           aws-region: eu-west-3
 
       - name: Terraform init
