@@ -67,6 +67,42 @@ Comprueba la configuración con la verificación A10 del plan de foundations.
 2. Al hacer merge, `terraform-apply.yml` aplica `dev` (`apply-dev` en verde).
 3. Guarda la URL del comentario de plan y la del run de apply como evidencia.
 
+## Re-apply de bootstrap
+
+Sustituye `ci-apply` por `ci-apply-dev` y `ci-apply-prod` y crea las boundaries de workload `workload-boundary-dev` y `workload-boundary-prod`. Lo ejecuta solo el owner, con su identidad (`skyroute-dev`, Convention Bootstrap identity); ningún paso depende de un rol de CI. Se hace en dos re-applies, creando antes de destruir.
+
+Notas del environment `prod` (S-H18): exige reviewers y restringe las ramas de despliegue a `main`; los `sub` de los roles de CI son de ID inmutable (`repo:javiladino@97758532/skyroute@1455233709:environment:<env>`) y cada rol acepta solo el de su entorno. Comprueba ambos environments con `gh api` (TS-O5) antes del primer re-apply.
+
+### Orden de transición
+
+1. **Primer re-apply (PR-B1 mergeada en `main`).** Desde `main` actualizado, `aws login` con `skyroute-dev` y, en `infra/terraform/bootstrap/`:
+   1. `terraform init`
+   2. `terraform plan -out=b1.tfplan`
+   3. Revisa el plan: solo `create` de `ci-apply-dev`, `ci-apply-prod`, sus inline, `workload-boundary-dev`, `workload-boundary-prod` y el bloqueo público de cuenta, y `update in-place` de `ci-boundary` y de la inline de `ci-plan`. Ningún `destroy`: si aparece uno, no apliques.
+   4. `terraform apply b1.tfplan`
+   5. `terraform plan -detailed-exitcode` debe salir con código 0.
+
+   `ci-apply` sigue intacto y es el rol que usa `terraform-apply.yml`.
+2. **PR-W: cambio de workflow.** `terraform-apply.yml` pasa a asumir `role/ci-apply-dev` (job `apply-dev`) y `role/ci-apply-prod` (job `apply-prod`). Al mergear, el push a `main` lanza el apply (sin cambios en `envs/*`): guarda la URL del run con los dos jobs en verde. Si `terraform init` falla por la condición `s3:prefix = envs/<env>/` de `ListBucket`, revierte la PR-W y corrige la inline en bootstrap (otro re-apply).
+3. **Segundo re-apply (PR-B2 mergeada: retirada de `ci-apply`).** Solo tras la evidencia del paso 2: `terraform plan -out=b2.tfplan`. Debe mostrar `destroy` de `aws_iam_role.ci_apply` y `aws_iam_role_policy.ci_apply`, y `update in-place` de las políticas que pierden el ARN de `ci-apply` en `DenyCiAndOidcChanges`; ningún `create` ni `destroy` de `ci-apply-dev`/`ci-apply-prod`. Aplica y comprueba `aws iam get-role --role-name ci-apply` (debe dar `NoSuchEntity`) y `terraform plan -detailed-exitcode` con código 0.
+
+### Ventana sin rol de apply
+
+En el camino normal no hay ventana: `ci-apply` existe hasta el segundo re-apply y los roles nuevos ya están creados. La ventana solo existe en la vuelta atrás del segundo re-apply (se destruyó `ci-apply`, los roles nuevos fallan y `ci-apply` aún no se ha recreado). Durante ella ningún push a `main` puede aplicar: el run de `terraform-apply.yml` falla en "Configure AWS credentials" sin tocar el state y se relanza al cerrar la ventana.
+
+### Qué no mergear
+
+- Entre el primer re-apply y el segundo: ninguna PR que toque `envs/*` (la del módulo `generator-landing`), porque `ci-apply` sigue abierto a T17 (un job de `dev` puede escribir el state de prod).
+- Entre la PR-W y el segundo re-apply: cualquier PR que toque `bootstrap/` salvo la PR-B2.
+- En la ventana de la vuelta atrás: nada salvo las PR de la propia vuelta atrás.
+
+### Vuelta atrás
+
+- **Primer re-apply a medias o con un plan inesperado:** no apliques; corrige la PR-B1 con otra PR. Si el apply quedó a medias, `terraform plan` en `bootstrap/` desde `main` y reaplica hasta 0 cambios; `ci-apply` no se toca en esta fase.
+- **PR-W con el run en rojo:** revierte la PR-W (el workflow vuelve a `role/ci-apply`, que existe) y corrige la inline de `ci-apply-<env>` en bootstrap.
+- **Segundo re-apply hecho y los roles nuevos fallan:** revierte la PR-B2 y reaplica `bootstrap/` para recrear `ci-apply` con la misma trust; después revierte la PR-W. Entre ambos pasos estás en la ventana sin rol de apply, y el run de `terraform-apply.yml` que dispara el merge de la reversión de PR-B2 se espera fallido (el workflow aún asume los roles nuevos).
+- **Recrear `ci-apply` reabre T17:** el rol acepta `environment:dev` y `environment:prod` y escribe el state de prod. La PR del módulo no se mergea hasta un nuevo destroy de `ci-apply` (nueva PR-B2 y nuevo re-apply).
+
 ## Antes de cerrar la cuenta Free
 
 La cuenta Free pierde sus recursos al terminar, incluido el bucket de state. Exporta el state antes (`terraform state pull > backup.tfstate` en cada root module) y guárdalo fuera de AWS.
