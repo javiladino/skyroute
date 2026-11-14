@@ -187,3 +187,15 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 ### Files (skyroute, rama docs/generator-landing-plan, sin commit)
 - `docs/design/generator-landing/working/plan.md` (new)
 - `docs/design/generator-landing/context.md`, `docs/design/CONTEXT.md`, `docs/design/CHANGELOG.md` (modified)
+
+## 2026-11-14
+
+### generator-landing — Implement, Fases 1-8
+- Generador OTA con stdlib y Postgres local en `main` (#7/#9). Plan de PR con `-lock=false` (#8).
+- Transición de los roles de CI, creando antes de destruir. Fases 4 y 5: `ci-apply-dev`/`ci-apply-prod`, boundaries de workload y bloqueo público de S3 de la cuenta (#10). Fase 6: workflow con los roles nuevos (#11). Fases 7 y 8: retirada de `ci-apply` (#12, #13). T17 queda cerrada.
+- Nuevo Ruling Implement decisions: la cuota de Lambda es 10, así que no hay concurrencia reservada hasta que AWS la suba (petición por Terraform en `bootstrap/`; PR-Q después). La `description` de `ci-boundary` es inmutable.
+- `working/test.md` nace como registro de evidencia en curso, con las Fases 1-8 y PC6.
+
+### Files (skyroute, rama infra/generator-landing-lambda-quota, sin commit)
+- `infra/terraform/bootstrap/lambda_quota.tf` (new)
+- `docs/runbooks/foundations-bootstrap.md`, `docs/design/generator-landing/working/plan.md`, `docs/design/generator-landing/working/test.md`, `docs/design/generator-landing/context.md`, `docs/design/CONTEXT.md`, `docs/design/CHANGELOG.md` (modified)
