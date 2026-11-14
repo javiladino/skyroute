@@ -4,6 +4,8 @@ resource "aws_scheduler_schedule" "generator" {
   schedule_expression = "rate(15 minutes)"
   state               = var.schedule_enabled ? "ENABLED" : "DISABLED"
 
+  #checkov:skip=CKV_AWS_297:Sin CMK: coste fijo de KMS; el input solo lleva scheduled_time, sin datos sensibles (Ruling Bucket: sin KMS)
+
   flexible_time_window {
     mode = "OFF"
   }

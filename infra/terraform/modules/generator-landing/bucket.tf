@@ -14,6 +14,7 @@ resource "aws_s3_bucket" "data" {
   #checkov:skip=CKV_AWS_21:Sin versioning por Ruling Bucket; lifecycle de 30 días y datos regenerables por el generador determinista.
   #checkov:skip=CKV_AWS_145:SSE-S3 por Ruling Bucket; KMS vetado (foundations/current/plan.md:237).
   #checkov:skip=CKV_AWS_144:Convention Region, todo en eu-west-3; sin réplica cross-region.
+  #checkov:skip=CKV_AWS_18:Sin access logging, riesgo aceptado en proposal (como el bucket de state); datos sintéticos con lifecycle de 30 días
   #checkov:skip=CKV2_AWS_62:Sin notificaciones de eventos: no hay consumidor de landing/ en esta fase.
 }
 
@@ -86,6 +87,13 @@ resource "aws_s3_bucket_lifecycle_configuration" "data" {
     expiration {
       days = 30
     }
+  }
+
+  rule {
+    id     = "abort-incomplete-multipart"
+    status = "Enabled"
+
+    filter {}
 
     abort_incomplete_multipart_upload {
       days_after_initiation = 7
