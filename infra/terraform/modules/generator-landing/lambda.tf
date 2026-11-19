@@ -27,18 +27,19 @@ resource "aws_cloudwatch_log_group" "generator" {
   #checkov:skip=CKV_AWS_338:Retención de 14 días por Ruling Schedule, no 1 año; son logs de un generador sintético.
 }
 
-# Sin concurrencia reservada: Ruling Implement decisions (2026-11-14),
-# la cuota de la cuenta es 10 y la PR-Q (Fase 11) lo restaura a 1.
+# Concurrencia reservada restaurada a 1 (PR-Q, Fase 11): AWS aprobó la cuota
+# de Lambda a 1000, lo que levanta la suspensión de Ruling Implement decisions (PC6).
 resource "aws_lambda_function" "generator" {
-  function_name    = local.function_name
-  role             = aws_iam_role.generator_exec.arn
-  runtime          = "python3.13"
-  handler          = "lambda_handler.handler"
-  architectures    = [var.architecture]
-  timeout          = var.backfill_timeout
-  memory_size      = 256
-  filename         = data.archive_file.generator.output_path
-  source_code_hash = data.archive_file.generator.output_base64sha256
+  function_name                  = local.function_name
+  role                           = aws_iam_role.generator_exec.arn
+  runtime                        = "python3.13"
+  handler                        = "lambda_handler.handler"
+  architectures                  = [var.architecture]
+  timeout                        = var.backfill_timeout
+  memory_size                    = 256
+  reserved_concurrent_executions = 1
+  filename                       = data.archive_file.generator.output_path
+  source_code_hash               = data.archive_file.generator.output_base64sha256
 
   environment {
     variables = {
@@ -51,7 +52,6 @@ resource "aws_lambda_function" "generator" {
   #checkov:skip=CKV_AWS_173:Sin variables de entorno secretas (solo el nombre del bucket); KMS vetado.
   #checkov:skip=CKV_AWS_272:Sin code signing: coste y complejidad fuera de alcance del portfolio.
   #checkov:skip=CKV_AWS_50:Sin X-Ray: no hay trazas distribuidas que analizar.
-  #checkov:skip=CKV_AWS_115:Sin concurrencia reservada: la cuota de la cuenta es 10 (Ruling Implement decisions); la PR-Q la restaura.
 
   depends_on = [
     aws_cloudwatch_log_group.generator,
