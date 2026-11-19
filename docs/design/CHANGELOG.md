@@ -210,3 +210,6 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 
 ### generator-landing — Topic cerrado (Done)
 - Fase 2 hecha: `plan.md` y `test.md` a `current/`, Research y Propose a `archive/`. Ruling Foundations design enmendado: tres roles de CI y boundaries de workload por entorno.
+
+### bronze-silver — Research revisado
+- `working/research.md` pasó una ronda de revisión (adversarial GO-WITH-FIXES, security, cost) y tiene los hallazgos aplicados: 14 tensiones. Las de más peso: sin sesiones de varios eventos, el backfill caduca entero hacia el 2026-12-14, sin historial para SCD2, sin permisos de Glue ni Athena, y `_ingested_at` frente a Idempotency.
