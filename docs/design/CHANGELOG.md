@@ -199,3 +199,14 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 ### Files (skyroute, rama infra/generator-landing-lambda-quota, sin commit)
 - `infra/terraform/bootstrap/lambda_quota.tf` (new)
 - `docs/runbooks/foundations-bootstrap.md`, `docs/design/generator-landing/working/plan.md`, `docs/design/generator-landing/working/test.md`, `docs/design/generator-landing/context.md`, `docs/design/CONTEXT.md`, `docs/design/CHANGELOG.md` (modified)
+
+### bronze-silver — Topic abierto
+- Scaffold del topic de la Fase 3 (Bronze y Silver con Spark + Iceberg) en la rama `docs/bronze-silver-research`; Research lanzado.
+
+## 2026-11-19
+
+### generator-landing — Test en PASS
+- Cuota de Lambda aprobada (1000) y backfill del día D con 96 objetos: el veredicto de `working/test.md` pasa a PASS. PR-Q (#20) fusionada y aplicada (run 44540251360): concurrencia reservada de 1 en prod (TS-C2c PASS).
+
+### generator-landing — Topic cerrado (Done)
+- Fase 2 hecha: `plan.md` y `test.md` a `current/`, Research y Propose a `archive/`. Ruling Foundations design enmendado: tres roles de CI y boundaries de workload por entorno.

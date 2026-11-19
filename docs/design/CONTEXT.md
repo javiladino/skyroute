@@ -1,7 +1,7 @@
 # Skyroute Marketing Lakehouse — Contexto para agentes
 
 > **Propósito:** orientar a cualquier agente que trabaje en este proyecto. Léelo primero y para en cuanto la tarea esté clara.
-> **Last updated:** 2026-11-14
+> **Last updated:** 2026-11-19
 
 _Nota de idioma: la documentación está en español. Las cabeceras y etiquetas que lee `design_check.py` (Active Context, Conventions, Last updated, Current state, Status, Rulings, Journal, Document map, Open decisions) se dejan en inglés a propósito._
 
@@ -24,11 +24,11 @@ Se cargan por tarea, no todas a la vez. Están en `.claude/skills/`.
 ## Active Context
 
 **Orden de carga:** este archivo → `<topic>/context.md` del topic activo → los archivos que su document map marca `always` → solo los archivos que nombre la tarea. No cargues `CHANGELOG.md`, `evidence/`, `archive/` ni una carpeta entera salvo que la tarea nombre el archivo.
-**Topics activos:** `generator-landing` (Fase 2, Implement en curso: Fases 1-8 hechas; rama `infra/generator-landing-lambda-quota`).
+**Topics activos:** `bronze-silver` (Fase 3, Research; rama `docs/bronze-silver-research`).
 
-**Current state (2026-11-14):** Fase 1 hecha: `foundations` cerrado (Done) y fusionado en `main` (PRs #2 y #3, con la aprobación manual de prod verificada en el run 43462639280). Fase 2 abierta: topic `generator-landing` con Research, Propose y Plan hechos e Implement en curso. Las Fases 1-8 del plan están hechas (PRs #7-#13 y los re-applies de bootstrap del owner). El owner eligió la Propuesta 1 y aprobó el plan (Rulings Research decisions, Propose decisions y Plan decisions). El Ruling Implement decisions deja en suspenso la concurrencia reservada, porque la cuota de Lambda es 10. Apply gate aclarada: el owner re-aplica `bootstrap/` en cada cambio. En AWS existen, creados por Terraform, el budget de 10 USD, el bucket de state en eu-west-3, el proveedor OIDC, los roles `ci-plan`, `ci-apply-dev` y `ci-apply-prod`, las boundaries `ci-boundary` y `workload-boundary-{dev,prod}`, y el bloqueo de acceso público de S3 de la cuenta. `ci-apply` se destruyó en la Fase 8. La PR publica el plan y el merge aplica en dev y prod, con aprobación manual en `prod`. El código está en `main` (PR #1). Las etapas RePPIT se ejecutan con `session-orchestration` (Conventions Design write ownership, Subagent roles y Verification ownership). `platform-blueprint`, `agent-workflow`, `reppit-orchestration` y `foundations` están cerrados.
+**Current state (2026-11-19):** Fase 1 hecha: `foundations` cerrado (Done) y fusionado en `main` (PRs #2 y #3, con la aprobación manual de prod verificada en el run 43462639280). Fase 2 hecha: `generator-landing` cerrado (Done), desplegado en dev y prod (PRs #7-#20), 182 días de backfill más el día D y schedule de prod activo; Test en PASS (`generator-landing/current/test.md`). La cuota de Lambda está aprobada (1000) y la PR-Q (#20) restauró la concurrencia reservada de 1 en prod (Ruling Implement decisions). Fase 3: `bronze-silver` con `working/research.md` escrito y sin revisar. Apply gate aclarada: el owner re-aplica `bootstrap/` en cada cambio. En AWS existen, creados por Terraform, el budget de 10 USD, el bucket de state en eu-west-3, el proveedor OIDC, los roles `ci-plan`, `ci-apply-dev` y `ci-apply-prod`, las boundaries `ci-boundary` y `workload-boundary-{dev,prod}`, y el bloqueo de acceso público de S3 de la cuenta. `ci-apply` se destruyó en la Fase 8. La PR publica el plan y el merge aplica en dev y prod, con aprobación manual en `prod`. El código está en `main` (PR #1). Las etapas RePPIT se ejecutan con `session-orchestration` (Conventions Design write ownership, Subagent roles y Verification ownership). `platform-blueprint`, `agent-workflow`, `reppit-orchestration` y `foundations` están cerrados.
 
-**Siguiente:** subida de cuota de Lambda en `bootstrap/` (re-apply del owner). Después la Fase 9 (módulo y entornos, PR-M) sin concurrencia reservada, la Fase 10 (backfill, del owner) y la PR-Q cuando AWS apruebe la cuota. El plan Free vence el 2027-01-22: el paso a Paid queda como decisión abierta en el README.
+**Siguiente:** revisión del Research de `bronze-silver` (adversarial, security y cost) y gate del owner antes de Propose. El plan Free vence el 2027-01-22: el paso a Paid queda como decisión abierta en el README.
 **Problemas conocidos:** Design write ownership se hace cumplir solo por prompt y por herramientas: el allow de `Edit` sobre `working/` no distingue agentes. T17 (`ci-apply` con trust en dev podía escribir el state de prod) quedó cerrada el 2026-11-14 al destruir `ci-apply` (Fase 8).
 **Findings:** `findings.md`, 3 entradas, la última del 2026-11-13.
 

@@ -9,7 +9,7 @@ Fase 1 — Fundaciones (README § Fases): cuenta AWS con MFA y usuario no root, 
 
 ## Rulings
 
-- **Foundations design (javiladino, 2026-11-12 18:00):** Proposal 1 con dos roles de CI: state con SSE-S3 (sin KMS), cuenta AWS en plan Free (Paid aplazado), owner con IAM user y MFA (sin Organizations ni Identity Center), roles `ci-plan` (`sub` `pull_request`) y `ci-apply` (`sub` `environment:dev`/`environment:prod`, environments solo desde `main`). Discusión: `archive/proposal.md` § Decision.
+- **Foundations design (javiladino, 2026-11-12 18:00):** Proposal 1 con dos roles de CI: state con SSE-S3 (sin KMS), cuenta AWS en plan Free (Paid aplazado), owner con IAM user y MFA (sin Organizations ni Identity Center), roles `ci-plan` (`sub` `pull_request`) y `ci-apply` (`sub` `environment:dev`/`environment:prod`, environments solo desde `main`). Discusión: `archive/proposal.md` § Decision. **Enmendado por `generator-landing` (javiladino, 2026-11-19):** tres roles de CI: `ci-plan` (solo lectura, `-lock=false`), `ci-apply-dev` (`environment:dev`) y `ci-apply-prod` (`environment:prod`), cada uno solo con el state de su entorno; `ci-apply` se destruyó (T17 cerrada). Boundaries de workload por entorno (`workload-boundary-{dev,prod}`). Detalle: Rulings Research decisions y Propose decisions de `generator-landing/context.md`.
 
 ## Journal (newest first)
 

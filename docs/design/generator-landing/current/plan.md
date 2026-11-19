@@ -474,8 +474,8 @@ Orden (proposal § Comunes "Orden de transición"): (1) crear `workload-boundary
 5. Seguimiento: backfill (Fase 10), TS-O1-O6 dentro de los 30 días.
 
 ## References
-- `docs/design/generator-landing/working/research.md` (criterio C1-C6, Hechos (a)-(c), tensiones T1-T22, V1-V23).
-- `docs/design/generator-landing/working/proposal.md` (Propuesta 1, § Comunes, § Skips de checkov, § Decision).
+- `docs/design/generator-landing/archive/research.md` (criterio C1-C6, Hechos (a)-(c), tensiones T1-T22, V1-V23).
+- `docs/design/generator-landing/archive/proposal.md` (Propuesta 1, § Comunes, § Skips de checkov, § Decision).
 - `docs/design/generator-landing/context.md` § Rulings ("Research decisions", "Propose decisions").
 - `docs/design/CONTEXT.md` § Conventions.
 - `docs/runbooks/foundations-bootstrap.md`; `infra/terraform/bootstrap/ci_roles.tf`; `.github/workflows/terraform-plan.yml`, `terraform-apply.yml`.
