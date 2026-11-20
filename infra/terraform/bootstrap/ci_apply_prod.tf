@@ -135,7 +135,7 @@ resource "aws_iam_role_policy" "ci_apply_prod" {
         Resource = "*"
       },
       {
-        # Escribir un SecureString con aws/ssm; ningun rol de CI recibe kms:Decrypt.
+        # Escribir un SecureString con aws/ssm.
         Sid      = "ApplyKmsViaSsm"
         Effect   = "Allow"
         Action   = local.apply_kms_via_ssm_actions
@@ -143,6 +143,20 @@ resource "aws_iam_role_policy" "ci_apply_prod" {
         Condition = {
           StringEquals = {
             "kms:ViaService" = local.kms_via_ssm_service
+          }
+        }
+      },
+      {
+        # El refresh de aws_ssm_parameter lee con WithDecryption=true: Decrypt solo
+        # del HMAC de este entorno, via SSM.
+        Sid      = "ApplyKmsDecryptHmac"
+        Effect   = "Allow"
+        Action   = "kms:Decrypt"
+        Resource = "*"
+        Condition = {
+          StringEquals = {
+            "kms:ViaService"                      = local.kms_via_ssm_service
+            "kms:EncryptionContext:PARAMETER_ARN" = local.env_arns["prod"].hmac_key
           }
         }
       },
@@ -186,6 +200,19 @@ resource "aws_iam_role_policy" "ci_apply_prod" {
         Effect   = "Allow"
         Action   = local.apply_cloudwatch_actions
         Resource = local.env_arns["prod"].alarm
+      },
+      {
+        # Todo Decrypt cuyo PARAMETER_ARN no sea el HMAC de prod queda denegado
+        # (StringNotEquals es verdadero si la clave falta); espeja ci-plan.
+        Sid      = "DenyKmsDecrypt"
+        Effect   = "Deny"
+        Action   = "kms:Decrypt"
+        Resource = "*"
+        Condition = {
+          StringNotEquals = {
+            "kms:EncryptionContext:PARAMETER_ARN" = local.env_arns["prod"].hmac_key
+          }
+        }
       },
       {
         Sid      = "DenyOwnerIdentity"

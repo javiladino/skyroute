@@ -33,6 +33,7 @@ locals {
       glue_job         = "arn:aws:glue:${local.aws_region}:${data.aws_caller_identity.current.account_id}:job/skyroute-${env}-*"
       athena_workgroup = "arn:aws:athena:${local.aws_region}:${data.aws_caller_identity.current.account_id}:workgroup/skyroute-${env}"
       ssm_parameter    = "arn:aws:ssm:${local.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/skyroute/${env}/*"
+      hmac_key         = "arn:aws:ssm:${local.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/skyroute/${env}/hmac-email-key"
       glue_job_role    = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/workload/skyroute-${env}-glue-job"
       scripts_objects  = "arn:aws:s3:::skyroute-${env}-data-${data.aws_caller_identity.current.account_id}/scripts/*"
     }
@@ -231,7 +232,9 @@ locals {
     "ssm:RemoveTagsFromResource",
   ]
 
-  # Escritura de un SecureString con la clave aws/ssm: nunca kms:Decrypt.
+  # Escritura de un SecureString con la clave aws/ssm. kms:Decrypt no va aqui:
+  # solo se concede acotado al parametro HMAC (ver PlanKmsDecryptHmac y
+  # ApplyKmsDecryptHmac).
   apply_kms_via_ssm_actions = ["kms:Encrypt", "kms:GenerateDataKey"]
 
   apply_scripts_actions = [
@@ -317,9 +320,10 @@ resource "aws_iam_policy" "ci_boundary" {
         Resource = "*"
       },
       {
+        # Techo: incluye kms:Decrypt (via SSM); cada rol lo concede solo sobre el HMAC.
         Sid      = "AllowKmsViaSsm"
         Effect   = "Allow"
-        Action   = local.apply_kms_via_ssm_actions
+        Action   = concat(local.apply_kms_via_ssm_actions, ["kms:Decrypt"])
         Resource = "*"
         Condition = {
           StringEquals = {
@@ -628,11 +632,30 @@ resource "aws_iam_role_policy" "ci_plan" {
         Resource = [local.env_arns["dev"].athena_workgroup, local.env_arns["prod"].athena_workgroup]
       },
       {
-        # GetParameter sin WithDecryption: el refresh de un value_wo no lee el valor.
         Sid      = "PlanSsmRead"
         Effect   = "Allow"
-        Action   = ["ssm:GetParameter", "ssm:ListTagsForResource"]
+        Action   = "ssm:ListTagsForResource"
         Resource = [local.env_arns["dev"].ssm_parameter, local.env_arns["prod"].ssm_parameter]
+      },
+      {
+        # El refresh de aws_ssm_parameter llama GetParameter con WithDecryption=true
+        # aunque se use value_wo; por eso GetParameter solo sobre el HMAC exacto.
+        Sid      = "PlanSsmGetHmac"
+        Effect   = "Allow"
+        Action   = "ssm:GetParameter"
+        Resource = [local.env_arns["dev"].hmac_key, local.env_arns["prod"].hmac_key]
+      },
+      {
+        Sid      = "PlanKmsDecryptHmac"
+        Effect   = "Allow"
+        Action   = "kms:Decrypt"
+        Resource = "*"
+        Condition = {
+          StringEquals = {
+            "kms:ViaService"                      = local.kms_via_ssm_service
+            "kms:EncryptionContext:PARAMETER_ARN" = [local.env_arns["dev"].hmac_key, local.env_arns["prod"].hmac_key]
+          }
+        }
       },
       {
         # DescribeParameters no admite ARN de recurso.
@@ -668,10 +691,19 @@ resource "aws_iam_role_policy" "ci_plan" {
         NotResource = concat(local.scripts_objects_read, local.ci_plan_state_read_arns)
       },
       {
+        # Logica: el Deny aplica si PARAMETER_ARN NO esta en {hmac dev, hmac prod}.
+        # StringNotEquals es verdadero cuando la clave falta, asi que un Decrypt
+        # directo (sin contexto de SSM) o sobre otro parametro sigue denegado; solo
+        # el Decrypt del HMAC (concedido en PlanKmsDecryptHmac) escapa del Deny.
         Sid      = "DenyKmsDecrypt"
         Effect   = "Deny"
         Action   = "kms:Decrypt"
         Resource = "*"
+        Condition = {
+          StringNotEquals = {
+            "kms:EncryptionContext:PARAMETER_ARN" = [local.env_arns["dev"].hmac_key, local.env_arns["prod"].hmac_key]
+          }
+        }
       },
       {
         Sid      = "DenyLogRead"
