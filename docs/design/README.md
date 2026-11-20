@@ -52,11 +52,11 @@ Proyecto de portfolio para un puesto de Data Engineer Senior: una plataforma de 
 | Decisión | Opciones | Estado |
 |----------|----------|--------|
 | Plan de cuenta AWS (créditos Free Tier desde julio 2025) | Plan Free (cierra a los 6 meses o al agotar créditos) / Plan Paid con presupuesto y alertas | Decided 2026-11-12: Free, Paid aplazado (Ruling Foundations design en [`foundations`](foundations/context.md)) |
-| Dónde corre Spark en las ejecuciones diarias | Spark local en Docker / AWS Glue 5 para todo / local + Glue solo en demos | Proposed |
-| Motor de checks de calidad en la rama WAP de Silver | PySpark checks propios / Soda Core | Proposed |
-| Modo de escritura Iceberg por tabla | Copy-on-write / merge-on-read (el blueprint sugiere MoR en Silver bookings y CoW en Gold, a justificar por ratio lecturas/escrituras) | Proposed |
+| Dónde corre Spark en las ejecuciones diarias | Spark local en Docker / AWS Glue 5 para todo / local + Glue solo en demos | Accepted 2026-11-20: local a diario, Glue Flex en demos (Ruling Research decisions en [`bronze-silver`](bronze-silver/context.md)) |
+| Motor de checks de calidad en la rama WAP de Silver | PySpark checks propios / Soda Core | Accepted 2026-11-20: asserts PySpark + YAML (Ruling Research decisions en [`bronze-silver`](bronze-silver/context.md)) |
+| Modo de escritura Iceberg por tabla | Copy-on-write / merge-on-read (el blueprint sugiere MoR en Silver bookings y CoW en Gold, a justificar por ratio lecturas/escrituras) | Accepted 2026-11-20: Bronze con reemplazo de partición, Silver CoW (Ruling Research decisions en [`bronze-silver`](bronze-silver/context.md)) |
 | Herramienta de dashboard de marketing | Streamlit / Evidence | Proposed |
 | Paso a plan Paid antes de que venza el Free (2027-01-22; quedan 170,55 USD de créditos a 2026-11-13) | Pasar a Paid antes de la Fase 5 / seguir en Free y aceptar el cierre | Proposed (de `generator-landing`, `evidence/freetier-plan-state.json`) |
-| Credenciales de AWS para lo que corre en local (Airflow, Spark, export de Postgres a `landing/`) | Tercer rol OIDC / identidad con MFA y sesión temporal / todo en servicios AWS | Proposed (de `generator-landing`, T6) |
+| Credenciales de AWS para lo que corre en local (Airflow, Spark, export de Postgres a `landing/`) | Tercer rol OIDC / identidad con MFA y sesión temporal / todo en servicios AWS | Accepted 2026-11-20: rol `skyroute-<env>-local-data` con MFA y sesión de 1 h (Ruling Research decisions en [`bronze-silver`](bronze-silver/context.md)) |
 
 _Estados: **Proposed** (opciones listadas, nada elegido) · **Accepted** (elegida; la razón va al CHANGELOG) · **Deprecated** · **Superseded**._
