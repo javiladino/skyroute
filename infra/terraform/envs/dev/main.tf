@@ -5,3 +5,11 @@ module "generator_landing" {
   schedule_enabled = false
   alarm_email      = var.alarm_email
 }
+
+module "lakehouse" {
+  source = "../../modules/lakehouse"
+
+  env                    = "dev"
+  bucket_name            = module.generator_landing.bucket_name
+  create_local_data_role = true
+}

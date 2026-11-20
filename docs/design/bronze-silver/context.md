@@ -36,6 +36,7 @@ Fase 3 — Bronze y Silver con Spark + Iceberg (README § Fases): "Jobs PySpark 
   - pytest en CI con `spark-tests.yml`: Python 3.11 y sin credenciales AWS.
   - Las sesiones se escriben con MERGE y `NOT MATCHED BY SOURCE DELETE`.
   - `amount_eur` se redondea con HALF_EVEN a 2 decimales.
+  - Enmienda del 2026-11-20 (Implement, fase 2): el refresh de `aws_ssm_parameter` llama a GetParameter con WithDecryption, aunque el valor sea `value_wo`. Por eso `ci-plan` y `ci-apply-<env>` reciben `ssm:GetParameter` y `kms:Decrypt` solo sobre `/skyroute/<env>/hmac-email-key`, condicionados a `kms:ViaService` de SSM y a `kms:EncryptionContext:PARAMETER_ARN`. El Deny de Decrypt de ci-plan se acota en consecuencia. Riesgo aceptado: la CI del repo puede leer la clave (las PR de forks no reciben token OIDC).
   - Después de la revisión (2026-11-20), el owner aprobó el plan y además decidió: Python 3.11 en local con Homebrew (`python@3.11`), y `glue-temp/` con 1 día de lifecycle.
 
 ## Journal (newest first)
@@ -58,6 +59,7 @@ Rutas relativas a esta carpeta.
 
 | File | Role | Load | What it holds |
 |------|------|------|---------------|
+| `working/test.md` | draft | on-demand | Test de la Fase 3, por fases; fase 1 en PASS (bootstrap aplicado 2026-11-20) |
 | `working/plan.md` | draft | on-demand | Plan de la Fase 3 (Proposal 2): 8 PRs, gates del owner, tests de idempotencia U1–U23 |
 | `working/proposal.md` | draft | on-demand | Propose de la Fase 3: 3 propuestas revisadas; Decision: Proposal 2 |
 | `working/research.md` | draft | on-demand | Research de la Fase 3: lo que existe hoy para Bronze y Silver (C1–C6, T1–T14, revisado y corregido) |

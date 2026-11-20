@@ -89,6 +89,34 @@ resource "aws_s3_bucket_lifecycle_configuration" "data" {
     }
   }
 
+  # Ruling Athena: resultados de consultas, 7 dias.
+  rule {
+    id     = "expire-athena-results-7d"
+    status = "Enabled"
+
+    filter {
+      prefix = "athena-results/"
+    }
+
+    expiration {
+      days = 7
+    }
+  }
+
+  # Temporales de Glue (--TempDir), 1 dia.
+  rule {
+    id     = "expire-glue-temp-1d"
+    status = "Enabled"
+
+    filter {
+      prefix = "glue-temp/"
+    }
+
+    expiration {
+      days = 1
+    }
+  }
+
   rule {
     id     = "abort-incomplete-multipart"
     status = "Enabled"
