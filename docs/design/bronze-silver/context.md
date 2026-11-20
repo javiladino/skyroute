@@ -24,9 +24,23 @@ Fase 3 — Bronze y Silver con Spark + Iceberg (README § Fases): "Jobs PySpark 
   - Histórico → Bronze es la copia duradera y debe ingerir los 182 días regenerados antes de que pasen 30 días; `landing/` mantiene 30 días.
   - Tipos de cambio → tipos de referencia del BCE (base EUR), una tarea diaria a `landing/fx/`; fines de semana y festivos toman el último día hábil. Si falla, se reintenta; nunca se inventa un tipo.
   - PII → Bronze íntegro; Silver sustituye el email por HMAC-SHA256 con la clave en SSM Parameter Store estándar y conserva el consentimiento. Lake Formation se aplaza.
-  - Budget → se queda en 10 USD y las demos de Glue se lanzan a mano (unos 0,15 USD cada una; el precio en eu-west-3 lo confirma Propose). El paso a Paid queda fuera de la Fase 3.
+  - Budget → se queda en 10 USD y las demos de Glue se lanzan a mano (con la Proposal 2, unos 0,20 USD por demo; el owner confirmó el 2026-11-20 el precio en eu-west-3: 0,29 USD/DPU-h). El paso a Paid queda fuera de la Fase 3.
+
+- **Plan decisions (javiladino, 2026-11-20 19:00):** el owner aceptó las 9 recomendaciones de las Open questions de `working/plan.md`:
+  - `history_id` con `TRUNCATE … RESTART IDENTITY` y replay en orden determinista (test G3).
+  - Clave HMAC desde un `ephemeral "random_password"` hacia `value_wo`, con `value_wo_version` para rotarla.
+  - Histórico de FX con el mismo script local, pasando `--from` y `--to` sobre la serie del BCE.
+  - Las fases 4–8 leen dev; prod solo cuando se cierra la fase.
+  - El lifecycle de `athena-results/` va en `modules/generator-landing/bucket.tf` (la PR 2 toca ese módulo).
+  - Umbral de sesión de 30 min, configurable con `--session-gap-minutes`.
+  - pytest en CI con `spark-tests.yml`: Python 3.11 y sin credenciales AWS.
+  - Las sesiones se escriben con MERGE y `NOT MATCHED BY SOURCE DELETE`.
+  - `amount_eur` se redondea con HALF_EVEN a 2 decimales.
+  - Después de la revisión (2026-11-20), el owner aprobó el plan y además decidió: Python 3.11 en local con Homebrew (`python@3.11`), y `glue-temp/` con 1 día de lifecycle.
 
 ## Journal (newest first)
+
+**2026-11-20 (Plan):** stage-author (Opus) escribió `working/plan.md` (8 fases). El owner confirmó Glue Flex en eu-west-3 a 0,29 USD/DPU-h y aceptó las 9 recomendaciones (Ruling Plan decisions). adversarial-reviewer (Opus) dio NEEDS-REVISION con 11 hallazgos; para los scripts el owner eligió `aws_s3_object` con `scripts/*` exento del Deny. executor (Sonnet) comprobó en local: validate de bootstrap correcto, pytest no instalado y ci-boundary en unos 5.535 de 6.144 caracteres. Un stage-author aplicó los hallazgos. Siguiente: aprobación del owner y después Implement.
 
 **2026-11-20 (Propose):** aws-researcher confirmó el mínimo de 10 MB de Athena y que SSM estándar no cuesta nada; el MFA con `aws login` y el precio de Glue en eu-west-3 siguen sin confirmar. stage-author (Opus) escribió `working/proposal.md` con 3 propuestas. adversarial-reviewer (Opus) dio NEEDS-REVISION y un stage-author aplicó la corrección. Una comprobación de coherencia contra el Ruling dio otra vez NEEDS-REVISION, y un segundo stage-author aplicó esa corrección. El owner resolvió que relanzar no dependa del orden, el export desde `bookings_history` y el tipo de cambio por `created_at` (Ruling enmendado), y eligió la Proposal 2. Siguiente: el owner prueba el MFA y confirma el precio de Glue; después, Plan.
 
@@ -42,5 +56,6 @@ Rutas relativas a esta carpeta.
 
 | File | Role | Load | What it holds |
 |------|------|------|---------------|
+| `working/plan.md` | draft | on-demand | Plan de la Fase 3 (Proposal 2): 8 PRs, gates del owner, tests de idempotencia U1–U23 |
 | `working/proposal.md` | draft | on-demand | Propose de la Fase 3: 3 propuestas revisadas; Decision: Proposal 2 |
 | `working/research.md` | draft | on-demand | Research de la Fase 3: lo que existe hoy para Bronze y Silver (C1–C6, T1–T14, revisado y corregido) |

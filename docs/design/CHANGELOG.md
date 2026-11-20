@@ -221,3 +221,6 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 
 ### bronze-silver — Propose decidido
 - `working/proposal.md` con 3 propuestas, una revisión adversarial y una comprobación de coherencia contra el Ruling, con sus hallazgos aplicados. El owner eligió la Proposal 2 (por tabla de extremo a extremo, PySpark de pip). Ruling Research decisions enmendado: export desde `bookings_history`, relanzar independiente del orden y tipo de cambio por `created_at`.
+
+### bronze-silver — Plan escrito y revisado
+- `working/plan.md`: 8 fases (bootstrap, módulo lakehouse, generador, Bronze, Reservas, FX, clickstream, demo en Glue). Revisión adversarial NEEDS-REVISION con sus hallazgos aplicados. Nuevo Ruling Plan decisions (9 recomendaciones aceptadas). Glue Flex en eu-west-3 confirmado a 0,29 USD/DPU-h.
