@@ -12,7 +12,7 @@ Fase 3 — Bronze y Silver con Spark + Iceberg (README § Fases): "Jobs PySpark 
 - **Research decisions (javiladino, 2026-11-20 10:00):** grill-me del Research (T1–T14), una línea por decisión:
   - Generador → se cambia dentro de la Fase 3: sesiones por cliente con compras enlazadas y reservas con cambios de estado, deterministas por fecha lógica; después se regenera el histórico con un backfill.
   - Dónde corre Spark → en local a diario y en Glue 5 Flex solo en demos; los jobs reciben `--run-date` y la configuración del catálogo por parámetros, iguales en los dos motores.
-  - Credenciales en local → rol `skyroute-<env>-local-data` de mínimo privilegio (bucket de datos y bases `skyroute_*`), que solo asume `skyroute-dev` con MFA desde `aws login`; sesión de 1 h y variables `AWS_*` temporales en los contenedores. El rol va en el módulo y la boundary en `bootstrap/`. En Propose, aws-researcher confirma que la condición de MFA funciona con `aws login`.
+  - Credenciales en local → rol `skyroute-<env>-local-data` de mínimo privilegio (bucket de datos y bases `skyroute_<env>_*`, según Medallion layers enmendada el 2026-11-20), que solo asume `skyroute-dev` con MFA desde `aws login`; sesión de 1 h y variables `AWS_*` temporales en los contenedores. El rol va en el módulo y la boundary en `bootstrap/`. En Propose, aws-researcher confirma que la condición de MFA funciona con `aws login`.
   - Escritura Iceberg → Bronze con reemplazo de partición por `_ingest_date`; Silver en copy-on-write. `expire_snapshots` y `rewrite_data_files` van en `spark/jobs/maintenance/`.
   - Checks WAP → asserts propios en PySpark, con las reglas en YAML. Si un check falla, la rama no se publica.
   - `_ingested_at` → `run_date` 00:00 UTC + slot × 15 min; `_batch_id` = hash(`run_date`, `_source_file`).
@@ -20,7 +20,7 @@ Fase 3 — Bronze y Silver con Spark + Iceberg (README § Fases): "Jobs PySpark 
   - Relanzar un día (Propose, 2026-11-20) → independiente del orden: relanzar D en cualquier momento, incluso después de D+5, deja Silver idéntico a una ejecución en orden.
   - Tipo de cambio por reserva (Propose, 2026-11-20) → el del día de `created_at`. Silver guarda el tipo aplicado y la divisa original.
   - Athena → workgroup `skyroute-<env>` creado con Terraform: configuración forzada, corte de 100 MB por consulta y resultados en `athena-results/` con 7 días de lifecycle.
-  - Permisos → una PR propia de `bootstrap/` antes de la del módulo. Acciones acotadas por nombre (`skyroute_*`, `skyroute-<env>-*`; PassRole solo a `skyroute-<env>-glue-job` con `iam:PassedToService = glue.amazonaws.com`). La revisa security-reviewer y la re-aplica el owner.
+  - Permisos → una PR propia de `bootstrap/` antes de la del módulo. Acciones acotadas por nombre (`skyroute_<env>_*`, `skyroute-<env>-*`; PassRole solo a `skyroute-<env>-glue-job` con `iam:PassedToService = glue.amazonaws.com`). La revisa security-reviewer y la re-aplica el owner.
   - Histórico → Bronze es la copia duradera y debe ingerir los 182 días regenerados antes de que pasen 30 días; `landing/` mantiene 30 días.
   - Tipos de cambio → tipos de referencia del BCE (base EUR), una tarea diaria a `landing/fx/`; fines de semana y festivos toman el último día hábil. Si falla, se reintenta; nunca se inventa un tipo.
   - PII → Bronze íntegro; Silver sustituye el email por HMAC-SHA256 con la clave en SSM Parameter Store estándar y conserva el consentimiento. Lake Formation se aplaza.
@@ -39,6 +39,8 @@ Fase 3 — Bronze y Silver con Spark + Iceberg (README § Fases): "Jobs PySpark 
   - Después de la revisión (2026-11-20), el owner aprobó el plan y además decidió: Python 3.11 en local con Homebrew (`python@3.11`), y `glue-temp/` con 1 día de lifecycle.
 
 ## Journal (newest first)
+
+**2026-11-20 (Implement, fase 1):** executor (Sonnet) implementó la PR de bootstrap; el orquestador re-ejecutó `validate` (Success). En la primera revisión, security-reviewer (Opus) encontró un H1 High: las bases Glue compartidas dejaban a dev tocar prod. El owner eligió bases por entorno, con la Convention Medallion layers enmendada. executor aplicó H1–H6 y la segunda revisión dio OK para re-aplicar, con dos notas Low aceptadas (N1, N2). Tamaño estimado de ci-boundary: ~5.890 caracteres. Siguiente: el owner ejecuta plan, `policy_size.py` y apply de bootstrap.
 
 **2026-11-20 (Plan):** stage-author (Opus) escribió `working/plan.md` (8 fases). El owner confirmó Glue Flex en eu-west-3 a 0,29 USD/DPU-h y aceptó las 9 recomendaciones (Ruling Plan decisions). adversarial-reviewer (Opus) dio NEEDS-REVISION con 11 hallazgos; para los scripts el owner eligió `aws_s3_object` con `scripts/*` exento del Deny. executor (Sonnet) comprobó en local: validate de bootstrap correcto, pytest no instalado y ci-boundary en unos 5.535 de 6.144 caracteres. Un stage-author aplicó los hallazgos. Siguiente: aprobación del owner y después Implement.
 
