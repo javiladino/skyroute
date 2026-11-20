@@ -213,3 +213,11 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 
 ### bronze-silver — Research revisado
 - `working/research.md` pasó una ronda de revisión (adversarial GO-WITH-FIXES, security, cost) y tiene los hallazgos aplicados: 14 tensiones. Las de más peso: sin sesiones de varios eventos, el backfill caduca entero hacia el 2026-12-14, sin historial para SCD2, sin permisos de Glue ni Athena, y `_ingested_at` frente a Idempotency.
+
+## 2026-11-20
+
+### bronze-silver — Grill-me del Research
+- El owner aprobó el gate del Research. El grill-me resolvió 13 decisiones, recogidas en el Ruling Research decisions: Spark en local con Glue solo en demos, rol `local-data` con MFA, Bronze con reemplazo de partición y Silver CoW, checks WAP en PySpark con YAML, `_ingested_at` por fecha lógica, export de Reservas y tipos del BCE a `landing/`, workgroup de Athena con corte de 100 MB, PR de bootstrap primero y PII con HMAC. Quedan aceptadas cuatro decisiones abiertas del README.
+
+### bronze-silver — Propose decidido
+- `working/proposal.md` con 3 propuestas, una revisión adversarial y una comprobación de coherencia contra el Ruling, con sus hallazgos aplicados. El owner eligió la Proposal 2 (por tabla de extremo a extremo, PySpark de pip). Ruling Research decisions enmendado: export desde `bookings_history`, relanzar independiente del orden y tipo de cambio por `created_at`.
