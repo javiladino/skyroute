@@ -88,9 +88,80 @@ resource "aws_iam_role_policy" "ci_apply_prod" {
         Resource = local.env_arns["prod"].workload_roles
         Condition = {
           StringEquals = {
-            "iam:PassedToService" = local.pass_role_services
+            "iam:PassedToService" = local.pass_role_services_generator
           }
         }
+      },
+      {
+        # Glue solo recibe el rol skyroute-prod-glue-job.
+        Sid      = "ApplyPassRoleToGlue"
+        Effect   = "Allow"
+        Action   = "iam:PassRole"
+        Resource = local.env_arns["prod"].glue_job_role
+        Condition = {
+          StringEquals = {
+            "iam:PassedToService" = "glue.amazonaws.com"
+          }
+        }
+      },
+      {
+        Sid    = "ApplyGlue"
+        Effect = "Allow"
+        Action = local.apply_glue_actions
+        Resource = [
+          local.env_arns["prod"].glue_catalog,
+          local.env_arns["prod"].glue_database,
+          local.env_arns["prod"].glue_table,
+          local.env_arns["prod"].glue_job,
+        ]
+      },
+      {
+        Sid      = "ApplyAthena"
+        Effect   = "Allow"
+        Action   = local.apply_athena_actions
+        Resource = local.env_arns["prod"].athena_workgroup
+      },
+      {
+        Sid      = "ApplySsm"
+        Effect   = "Allow"
+        Action   = local.apply_ssm_actions
+        Resource = local.env_arns["prod"].ssm_parameter
+      },
+      {
+        # DescribeParameters no admite ARN de recurso.
+        Sid      = "ApplySsmDescribe"
+        Effect   = "Allow"
+        Action   = "ssm:DescribeParameters"
+        Resource = "*"
+      },
+      {
+        # Escribir un SecureString con aws/ssm; ningun rol de CI recibe kms:Decrypt.
+        Sid      = "ApplyKmsViaSsm"
+        Effect   = "Allow"
+        Action   = local.apply_kms_via_ssm_actions
+        Resource = "*"
+        Condition = {
+          StringEquals = {
+            "kms:ViaService" = local.kms_via_ssm_service
+          }
+        }
+      },
+      {
+        Sid      = "ApplyKmsDescribe"
+        Effect   = "Allow"
+        Action   = "kms:DescribeKey"
+        Resource = "*"
+        Condition = {
+          "ForAnyValue:StringEquals" = {
+            "kms:ResourceAliases" = local.kms_ssm_alias
+          }
+        }
+      },
+      {
+        Sid      = "ApplyScriptsObjects"
+        Effect   = "Allow"
+        Action   = local.apply_scripts_actions
+        Resource = local.env_arns["prod"].scripts_objects
       },
       {
         Sid      = "ApplyLogs"

@@ -224,3 +224,9 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 
 ### bronze-silver — Plan escrito y revisado
 - `working/plan.md`: 8 fases (bootstrap, módulo lakehouse, generador, Bronze, Reservas, FX, clickstream, demo en Glue). Revisión adversarial NEEDS-REVISION con sus hallazgos aplicados. Nuevo Ruling Plan decisions (9 recomendaciones aceptadas). Glue Flex en eu-west-3 confirmado a 0,29 USD/DPU-h.
+
+### Convention Medallion layers enmendada
+- Las bases Glue pasan a ir por entorno, `skyroute_<env>_{bronze,silver,gold,ops}`. Motivo: con las bases compartidas, los roles de dev podían borrar o reescribir tablas de prod (hallazgo H1 de security-reviewer en la PR 1 de bronze-silver).
+
+### bronze-silver — Fase 1 (bootstrap) implementada
+- Permisos de CI y boundaries para Glue, Athena, SSM y KMS, PassRole acotado a `glue-job` y `scripts/*` exento del Deny de ci-plan. Dos rondas de security-reviewer, la última con OK para re-aplicar.

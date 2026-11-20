@@ -23,8 +23,31 @@ locals {
       topic             = "arn:aws:sns:${local.aws_region}:${data.aws_caller_identity.current.account_id}:skyroute-${env}-*"
       alarm             = "arn:aws:cloudwatch:${local.aws_region}:${data.aws_caller_identity.current.account_id}:alarm:skyroute-${env}-*"
       workload_boundary = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/workload-boundary-${env}"
+
+      # Lakehouse (Fase 3, Design Decisions 11-13). Las bases de Glue son por
+      # entorno (skyroute_<env>_{bronze,silver,gold,ops}, Convention "Medallion
+      # layers"); jobs, workgroup, parametro y rol tambien llevan el entorno.
+      glue_catalog     = "arn:aws:glue:${local.aws_region}:${data.aws_caller_identity.current.account_id}:catalog"
+      glue_database    = "arn:aws:glue:${local.aws_region}:${data.aws_caller_identity.current.account_id}:database/skyroute_${env}_*"
+      glue_table       = "arn:aws:glue:${local.aws_region}:${data.aws_caller_identity.current.account_id}:table/skyroute_${env}_*/*"
+      glue_job         = "arn:aws:glue:${local.aws_region}:${data.aws_caller_identity.current.account_id}:job/skyroute-${env}-*"
+      athena_workgroup = "arn:aws:athena:${local.aws_region}:${data.aws_caller_identity.current.account_id}:workgroup/skyroute-${env}"
+      ssm_parameter    = "arn:aws:ssm:${local.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/skyroute/${env}/*"
+      glue_job_role    = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/workload/skyroute-${env}-glue-job"
+      scripts_objects  = "arn:aws:s3:::skyroute-${env}-data-${data.aws_caller_identity.current.account_id}/scripts/*"
     }
   }
+
+  # Clave gestionada aws/ssm: DescribeKey se acota por alias, no por ARN de clave.
+  kms_ssm_alias        = ["alias/aws/ssm"]
+  kms_via_ssm_service  = "ssm.${local.aws_region}.amazonaws.com"
+  scripts_objects_read = [local.env_arns["dev"].scripts_objects, local.env_arns["prod"].scripts_objects]
+
+  # Objetos de state que ci-plan lee (StateRead); DenyDataObjectRead los exime.
+  ci_plan_state_read_arns = [
+    "${aws_s3_bucket.state.arn}/envs/dev/terraform.tfstate",
+    "${aws_s3_bucket.state.arn}/envs/prod/terraform.tfstate",
+  ]
 
   # Todos los logs de la region: DescribeLogGroups evalua este recurso.
   log_groups_all_arn = "arn:aws:logs:${local.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:*"
@@ -60,7 +83,12 @@ locals {
     "iam:ListInstanceProfilesForRole",
   ]
 
-  pass_role_services = ["lambda.amazonaws.com", "scheduler.amazonaws.com"]
+  # Servicios a los que se puede pasar un rol de workload (techo y Deny).
+  pass_role_services = ["lambda.amazonaws.com", "scheduler.amazonaws.com", "glue.amazonaws.com"]
+
+  # Servicios del generador: ci-apply-<env> los usa para el Allow sobre los roles
+  # de workload en general. Glue solo recibe el rol skyroute-<env>-glue-job.
+  pass_role_services_generator = ["lambda.amazonaws.com", "scheduler.amazonaws.com"]
 
   # Acciones de iam sobre roles ajenos al workload que se deniegan siempre (b).
   role_write_actions = [
@@ -168,6 +196,51 @@ locals {
     "cloudwatch:TagResource",
     "cloudwatch:UntagResource",
   ]
+
+  apply_glue_actions = [
+    "glue:CreateDatabase",
+    "glue:GetDatabase",
+    "glue:UpdateDatabase",
+    "glue:DeleteDatabase",
+    "glue:DeleteTable",
+    "glue:CreateJob",
+    "glue:GetJob",
+    "glue:UpdateJob",
+    "glue:DeleteJob",
+    "glue:GetTags",
+    "glue:TagResource",
+    "glue:UntagResource",
+  ]
+
+  apply_athena_actions = [
+    "athena:CreateWorkGroup",
+    "athena:GetWorkGroup",
+    "athena:UpdateWorkGroup",
+    "athena:DeleteWorkGroup",
+    "athena:ListTagsForResource",
+    "athena:TagResource",
+    "athena:UntagResource",
+  ]
+
+  apply_ssm_actions = [
+    "ssm:PutParameter",
+    "ssm:GetParameter",
+    "ssm:DeleteParameter",
+    "ssm:ListTagsForResource",
+    "ssm:AddTagsToResource",
+    "ssm:RemoveTagsFromResource",
+  ]
+
+  # Escritura de un SecureString con la clave aws/ssm: nunca kms:Decrypt.
+  apply_kms_via_ssm_actions = ["kms:Encrypt", "kms:GenerateDataKey"]
+
+  apply_scripts_actions = [
+    "s3:PutObject",
+    "s3:GetObject",
+    "s3:DeleteObject",
+    "s3:GetObjectTagging",
+    "s3:PutObjectTagging",
+  ]
 }
 
 # Permissions boundary comun a ci-plan, ci-apply-dev y ci-apply-prod: techo de backend del state
@@ -207,22 +280,52 @@ resource "aws_iam_policy" "ci_boundary" {
         Sid    = "AllowWorkloadServices"
         Effect = "Allow"
         Action = ["s3:*", "lambda:*", "scheduler:*", "logs:*", "sns:*", "cloudwatch:*"]
+        # Buckets exactos; el resto con el entorno como comodin (skyroute-*-...) para
+        # liberar espacio en la boundary (Design Decision 13). El aislamiento por
+        # entorno lo dan las inline y los Deny.
         Resource = [
           local.env_arns["dev"].data_bucket,
-          local.env_arns["dev"].function,
-          local.env_arns["dev"].schedule,
-          local.env_arns["dev"].log_group,
-          "${local.env_arns["dev"].log_group}:*",
-          local.env_arns["dev"].topic,
-          local.env_arns["dev"].alarm,
           local.env_arns["prod"].data_bucket,
-          local.env_arns["prod"].function,
-          local.env_arns["prod"].schedule,
-          local.env_arns["prod"].log_group,
-          "${local.env_arns["prod"].log_group}:*",
-          local.env_arns["prod"].topic,
-          local.env_arns["prod"].alarm,
+          "arn:aws:lambda:${local.aws_region}:${local.account_id}:function:skyroute-*-generator",
+          "arn:aws:scheduler:${local.aws_region}:${local.account_id}:schedule/default/skyroute-*-generator",
+          "arn:aws:logs:${local.aws_region}:${local.account_id}:log-group:/aws/lambda/skyroute-*-generator",
+          "arn:aws:logs:${local.aws_region}:${local.account_id}:log-group:/aws/lambda/skyroute-*-generator:*",
+          "arn:aws:sns:${local.aws_region}:${local.account_id}:skyroute-*",
+          "arn:aws:cloudwatch:${local.aws_region}:${local.account_id}:alarm:skyroute-*",
         ]
+      },
+      {
+        # Techo del lakehouse agrupado con comodines para caber en 6.144
+        # caracteres (Design Decision 13); las acciones concretas estan en las inline.
+        Sid    = "AllowLakehouse"
+        Effect = "Allow"
+        Action = ["glue:*", "athena:*", "ssm:*", "s3:*"]
+        Resource = [
+          "arn:aws:glue:${local.aws_region}:${local.account_id}:catalog",
+          "arn:aws:glue:${local.aws_region}:${local.account_id}:database/skyroute_*",
+          "arn:aws:glue:${local.aws_region}:${local.account_id}:table/skyroute_*/*",
+          "arn:aws:glue:${local.aws_region}:${local.account_id}:job/skyroute-*",
+          "arn:aws:athena:${local.aws_region}:${local.account_id}:workgroup/skyroute-*",
+          "arn:aws:ssm:${local.aws_region}:${local.account_id}:parameter/skyroute/*",
+          "arn:aws:s3:::skyroute-*-data-*/scripts/*",
+        ]
+      },
+      {
+        Sid      = "AllowSsmKmsDescribe"
+        Effect   = "Allow"
+        Action   = ["ssm:DescribeParameters", "kms:DescribeKey"]
+        Resource = "*"
+      },
+      {
+        Sid      = "AllowKmsViaSsm"
+        Effect   = "Allow"
+        Action   = local.apply_kms_via_ssm_actions
+        Resource = "*"
+        Condition = {
+          StringEquals = {
+            "kms:ViaService" = local.kms_via_ssm_service
+          }
+        }
       },
       {
         Sid      = "AllowLogGroupsDescribe"
@@ -404,13 +507,10 @@ resource "aws_iam_role_policy" "ci_plan" {
         Resource = aws_s3_bucket.state.arn
       },
       {
-        Sid    = "StateRead"
-        Effect = "Allow"
-        Action = "s3:GetObject"
-        Resource = [
-          "${aws_s3_bucket.state.arn}/envs/dev/terraform.tfstate",
-          "${aws_s3_bucket.state.arn}/envs/prod/terraform.tfstate",
-        ]
+        Sid      = "StateRead"
+        Effect   = "Allow"
+        Action   = "s3:GetObject"
+        Resource = local.ci_plan_state_read_arns
       },
       {
         Sid    = "PlanS3Metadata"
@@ -508,10 +608,70 @@ resource "aws_iam_role_policy" "ci_plan" {
         Resource = [local.env_arns["dev"].alarm, local.env_arns["prod"].alarm]
       },
       {
-        Sid      = "DenyDataObjectRead"
+        Sid    = "PlanGlueRead"
+        Effect = "Allow"
+        Action = ["glue:Get*"]
+        Resource = [
+          local.env_arns["dev"].glue_catalog,
+          local.env_arns["dev"].glue_database,
+          local.env_arns["dev"].glue_table,
+          local.env_arns["prod"].glue_database,
+          local.env_arns["prod"].glue_table,
+          local.env_arns["dev"].glue_job,
+          local.env_arns["prod"].glue_job,
+        ]
+      },
+      {
+        Sid      = "PlanAthenaRead"
+        Effect   = "Allow"
+        Action   = ["athena:GetWorkGroup", "athena:ListTagsForResource"]
+        Resource = [local.env_arns["dev"].athena_workgroup, local.env_arns["prod"].athena_workgroup]
+      },
+      {
+        # GetParameter sin WithDecryption: el refresh de un value_wo no lee el valor.
+        Sid      = "PlanSsmRead"
+        Effect   = "Allow"
+        Action   = ["ssm:GetParameter", "ssm:ListTagsForResource"]
+        Resource = [local.env_arns["dev"].ssm_parameter, local.env_arns["prod"].ssm_parameter]
+      },
+      {
+        # DescribeParameters no admite ARN de recurso.
+        Sid      = "PlanSsmDescribe"
+        Effect   = "Allow"
+        Action   = "ssm:DescribeParameters"
+        Resource = "*"
+      },
+      {
+        Sid      = "PlanKmsDescribe"
+        Effect   = "Allow"
+        Action   = "kms:DescribeKey"
+        Resource = "*"
+        Condition = {
+          "ForAnyValue:StringEquals" = {
+            "kms:ResourceAliases" = local.kms_ssm_alias
+          }
+        }
+      },
+      {
+        # Unica excepcion a la lectura de datos: los scripts de Glue (Design Decision 11).
+        Sid      = "PlanScriptsRead"
+        Effect   = "Allow"
+        Action   = ["s3:GetObject", "s3:GetObjectTagging"]
+        Resource = local.scripts_objects_read
+      },
+      {
+        # NotResource exime scripts/* y los dos objetos de state que ci-plan lee
+        # (StateRead); el resto de rutas de datos sigue denegado.
+        Sid         = "DenyDataObjectRead"
+        Effect      = "Deny"
+        Action      = ["s3:GetObject", "s3:GetObjectVersion"]
+        NotResource = concat(local.scripts_objects_read, local.ci_plan_state_read_arns)
+      },
+      {
+        Sid      = "DenyKmsDecrypt"
         Effect   = "Deny"
-        Action   = "s3:GetObject"
-        Resource = "arn:aws:s3:::skyroute-*-data-*/*"
+        Action   = "kms:Decrypt"
+        Resource = "*"
       },
       {
         Sid      = "DenyLogRead"

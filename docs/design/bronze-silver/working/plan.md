@@ -8,6 +8,7 @@ type: Plan
 > **Restricciones vinculantes:** `context.md` § Rulings, "Research decisions" (con sus enmiendas de Propose), y las Conventions Table format, Medallion layers, Compute split, Region, No hourly-billed resources, IaC only, Apply gate, Idempotency, Git workflow y Bootstrap identity (`docs/design/CONTEXT.md` § Conventions).
 > **Decisiones del Plan:** `context.md` § Rulings, "Plan decisions" (javiladino, 2026-11-20 19:00): el owner aceptó las 9 recomendaciones; ver § Decididas.
 > **Revisión:** 1 ronda (adversarial-reviewer, NEEDS-REVISION), hallazgos aplicados 2026-11-20. Gate del precio de Glue Flex satisfecho (owner, 0,29 USD/DPU-h).
+> **Enmiendas posteriores:** Convention Medallion layers enmendada 2026-11-20 (bases por entorno); security-reviewer de la PR 1 aplicado.
 > **Alcance:** las 8 PRs de la Proposal 2. **Fuera de alcance:** Gold y dbt, Airflow (los jobs se lanzan a mano o por `make`), gasto publicitario y CRM, Lake Formation, paso a plan Paid, MoR en Silver.
 
 ## Current Context
@@ -29,14 +30,14 @@ Criterio de la fase (README § Fases): "Jobs PySpark con tests, MERGE, sesioniza
 - **R3. Silver:** `bookings_scd2`, `bookings_current`, `fx_daily`, `bookings_eur`, `events`, `sessions` con el modelo de la Proposal 2 § Modelo de Silver; email sustituido por HMAC-SHA256 (Ruling "PII"); copy-on-write; WAP con rama y `fast_forward` tras los checks YAML (Ruling "Checks WAP").
 - **R4. Relanzar un día:** relanzar D en cualquier momento, incluso tras D+5, deja Silver idéntico a la ejecución en orden (Ruling "Relanzar un día"; Convention Idempotency).
 - **R5. Mantenimiento:** `spark/jobs/maintenance/{expire_snapshots,rewrite_data_files}.py` (Ruling "Escritura Iceberg").
-- **R6. Infra:** PR de `bootstrap/` primero; módulo `lakehouse` con bases `skyroute_{bronze,silver,ops}`, workgroup `skyroute-<env>`, roles `local-data` y `glue-job`, parámetro HMAC; Glue jobs de demo sin trigger (Ruling "Athena", "Permisos", "Credenciales en local").
+- **R6. Infra:** PR de `bootstrap/` primero; módulo `lakehouse` con bases `skyroute_<env>_{bronze,silver,ops}` (p. ej. `skyroute_dev_silver`), workgroup `skyroute-<env>`, roles `local-data` y `glue-job`, parámetro HMAC; Glue jobs de demo sin trigger (Ruling "Athena", "Permisos", "Credenciales en local").
 - **R7. Histórico:** regeneración de 182 días con el generador nuevo e ingesta en Bronze antes de que pasen 30 días (Ruling "Histórico").
 
 ### Non-Functional Requirements
 
 - **Coste:** demo Glue Flex de 7 jobs × 3 min × 2 DPU × 0,29 USD/DPU-h ≈ 0,20 USD (precio de eu-west-3 confirmado por el owner el 2026-11-20); Athena con corte de 100 MB por consulta; nada con cobro por hora (Convention No hourly-billed resources). Budget de 10 USD sin cambios (Ruling "Budget").
 - **Paridad local/Glue:** `pyspark==3.5.4`, Python 3.11, `iceberg-spark-runtime-3.5_2.12:1.7.1` e `iceberg-aws-bundle:1.7.1` fijados a Glue 5.0 (AWS Big Data Blog y tabla de migración de Glue 5.0; un anuncio "What's New" dice Iceberg 1.6.1, así que la Fase 4 lo vuelve a comprobar en la doc oficial antes de fijar).
-- **Seguridad:** mínimo privilegio por nombre (`skyroute_*`, `skyroute-<env>-*`); credenciales locales temporales de 1 h con MFA; la clave HMAC nunca en el state ni en el repo.
+- **Seguridad:** mínimo privilegio por nombre (`skyroute_<env>_*`, `skyroute-<env>-*`); credenciales locales temporales de 1 h con MFA; la clave HMAC nunca en el state ni en el repo.
 - **Región:** `AWS_REGION=eu-west-3` en Spark local y en todo recurso (Convention Region).
 - **Volumen:** ~178 KB/día de clickstream y 120 reservas/día (C1, C2); no se optimiza para el volumen del blueprint.
 
@@ -102,13 +103,13 @@ La ci-boundary (`aws_iam_policy.ci_boundary`, `ci_roles.tf:179-362`, `jsonencode
 ### 2. Data Models
 
 - `bookings_history` (Postgres): `history_id bigserial PRIMARY KEY`, `booking_id`, `status`, columnas de `bookings`, `changed_at timestamptz NOT NULL` (= `NEW.updated_at`). Trigger `AFTER INSERT OR UPDATE ON bookings FOR EACH ROW`.
-- Bronze (`skyroute_bronze.{clickstream,bookings,fx}`): payload + `_ingested_at` (`run_date` 00:00 UTC + slot × 15 min; slot 0 en fuentes diarias), `_batch_id` = hash(`run_date`, `_source_file`), `_source_file`, `_ingest_date`; partición `_ingest_date`.
-- `skyroute_silver.bookings_scd2`: columnas de reserva + `history_id`, `valid_from` (= `changed_at`), `valid_to`, `is_current`, `row_hash`. Clave `(booking_id, history_id)`.
-- `skyroute_silver.bookings_current`: una fila por `booking_id`.
-- `skyroute_silver.fx_daily`: `fx_date`, `currency`, `rate_to_eur`, `source_date` (día hábil de origen).
-- `skyroute_silver.bookings_eur`: `booking_id`, `currency`, `amount`, `fx_rate_applied`, `amount_eur decimal(12,2)`.
-- `skyroute_silver.events`: eventos tipados y deduplicados, `email_hmac` en lugar de `email`, consentimiento conservado.
-- `skyroute_silver.sessions`: `session_key`, `customer_id`, `session_start`, `session_end`, `session_start_date`, `n_events`, `converted`, `booking_id`.
+- Bronze (`skyroute_<env>_bronze.{clickstream,bookings,fx}`, p. ej. `skyroute_dev_bronze`): payload + `_ingested_at` (`run_date` 00:00 UTC + slot × 15 min; slot 0 en fuentes diarias), `_batch_id` = hash(`run_date`, `_source_file`), `_source_file`, `_ingest_date`; partición `_ingest_date`.
+- `skyroute_<env>_silver.bookings_scd2` (p. ej. `skyroute_dev_silver`): columnas de reserva + `history_id`, `valid_from` (= `changed_at`), `valid_to`, `is_current`, `row_hash`. Clave `(booking_id, history_id)`.
+- `skyroute_<env>_silver.bookings_current`: una fila por `booking_id`.
+- `skyroute_<env>_silver.fx_daily`: `fx_date`, `currency`, `rate_to_eur`, `source_date` (día hábil de origen).
+- `skyroute_<env>_silver.bookings_eur`: `booking_id`, `currency`, `amount`, `fx_rate_applied`, `amount_eur decimal(12,2)`.
+- `skyroute_<env>_silver.events`: eventos tipados y deduplicados, `email_hmac` en lugar de `email`, consentimiento conservado.
+- `skyroute_<env>_silver.sessions`: `session_key`, `customer_id`, `session_start`, `session_end`, `session_start_date`, `n_events`, `converted`, `booking_id`.
 - Glue jobs: `skyroute-<env>-bronze-ingest` y `skyroute-<env>-silver-<tabla>` (nombre fijado aquí), Glue 5.0, `execution_class = "FLEX"`, 2 DPU, sin trigger.
 
 ### 3. Integration Points
@@ -117,7 +118,7 @@ La ci-boundary (`aws_iam_policy.ci_boundary`, `ci_roles.tf:179-362`, `jsonencode
 generador (Lambda, prod schedule) -> landing/clickstream/
 generador local -> Postgres bookings --trigger--> bookings_history -> export -> landing/bookings/
 tarea FX local (BCE)                                                -> landing/fx/
-landing/* --bronze/ingest.py--> skyroute_bronze.* --silver/*.py (WAP)--> skyroute_silver.*
+landing/* --bronze/ingest.py--> skyroute_<env>_bronze.* --silver/*.py (WAP)--> skyroute_<env>_silver.*
 Athena workgroup skyroute-<env> -> consultas de comprobación (resultados en athena-results/, 7 días)
 ```
 
@@ -127,16 +128,16 @@ Lo local (export, FX, Spark) usa credenciales temporales del perfil `skyroute-<e
 
 **PR 1 (bootstrap, Fase 1)**
 
-- `infra/terraform/bootstrap/ci_roles.tf` (lines 16-27: añadir a `env_arns` los ARN de Glue `catalog`, `database/skyroute_*`, `table/skyroute_*/*`, `job/skyroute-<env>-*`, Athena `workgroup/skyroute-<env>`, SSM `parameter/skyroute/<env>/*` y el rol `role/workload/skyroute-<env>-glue-job`; line 63: añadir `"glue.amazonaws.com"` a `pass_role_services`; lines 79-170: nuevas listas `apply_glue_actions`, `apply_athena_actions`, `apply_ssm_actions`; lines 207-226: `AllowWorkloadServices` hoy solo cubre ARN de bucket; se añade un Sid de techo agrupado con comodines (`glue:*`, `athena:*`, `ssm:*`, `kms:Encrypt`/`GenerateDataKey`/`DescribeKey` con `kms:ViaService` de SSM, y `s3:*` en `arn:aws:s3:::skyroute-*-data-*/scripts/*`; Design Decisions 11-13); lines 393-600, ci-plan: nuevos Sids `PlanGlueRead` (`glue:Get*`), `PlanAthenaRead` (`athena:GetWorkGroup`, `athena:ListTagsForResource`), `PlanSsmRead` (`ssm:GetParameter`, `ssm:ListTagsForResource` en `parameter/skyroute/*`), `PlanSsmDescribe` (`ssm:DescribeParameters`, `Resource "*"`), `PlanKmsDescribe` (`kms:DescribeKey` de `alias/aws/ssm`), `PlanScriptsRead` (`s3:GetObject`, `s3:GetObjectTagging` en `scripts/*`), `DenyKmsDecrypt`; lines 510-515: `DenyDataObjectRead` pasa a `NotResource` que exime `scripts/*`).
+- `infra/terraform/bootstrap/ci_roles.tf` (lines 16-27: añadir a `env_arns` los ARN de Glue `catalog`, `database/skyroute_<env>_*`, `table/skyroute_<env>_*/*` (por entorno, no `skyroute_*`), `job/skyroute-<env>-*`, Athena `workgroup/skyroute-<env>`, SSM `parameter/skyroute/<env>/*` y el rol `role/workload/skyroute-<env>-glue-job`; line 63: añadir `"glue.amazonaws.com"` a `pass_role_services`; lines 79-170: nuevas listas `apply_glue_actions`, `apply_athena_actions`, `apply_ssm_actions`; lines 207-226: `AllowWorkloadServices` hoy solo cubre ARN de bucket; se añade un Sid de techo agrupado con comodines (`glue:*`, `athena:*`, `ssm:*`, `kms:Encrypt`/`GenerateDataKey`/`DescribeKey` con `kms:ViaService` de SSM, y `s3:*` en `arn:aws:s3:::skyroute-*-data-*/scripts/*`; Design Decisions 11-13); lines 393-600, ci-plan: nuevos Sids `PlanGlueRead` (`glue:Get*`), `PlanAthenaRead` (`athena:GetWorkGroup`, `athena:ListTagsForResource`), `PlanSsmRead` (`ssm:GetParameter`, `ssm:ListTagsForResource` en `parameter/skyroute/*`), `PlanSsmDescribe` (`ssm:DescribeParameters`, `Resource "*"`), `PlanKmsDescribe` (`kms:DescribeKey` de `alias/aws/ssm`), `PlanScriptsRead` (`s3:GetObject`, `s3:GetObjectTagging` en `scripts/*`), `DenyKmsDecrypt`; lines 510-515: `DenyDataObjectRead` pasa a `NotResource` que exime `scripts/*`).
 - `infra/terraform/bootstrap/ci_apply_dev.tf` (insertar entre las lines 60-118 nuevos Sids `ApplyGlue`, `ApplyAthena`, `ApplySsm`, `ApplySsmDescribe` (`Resource "*"`), `ApplyKmsViaSsm` y `ApplyScriptsObjects` acotados a dev; lines 60-65: `ApplyS3` sin cambio, solo cubre el ARN del bucket; lines 84-94: el PassRole cubre `skyroute-dev-glue-job` vía `pass_role_services`; lines 160-168: `DenyPassRoleWrongService` sin cambio de texto, hereda la lista).
 - `infra/terraform/bootstrap/ci_apply_prod.tf` (mismos rangos: inserción en 60-118, 84-94 y 160-168, con ARN de prod).
-- `infra/terraform/bootstrap/workload_boundary_dev.tf` (lines 9-34: añadir `s3:GetObject`/`s3:PutObject` en `<bucket>/*`, `s3:ListBucket` en el bucket, `s3:DeleteObject` solo en `bronze/*`, `silver/*`, `athena-results/*`, `glue-temp/*`; Glue Catalog sobre `skyroute_*`; Athena sobre `skyroute-dev`; `ssm:GetParameter` del parámetro HMAC y `kms:Decrypt` con `kms:ViaService` de SSM; logs de `/aws-glue/*` para el rol `glue-job`; `DenyStateBucketAccess` intacto).
+- `infra/terraform/bootstrap/workload_boundary_dev.tf` (lines 9-34: añadir lecturas S3 (`s3:GetObject`, `s3:ListBucket` en el bucket) restringidas a los prefijos `landing/`, `bronze/`, `silver/`, `scripts/`, `athena-results/`, `glue-temp/`; `s3:PutObject` solo en `landing/*`, `bronze/*`, `silver/*`, `athena-results/*`, `glue-temp/*` (ningún rol de workload escribe en `scripts/`: solo Get); `s3:DeleteObject` solo en `bronze/*`, `silver/*`, `athena-results/*`, `glue-temp/*`; Glue Catalog sobre `catalog`, `database/skyroute_dev_*` y `table/skyroute_dev_*/*` (en prod, `skyroute_prod_*`); Athena sobre `skyroute-dev`; `ssm:GetParameter` del parámetro HMAC y `kms:Decrypt` con `kms:ViaService` de SSM; logs de `/aws-glue/*` para el rol `glue-job`; `DenyStateBucketAccess` intacto).
 - `scripts/policy_size.py` (NEW: recibe la ruta de un plan guardado por el owner, obtiene su JSON con `terraform show -json` y escribe la longitud minificada de la política `ci-boundary`; falla si ≥ 6.144).
-- `infra/terraform/bootstrap/workload_boundary_prod.tf` (lines 9-34: lo mismo para prod).
+- `infra/terraform/bootstrap/workload_boundary_prod.tf` (lines 9-34: lo mismo para prod, con ARN Glue `skyroute_prod_*`).
 
 **PR 2 (módulo lakehouse, Fase 2)**
 
-- `infra/terraform/modules/lakehouse/{versions,variables,glue_catalog,athena,iam,ssm,outputs}.tf` (NEW: bases `skyroute_{bronze,silver,ops}`; workgroup `skyroute-<env>` con `enforce_workgroup_configuration = true`, `bytes_scanned_cutoff_per_query = 104857600`, salida `s3://<bucket>/athena-results/`; rol `skyroute-<env>-local-data` en `/workload/` con boundary `workload-boundary-<env>`, trust a `user/skyroute-dev` con `Bool aws:MultiFactorAuthPresent = true`, `max_session_duration = 3600`; rol `skyroute-<env>-glue-job`; `aws_ssm_parameter` `SecureString` `/skyroute/<env>/hmac-email-key` con `value_wo`).
+- `infra/terraform/modules/lakehouse/{versions,variables,glue_catalog,athena,iam,ssm,outputs}.tf` (NEW: bases `skyroute_<env>_{bronze,silver,ops}` (p. ej. `skyroute_dev_bronze`); workgroup `skyroute-<env>` con `enforce_workgroup_configuration = true`, `bytes_scanned_cutoff_per_query = 104857600`, salida `s3://<bucket>/athena-results/`; rol `skyroute-<env>-local-data` en `/workload/` con boundary `workload-boundary-<env>`, trust a `user/skyroute-dev` con `Bool aws:MultiFactorAuthPresent = true`, `max_session_duration = 3600`; rol `skyroute-<env>-glue-job`; las políticas de ambos roles usan ARN Glue `skyroute_<env>_*` y acceso S3 solo a `landing/`, `bronze/`, `silver/`, `scripts/` (Get), `athena-results/`, `glue-temp/`, sin Put en `scripts/`; `aws_ssm_parameter` `SecureString` `/skyroute/<env>/hmac-email-key` con `value_wo`).
 - `infra/terraform/modules/generator-landing/bucket.tf` (lines 76-102: nuevas reglas `expire-athena-results-7d`, prefijo `athena-results/`, 7 días, y `expire-glue-temp-1d`, prefijo `glue-temp/`, 1 día; Design Decision 7).
 - `infra/terraform/envs/dev/main.tf` (lines 1-7: añadir `module "lakehouse"` con `env = "dev"` y `bucket_name = module.generator_landing.bucket_name`).
 - `infra/terraform/envs/prod/main.tf` (lines 1-7: lo mismo con `env = "prod"`).
@@ -210,7 +211,7 @@ Antes de cualquier verify de Terraform, quien lo ejecute necesita una sesión `a
    - Precondiciones: Fases 2 y 3 desplegadas en dev; gate de MFA superado; entorno dev (Ruling "Plan decisions").
    - executor crea `spark/` base y `ingest.py` con tests.
    - Verify (executor): `.venv/bin/python -m pytest spark/tests -q`.
-   - **Gate del owner (histórico en dev, Ruling "Histórico"):** el owner regenera 182 días en dev (backfill de la Lambda de dev, `make seed-postgres` con `REBUILD=1`, export de Reservas y FX del mismo rango con `generators/fx/ecb.py --from --to`) y anota la fecha R. Después corre la ingesta Bronze de las tres fuentes para los 182 días. Éxito: antes de R + 30 días, Athena devuelve 182 valores distintos de `_ingest_date` en `skyroute_bronze.clickstream`, `bookings` y `fx` (workgroup `skyroute-dev`). Si R + 30 se acerca sin ingesta, se regenera otra vez (determinista). Al cerrar la fase, el mismo gate se repite en prod con su propia fecha R.
+   - **Gate del owner (histórico en dev, Ruling "Histórico"):** el owner regenera 182 días en dev (backfill de la Lambda de dev, `make seed-postgres` con `REBUILD=1`, export de Reservas y FX del mismo rango con `generators/fx/ecb.py --from --to`) y anota la fecha R. Después corre la ingesta Bronze de las tres fuentes para los 182 días. Éxito: antes de R + 30 días, Athena devuelve 182 valores distintos de `_ingest_date` en `skyroute_dev_bronze.clickstream`, `bookings` y `fx` (en prod, `skyroute_prod_bronze`; workgroup `skyroute-dev`). Si R + 30 se acerca sin ingesta, se regenera otra vez (determinista). Al cerrar la fase, el mismo gate se repite en prod con su propia fecha R.
 
 5. **Fase 5: corte Reservas (`bookings_scd2`, `bookings_current`).**
    - Verify (executor): `.venv/bin/python -m pytest spark/tests -q`.
