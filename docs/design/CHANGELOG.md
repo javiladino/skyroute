@@ -218,3 +218,6 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 
 ### bronze-silver — Grill-me del Research
 - El owner aprobó el gate del Research. El grill-me resolvió 13 decisiones, recogidas en el Ruling Research decisions: Spark en local con Glue solo en demos, rol `local-data` con MFA, Bronze con reemplazo de partición y Silver CoW, checks WAP en PySpark con YAML, `_ingested_at` por fecha lógica, export de Reservas y tipos del BCE a `landing/`, workgroup de Athena con corte de 100 MB, PR de bootstrap primero y PII con HMAC. Quedan aceptadas cuatro decisiones abiertas del README.
+
+### bronze-silver — Propose decidido
+- `working/proposal.md` con 3 propuestas, una revisión adversarial y una comprobación de coherencia contra el Ruling, con sus hallazgos aplicados. El owner eligió la Proposal 2 (por tabla de extremo a extremo, PySpark de pip). Ruling Research decisions enmendado: export desde `bookings_history`, relanzar independiente del orden y tipo de cambio por `created_at`.

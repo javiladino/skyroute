@@ -24,11 +24,11 @@ Se cargan por tarea, no todas a la vez. Están en `.claude/skills/`.
 ## Active Context
 
 **Orden de carga:** este archivo → `<topic>/context.md` del topic activo → los archivos que su document map marca `always` → solo los archivos que nombre la tarea. No cargues `CHANGELOG.md`, `evidence/`, `archive/` ni una carpeta entera salvo que la tarea nombre el archivo.
-**Topics activos:** `bronze-silver` (Fase 3, Research cerrado, Propose pendiente; rama `docs/bronze-silver-research`).
+**Topics activos:** `bronze-silver` (Fase 3, Propose decidido, Plan pendiente; rama `docs/bronze-silver-propose`).
 
 **Current state (2026-11-19):** Fase 1 hecha: `foundations` cerrado (Done) y fusionado en `main` (PRs #2 y #3, con la aprobación manual de prod verificada en el run 43462639280). Fase 2 hecha: `generator-landing` cerrado (Done), desplegado en dev y prod (PRs #7-#20), 182 días de backfill más el día D y schedule de prod activo; Test en PASS (`generator-landing/current/test.md`). La cuota de Lambda está aprobada (1000) y la PR-Q (#20) restauró la concurrencia reservada de 1 en prod (Ruling Implement decisions). Fase 3: `bronze-silver` con `working/research.md` revisado y las decisiones del grill-me registradas (Ruling Research decisions). Apply gate aclarada: el owner re-aplica `bootstrap/` en cada cambio. En AWS existen, creados por Terraform, el budget de 10 USD, el bucket de state en eu-west-3, el proveedor OIDC, los roles `ci-plan`, `ci-apply-dev` y `ci-apply-prod`, las boundaries `ci-boundary` y `workload-boundary-{dev,prod}`, y el bloqueo de acceso público de S3 de la cuenta. `ci-apply` se destruyó en la Fase 8. La PR publica el plan y el merge aplica en dev y prod, con aprobación manual en `prod`. El código está en `main` (PR #1). Las etapas RePPIT se ejecutan con `session-orchestration` (Conventions Design write ownership, Subagent roles y Verification ownership). `platform-blueprint`, `agent-workflow`, `reppit-orchestration` y `foundations` están cerrados.
 
-**Siguiente:** Propose de `bronze-silver` (`working/proposal.md`), con gate del owner. El plan Free vence el 2027-01-22: el paso a Paid queda como decisión abierta en el README.
+**Siguiente:** Plan de `bronze-silver` (Proposal 2 elegida). Antes, el owner prueba el MFA con `aws login` y confirma el precio de Glue Flex en eu-west-3. El plan Free vence el 2027-01-22: el paso a Paid queda como decisión abierta en el README.
 **Problemas conocidos:** Design write ownership se hace cumplir solo por prompt y por herramientas: el allow de `Edit` sobre `working/` no distingue agentes. T17 (`ci-apply` con trust en dev podía escribir el state de prod) quedó cerrada el 2026-11-14 al destruir `ci-apply` (Fase 8).
 **Findings:** `findings.md`, 3 entradas, la última del 2026-11-13.
 
