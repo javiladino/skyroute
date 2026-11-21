@@ -10,7 +10,14 @@ import random
 from datetime import timedelta
 
 from ota import model
-from ota.keys import SLOTS_PER_DAY, customer_id, email_for, event_id, seed_for, session_id
+from ota.keys import (
+    SLOTS_PER_DAY,
+    customer_id,
+    email_for,
+    event_id,
+    seed_for,
+    session_id,
+)
 
 MAX_LATE_SECONDS = 72 * 3600
 LATE_PROBABILITY = 0.05
@@ -28,32 +35,49 @@ def build_events(run_date: str, slot: int) -> list:
     rng = random.Random(seed_for(run_date, slot, "clickstream"))
     base = model.parse_day(run_date) + timedelta(minutes=15 * slot)
     events = []
-    for i in range(rng.randint(25, 45)):
-        etype = rng.choices(model.EVENT_TYPES, weights=model.EVENT_WEIGHTS)[0]
+    total = rng.randint(25, 45)
+    i = 0
+    while i < total:
+        # Sesion de navegacion: 2 a 5 eventos del mismo cliente en el slot (< 15 min). Los
+        # eventos de recorrido de una reserva (model.customer_journeys) pueden caer hasta
+        # 80 min antes de created_at, fuera del slot y en D-1.
+        group = min(rng.randint(2, 5), total - i)
         customer_n = rng.randint(1, model.CUSTOMER_POOL)
         campaign_idx = rng.randrange(len(model.CAMPAIGNS))
-        offset = rng.randrange(900)
-        late = rng.random() < LATE_PROBABILITY
-        late_shift = rng.randint(1, MAX_LATE_SECONDS)
-        price = round(rng.uniform(40, 1500), 2)
-        ts = base + timedelta(seconds=offset)
-        if late:
-            ts -= timedelta(seconds=late_shift)
         cust = customer_id(customer_n)
-        event = {
-            "event_id": event_id(run_date, slot, i),
-            "event_type": etype,
-            "event_ts": model.fmt_ts(ts),
-            "customer_id": cust,
-            "session_id": session_id(run_date, slot, i),
-            "campaign_id": f"CMP-{model.campaign_n_for(campaign_idx):04d}",
-            "currency": model.currency_for(customer_n),
-            "amount": price if etype == "add_to_cart" else None,
-            "consent_ts": model.consent_ts_for(customer_n),
-        }
-        if etype == "consent":
-            event["email"] = email_for(cust)
-        events.append(event)
+        sess = session_id(run_date, slot, i)
+        for _ in range(group):
+            etype = rng.choices(model.EVENT_TYPES, weights=model.EVENT_WEIGHTS)[0]
+            offset = rng.randrange(900)
+            late = rng.random() < LATE_PROBABILITY
+            late_shift = rng.randint(1, MAX_LATE_SECONDS)
+            price = round(rng.uniform(40, 1500), 2)
+            ts = base + timedelta(seconds=offset)
+            if late:
+                ts -= timedelta(seconds=late_shift)
+            event = {
+                "event_id": event_id(run_date, slot, i),
+                "event_type": etype,
+                "event_ts": model.fmt_ts(ts),
+                "customer_id": cust,
+                "session_id": sess,
+                "campaign_id": f"CMP-{model.campaign_n_for(campaign_idx):04d}",
+                "currency": model.currency_for(customer_n),
+                "amount": price if etype == "add_to_cart" else None,
+                "consent_ts": model.consent_ts_for(customer_n),
+            }
+            if etype == "consent":
+                event["email"] = email_for(cust)
+            events.append(event)
+            i += 1
+
+    # Recorridos: eventos previos de la sesion de cada reserva, y despues su purchase.
+    for journey in model.journeys_for_slot(run_date, slot):
+        for step in journey["events"]:
+            events.append({
+                "event_id": event_id(run_date, slot, 2000 + journey["j"] * 10 + step["n"]),
+                **{k: v for k, v in step.items() if k != "n"},
+            })
 
     for j, booking in enumerate(model.bookings_for_slot(run_date, slot)):
         events.append({

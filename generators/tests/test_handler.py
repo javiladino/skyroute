@@ -43,7 +43,10 @@ def test_scheduled_event_writes_one_object():
 def test_ts_u6_backfill_182_days():
     d = date(2026, 11, 13)
     writer = MemoryWriter(keep_bodies=False)
-    event = {"from": (d - timedelta(days=182)).isoformat(), "to": (d - timedelta(days=1)).isoformat()}
+    event = {
+        "from": (d - timedelta(days=182)).isoformat(),
+        "to": (d - timedelta(days=1)).isoformat(),
+    }
     out = lambda_handler.handler(event, None, writer=writer, today_fn=lambda: d)
     assert out["objects"] == 182 * 96 == 17472
     assert len(set(writer.calls)) == 17472

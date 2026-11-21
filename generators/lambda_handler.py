@@ -10,7 +10,7 @@ escrito depende del reloj.
 import json
 import logging
 import os
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 
 from ota.clickstream import generate
 from ota.keys import SLOTS_PER_DAY, landing_key
@@ -32,7 +32,7 @@ def slot_from_scheduled_time(scheduled_time: str) -> tuple:
         raise ValueError(f"scheduled_time invalido: {scheduled_time!r}") from exc
     if when.tzinfo is None:
         raise ValueError("scheduled_time sin zona horaria")
-    when = when.astimezone(timezone.utc)
+    when = when.astimezone(UTC)
     return when.strftime("%Y-%m-%d"), (when.hour * 60 + when.minute) // 15
 
 
@@ -46,7 +46,7 @@ def _parse_date(value, name: str) -> date:
 
 
 def _utc_today() -> date:
-    return datetime.now(timezone.utc).date()
+    return datetime.now(UTC).date()
 
 
 class S3Writer:
@@ -87,7 +87,8 @@ def _backfill(event: dict, writer, today_fn) -> dict:
             _write_slot(day.isoformat(), slot, writer)
             count += 1
         day += timedelta(days=1)
-    logger.info(json.dumps({"backfill": "end", "from": str(start), "to": str(end), "objects": count}))
+    summary = {"from": str(start), "to": str(end), "objects": count}
+    logger.info(json.dumps({"backfill": "end", **summary}))
     return {"objects": count, "from": str(start), "to": str(end)}
 
 

@@ -37,9 +37,12 @@ Fase 3 — Bronze y Silver con Spark + Iceberg (README § Fases): "Jobs PySpark 
   - Las sesiones se escriben con MERGE y `NOT MATCHED BY SOURCE DELETE`.
   - `amount_eur` se redondea con HALF_EVEN a 2 decimales.
   - Enmienda del 2026-11-20 (Implement, fase 2): el refresh de `aws_ssm_parameter` llama a GetParameter con WithDecryption, aunque el valor sea `value_wo`. Por eso `ci-plan` y `ci-apply-<env>` reciben `ssm:GetParameter` y `kms:Decrypt` solo sobre `/skyroute/<env>/hmac-email-key`, condicionados a `kms:ViaService` de SSM y a `kms:EncryptionContext:PARAMETER_ARN`. El Deny de Decrypt de ci-plan se acota en consecuencia. Riesgo aceptado: la CI del repo puede leer la clave (las PR de forks no reciben token OIDC).
+  - Enmienda del 2026-11-21 (Implement, fase 3): FX escribe un archivo por día natural; sábados, domingos y festivos llevan los tipos de la última publicación ≤ D con su `rate_date` real (nunca un tipo inventado).
   - Después de la revisión (2026-11-20), el owner aprobó el plan y además decidió: Python 3.11 en local con Homebrew (`python@3.11`), y `glue-temp/` con 1 día de lifecycle.
 
 ## Journal (newest first)
+
+**2026-11-21 (Implement, fase 3):** executor (Sonnet) implementó el generador (sesiones, versiones de reserva, trigger `bookings_history`, export, FX del BCE). El owner aprobó guardar FX también en fin de semana (enmienda del Ruling Plan decisions) y fijar `ruff.toml`. adversarial-reviewer (Opus) dio GO-WITH-FIXES; executor aplicó los hallazgos 2–6 (FX exige publicación de D o una posterior). Verificación: 52 passed y ruff limpio (re-ejecutados por el orquestador); G3 contra Postgres con md5 idéntico en dos rebuilds (578 filas); export real idéntico byte a byte, ejecutado por el owner. Siguiente: commit y PR, después fase 4.
 
 **2026-11-21 (Implement, fase 2):** executor (Sonnet) implementó el módulo `lakehouse`; security-reviewer encontró el refresh de SSM con WithDecryption (resuelto con la enmienda 1b, PR #25) y cost-guard dio APTO. PR #26 fusionada y aplicada en dev y prod (plan: dev 9 add / 2 change, prod 7 add / 2 change, 0 destroy; el segundo change añade `BUCKET_NAME` a la Lambda). Gate de MFA en PASS: `skyroute-dev-local-data` se asume desde `aws login` con MFA. Siguiente: fase 3.
 
@@ -61,7 +64,7 @@ Rutas relativas a esta carpeta.
 
 | File | Role | Load | What it holds |
 |------|------|------|---------------|
-| `working/test.md` | draft | on-demand | Test de la Fase 3, por fases; fases 1, 1b y 2 en PASS (lakehouse aplicado y gate de MFA, 2026-11-21) |
+| `working/test.md` | draft | on-demand | Test de la Fase 3, por fases; fases 1, 1b, 2 y 3 en PASS (generador verificado contra Postgres, 2026-11-21) |
 | `working/plan.md` | draft | on-demand | Plan de la Fase 3 (Proposal 2): 8 PRs, gates del owner, tests de idempotencia U1–U23 |
 | `working/proposal.md` | draft | on-demand | Propose de la Fase 3: 3 propuestas revisadas; Decision: Proposal 2 |
 | `working/research.md` | draft | on-demand | Research de la Fase 3: lo que existe hoy para Bronze y Silver (C1–C6, T1–T14, revisado y corregido) |

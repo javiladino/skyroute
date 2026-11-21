@@ -6,7 +6,7 @@ type: Test
 
 > **Fecha:** 2026-11-20 · **Base:** main (rama `infra/bronze-silver-bootstrap`) · **Plan:** docs/design/bronze-silver/working/plan.md
 
-## Verdict: IN PROGRESS (fases 1, 1b y 2 en PASS; siguiente: fase 3)
+## Verdict: IN PROGRESS (fases 1, 1b, 2 y 3 en PASS; siguiente: fase 4)
 
 Fase 1 (PR #24, permisos de `bootstrap/`): PASS. Los checks estáticos, la review de seguridad, el plan del owner, el tamaño de `ci-boundary` y el apply del owner están en PASS. El veredicto no es PASS hasta cerrar las fases 2 a 8.
 
@@ -54,6 +54,19 @@ Gate: `aws sts get-caller-identity --profile skyroute-dev-local-data` con `skyro
 | 2.x | CI plan de la PR #26 | plan.md Fase 2 (CI) | run 44809403791 (terraform-plan) | dev: "Plan: 9 to add, 2 to change, 0 to destroy". prod: "Plan: 7 to add, 2 to change, 0 to destroy", sin `skyroute-prod-local-data`. El refresh de `aws_ssm_parameter` no dio AccessDenied (enmienda de la PR #25 verificada). Los 2 change: el lifecycle del bucket (reglas athena-results 7 d y glue-temp 1 d, abort-multipart reordenada) y `aws_lambda_function.generator`, que añade la variable de entorno `BUCKET_NAME` (no estaba en el checklist; update in-place, sin impacto) | PASS |
 | 2.y | Apply en main | plan.md Fase 2 (CI) | run 44809535857 (terraform-apply, merge de la PR #26) | success en dev y prod | PASS |
 | 2.z | Gate de MFA con `aws login` | plan.md Fase 2 (owner) | `aws sts get-caller-identity --profile skyroute-dev-local-data` (source_profile `skyroute-dev-login` de `aws login`, mfa_serial `arn:aws:iam::437266392155:mfa/skyroute`) | Pidió el código MFA y devolvió Arn `arn:aws:sts::437266392155:assumed-role/skyroute-dev-local-data/botocore-session-1795254817` (owner, 2026-11-21). Confirma que el trust con MFA funciona con `aws login`, sin fallback | PASS |
+
+## Fase 3: generador (bookings_history, export, FX del BCE)
+
+| # | Check | Source | Command | Result | Status |
+|---|-------|--------|---------|--------|--------|
+| 3.1 | Tests del generador | plan.md Fase 3 (executor) | `.venv/bin/python -m pytest generators/tests -q` | "52 passed" (re-ejecutado por el orquestador) | PASS |
+| 3.2 | Lint | plan.md Fase 3 (executor) | `ruff check generators` con el `ruff.toml` del repo | "All checks passed!" | PASS |
+| 3.3 | Tests preexistentes | plan.md Fase 3 (executor) | `git diff --stat generators/tests` | Solo `test_handler.py` cambia (wrap de línea por lint) | PASS |
+| 3.4 | Fuente BCE | plan.md Fase 3 (executor) | URLs 90d e hist; parseo de `fx` | URL 90d e hist válidas, namespace `eurofxref`; FX 2025-07-01..2025-12-31 produce 184 archivos | PASS |
+| 3.5 | G3 contra Postgres (reproducibilidad del historial) | plan.md Fase 3 (executor, 2026-11-21) | `make seed-postgres SEED_FROM=2026-05-01 SEED_TO=2026-05-03 REBUILD=1` dos veces (volumen recreado con `down -v`, init 002 aplicado), luego `SELECT count(*), max(history_id), md5(...) FROM bookings_history` y `len(replay_history("2026-05-01","2026-05-03"))` | Ejecución 1: count 578, max 578, md5 `ef80bc720701d6fa312f8f83b470aba7`. Ejecución 2: count 578, max 578, md5 `ef80bc720701d6fa312f8f83b470aba7`. `len(replay_history)` = 578 | PASS |
+| 3.6 | Export real byte a byte (a vs b, y vs simulación) | plan.md Fase 3 (executor, 2026-11-21) | `make export-bookings RUN_DATE=2026-05-02 OUT_DIR=build/a` (y `build/b`), `cmp`; `build/sim_export.py` y `cmp` con `build/a` | Ejecutado por el owner con `PGPASSWORD` desde su `.env` (Verification ownership: salida aportada por el owner, 2026-11-21). `make export-bookings RUN_DATE=2026-05-02` con OUT_DIR=build/a y build/b: "part.json.gz (188 filas)" en ambas. `cmp` a vs b: IGUALES. `build/sim_export.py` (simulación con `replay_history`): 188 filas. `cmp` a vs `build/sim/part.json.gz`: IGUALES_SIM | PASS |
+
+Nota de revisión: adversarial-reviewer dio GO-WITH-FIXES. Los hallazgos 2 a 6 están aplicados: FX exige publicación de D o publicación posterior; `ruff.toml`; docs de recorridos fuera de slot y de REBUILD; Makefile con `$(PY)`; test de `normalize`.
 
 ## Review
 

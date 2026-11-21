@@ -236,3 +236,6 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 ### bronze-silver — Fase 2 (módulo lakehouse) aplicada
 - PR #26 fusionada y aplicada por CI en dev y prod: bases Glue `skyroute_<env>_{bronze,silver,ops}`, workgroup Athena con corte de 100 MB, parámetro HMAC con `value_wo` y roles `glue-job` y `local-data` (este solo en dev). 0 destroy.
 - Gate de MFA en PASS: `skyroute-dev-local-data` se asume desde `aws login` con MFA.
+
+### bronze-silver — Fase 3 (generador) verificada
+- Generador con sesiones por cliente y reservas con varias versiones, trigger `bookings_history`, export diario idéntico byte a byte y FX del BCE (un archivo por día natural, enmienda del Ruling Plan decisions). `ruff.toml` en la raíz. 52 tests en verde y G3 comprobado contra Postgres.
