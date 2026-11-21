@@ -1,0 +1,5 @@
+# Entorno de desarrollo (Python 3.11, igual que Glue 5). Uso: python3.11 -m venv .venv
+pytest==9.2.0
+ruff==0.17.6
+pyyaml==6.0.4
+psycopg[binary]==3.3.9

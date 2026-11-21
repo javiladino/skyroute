@@ -7,11 +7,13 @@ import hashlib
 
 SLOTS_PER_DAY = 96
 CLICKSTREAM_PREFIX = "landing/clickstream"
+BOOKINGS_PREFIX = "landing/bookings"
+FX_PREFIX = "landing/fx"
 
 
 def seed_for(run_date: str, slot: int, source: str) -> int:
     """Semilla sha256(f"{run_date}|{slot}|{source}") como entero."""
-    digest = hashlib.sha256(f"{run_date}|{slot}|{source}".encode("utf-8")).digest()
+    digest = hashlib.sha256(f"{run_date}|{slot}|{source}".encode()).digest()
     return int.from_bytes(digest, "big")
 
 
@@ -49,3 +51,8 @@ def landing_key(run_date: str, slot: int) -> str:
     if not 0 <= slot < SLOTS_PER_DAY:
         raise ValueError(f"slot fuera de rango: {slot}")
     return f"{CLICKSTREAM_PREFIX}/ingest_date={run_date}/slot={slot:02d}/part.json.gz"
+
+
+def daily_key(prefix: str, run_date: str) -> str:
+    """Clave de una fuente diaria (bookings, fx): <prefix>/ingest_date=D/part.json.gz."""
+    return f"{prefix}/ingest_date={run_date}/part.json.gz"
