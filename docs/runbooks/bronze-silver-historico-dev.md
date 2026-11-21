@@ -92,7 +92,7 @@ done
 
 Esperado: por día una línea `bronze ingest {... 'rows_written': N ...}` y exit 0 por fuente (la primera ejecución descarga jars; tarda). Un commit atómico por día; repetir un día reemplaza su partición.
 
-La sesión dura 1 h. Si caduca (`ExpiredToken`/403) o un día falla, el log dice `fallo en X; ultima fecha OK: Y; reanuda con --from X --to E`. Repite el `eval` con credenciales nuevas y relanza solo lo pendiente, con `--from X` (la fuente fallida y las siguientes; las anteriores ya están completas):
+La sesión dura 1 h. Con 182 días clickstream tarda más de 1 h (~40 s/día), así que espera al menos una reanudación. Si caduca (`ExpiredToken`/403) o un día falla, el log dice `fallo en X; ultima fecha OK: Y; reanuda con --from X --to E`. Repite el `eval` con credenciales nuevas y relanza solo lo pendiente, con `--from X` (la fuente fallida y las siguientes; las anteriores ya están completas):
 
 ```bash
 docker compose -f docker/spark/compose.yml run --rm spark python -m jobs.bronze.ingest --source <src> --from <X> --to $E --landing-root s3a://$B --warehouse s3://$B/bronze --catalog-impl glue --env dev
@@ -105,12 +105,12 @@ docker compose -f docker/spark/compose.yml run --rm spark python -m jobs.bronze.
 ```bash
 for t in clickstream bookings fx; do
   q=$(aws athena start-query-execution --work-group skyroute-dev --query-string "SELECT count(DISTINCT _ingest_date) FROM skyroute_dev_bronze.$t" --query QueryExecutionId --output text --profile skyroute-dev-login)
-  until [ "$(aws athena get-query-execution --query-execution-id $q --query QueryExecution.Status.State --output text --profile skyroute-dev-login)" != "RUNNING" ] && [ "$(aws athena get-query-execution --query-execution-id $q --query QueryExecution.Status.State --output text --profile skyroute-dev-login)" != "QUEUED" ]; do sleep 3; done
-  echo "$t: $(aws athena get-query-results --query-execution-id $q --query 'ResultSet.Rows[1].Data[0].VarCharValue' --output text --profile skyroute-dev-login)"
+  while :; do s=$(aws athena get-query-execution --query-execution-id $q --query QueryExecution.Status.State --output text --profile skyroute-dev-login); case $s in QUEUED|RUNNING) sleep 3;; *) break;; esac; done
+  echo "$t: $s $(aws athena get-query-results --query-execution-id $q --query 'ResultSet.Rows[1].Data[0].VarCharValue' --output text --profile skyroute-dev-login)"
 done
 ```
 
-Esperado: `clickstream: 182`, `bookings: 182`, `fx: 182`. Si la consulta acaba `FAILED`, mira `aws athena get-query-execution --query-execution-id $q --query QueryExecution.Status.StateChangeReason --profile skyroute-dev-login`. Si un conteo es menor, localiza los días con `SELECT DISTINCT _ingest_date ... ORDER BY 1` y reanuda con `--from` ese día (paso 6).
+Esperado: `clickstream: SUCCEEDED 182`, `bookings: SUCCEEDED 182`, `fx: SUCCEEDED 182`. Si la consulta acaba `FAILED`, mira `aws athena get-query-execution --query-execution-id $q --query QueryExecution.Status.StateChangeReason --profile skyroute-dev-login`. Si un conteo es menor, localiza los días con `SELECT DISTINCT _ingest_date ... ORDER BY 1` y reanuda con `--from` ese día (paso 6).
 
 ## 8. Qué pegar al orquestador
 
