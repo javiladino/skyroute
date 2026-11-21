@@ -19,3 +19,9 @@ Hechos duraderos que necesitan los topics posteriores. Un bloque por finding, so
 - **Date:** 2026-11-13 · **Source topic:** `generator-landing`
 - **Finding:** `ci_roles.tf:246-247` y `:270-285` (verificado). `dev` tiene `can_admins_bypass: true` (`gh api`). Se corrige en la Fase 2 separando `ci-apply-dev` y `ci-apply-prod`.
 - **Provenance:** `generator-landing/archive/research.md` (T17, Hecho (c))
+
+## Glue 5.0: sin PyYAML y logs fuera del alcance de CI
+
+- **Date:** 2026-11-21 · **Source topic:** `bronze-silver`
+- **Finding:** Glue 5.0 trae Spark 3.5.4 e Iceberg 1.7.1, pero no PyYAML (sí lo traen 4.0 y 6.0), así que todo job que lo use necesita `--additional-python-modules`. `--extra-files` se copia en el directorio de trabajo del script en el driver. `--continuous-log-logGroup` está obsoleto; los logs van a `/aws-glue/jobs/{output,error}`, que se personalizan con `--custom-logGroup-prefix`. Los roles de CI no pueden crear log groups fuera de `/aws/lambda/skyroute-*-generator` sin cambiar `bootstrap/`. Tampoco pueden crear una `aws_glue_security_configuration`: `apply_glue_actions` y la `ci-boundary` no incluyen `glue:*SecurityConfiguration` ni ARN `securityConfiguration/`. Por eso CKV_AWS_195 se omite en `aws_glue_job.this` (deuda aceptada por el owner el 2026-11-21).
+- **Provenance:** `bronze-silver/working/test.md` (filas 8.3 y 8.5); docs.aws.amazon.com/glue/latest/dg/migrating-version-50.html y aws-glue-programming-python-libraries.html (consultadas el 2026-11-21)

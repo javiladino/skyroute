@@ -13,6 +13,11 @@ output "glue_job_role_arn" {
   value       = aws_iam_role.glue_job.arn
 }
 
+output "glue_job_names" {
+  description = "Nombres de los Glue jobs de demo (se lanzan a mano)."
+  value       = sort([for job in aws_glue_job.this : job.name])
+}
+
 output "local_data_role_arn" {
   description = "ARN del rol skyroute-<env>-local-data; null si no se crea."
   value       = one(aws_iam_role.local_data[*].arn)

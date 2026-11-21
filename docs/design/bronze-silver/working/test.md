@@ -6,7 +6,7 @@ type: Test
 
 > **Fecha:** 2026-11-20 · **Base:** main (rama `infra/bronze-silver-bootstrap`) · **Plan:** docs/design/bronze-silver/working/plan.md
 
-## Verdict: IN PROGRESS (fases 1, 1b, 2, 3, 4, 5, 6 y 7 en PASS; siguiente: fase 8)
+## Verdict: IN PROGRESS (fases 1 a 7 en PASS; fase 8 verificada en local, pendiente del apply y la demo en Glue)
 
 Fase 1 (PR #24, permisos de `bootstrap/`): PASS. Los checks estáticos, la review de seguridad, el plan del owner, el tamaño de `ci-boundary` y el apply del owner están en PASS. El veredicto no es PASS hasta cerrar las fases 2 a 8.
 
@@ -106,6 +106,16 @@ Nota de revisión: adversarial-reviewer dio GO-WITH-FIXES. Los hallazgos 2 a 6 e
 | 7.3 | Revisión adversarial 1 (Opus) | plan.md Fase 7 (adversarial-reviewer) | adversarial-reviewer | NEEDS-REVISION. H1: los tardíos que cruzan medianoche se perdían y dependían del orden. M1: sesiones largas truncadas. M2: `session_key` inestable. L1 a L4. Decisiones del owner: reescritura [D-4, D] con tope de 24 h; documentar que `session_key` no es estable hasta D+4; hueco estrictamente > 30 min; HMAC sobre email normalizado. Antes del fix, U18 con el escenario de H1 fallaba | PASS |
 | 7.4 | Revisión adversarial 2 (Opus) | plan.md Fase 7 (adversarial-reviewer) | adversarial-reviewer | GO-WITH-FIXES. El fix de H1/M1 es correcto con margen exacto (tardío <= 72 h; `_ingest_date` sale de la fecha lógica: `spark/lib/technical_columns.py:33`). Aplicados: comparación de events sin `email_hmac` (rotación de clave); check de sessions contra la partición Bronze de D; fallo `sessions_chain_touches_context` en cadenas largas en el borde; test de 24 h − 1 s; poda del destino en events. `plan.md` §5, §8 y U23 alineados | PASS |
 | 7.5 | Pendiente fuera de local | plan.md Fase 7 (orquestador) | n/a | Falta boto3 para la rama SSM del HMAC (preinstalado en Glue) y la ejecución en dev en la fase 8. Si `silver.events` no existe, `sessions` falla siempre | N/A |
+
+## Fase 8: mantenimiento, demo Glue y comandos de AGENTS.md
+
+| # | Check | Source | Command | Result | Status |
+|---|-------|--------|---------|--------|--------|
+| 8.1 | Tests, lint y Terraform | plan.md Fase 8 (orquestador, Verification ownership; tflint por el executor) | `pytest generators spark -q`; `ruff check .`; `terraform fmt -check -recursive infra/terraform`; `terraform validate` en dev y prod; `tflint` en dev y prod | pytest: 126 passed. ruff: All checks passed. fmt: sin diferencias. validate dev y prod: Success. tflint dev y prod: sin hallazgos | PASS |
+| 8.2 | Cobertura | plan.md Fase 8 (executor) | `spark/tests/test_maintenance.py`, `spark/tests/test_args.py`, `spark/tests/test_silver_events.py` | U20: el mantenimiento con fecha fija no cambia el contenido. `expire_snapshots` conserva las ramas WAP con snapshot propio y rechaza un run_date futuro sin `--force`. `rewrite_data_files` rechaza `--from/--to`. Los args en Glue fallan con argumentos desconocidos o abreviados y aceptan los reservados de Glue. Cada job Silver falla antes de escribir si falta su YAML. La UDF HMAC no expone el email | PASS |
+| 8.3 | Revisiones | plan.md Fase 8 (adversarial-reviewer, security-reviewer, cost-guard) | adversarial-reviewer (Opus); security-reviewer (Opus); cost-guard (Sonnet); documentación oficial de Glue 5.0 | Adversarial: GO-WITH-FIXES (M1 `spark-tests.yml` creado por el Ruling "Plan decisions"; M2 argumentos; M3 zip con globs y `source_hash`, el apply no reutiliza plan guardado; M4 `--extra-files` va al directorio de trabajo; M5 guardia de fecha; L1, L5, L6), aplicados. Security: OK con notas (rol glue-job sin Athena, athena-results ni DeleteTable; logs acotados a `/aws-glue/jobs/*`). Cost-guard: APTO con notas (sin cobro inactivo; demo de 6 ejecuciones ≈ 0,29-0,46 USD; job colgado 0,29 USD con timeout de 30 min). Documentación oficial: Glue 5.0 = Spark 3.5.4, Iceberg 1.7.1; PyYAML no viene preinstalado, se añadió `--additional-python-modules PyYAML==6.0.4` a los 6 jobs Silver | PASS |
+| 8.4 | Plan de CI, apply y demo en Glue | plan.md Fase 8 (CI; owner, Apply gate) | Plan de CI y apply en dev y prod. Demo del owner: lanzar en orden bronze-ingest (`--source bookings` y `--source fx`), fx_daily, bookings_scd2, bookings_current y bookings_eur con el mismo run_date; comparar en Athena `SELECT count(*), sum(amount_eur)` con la ejecución local | Éxito: valores idénticos a los locales y gasto < 0,50 USD en Cost Explorer | PENDIENTE |
+| 8.5 | Deuda aceptada: logs, ramas WAP y mantenimiento | owner, 2026-11-21 | n/a | Grupo de logs propio por entorno con retención de 14 días: requiere cambiar `bootstrap/` (`ci_roles.tf` AllowWorkloadServices, `ci_apply_dev/prod.tf`, `ci_plan` ListTagsForResource) para `/aws-glue/skyroute-<env>/*`, y luego `--custom-logGroup-prefix` en los jobs. Hasta entonces los logs van a `/aws-glue/jobs/*`, compartidos y sin retención. Glue 5.0 depreca `--continuous-log-logGroup`. También: ramas WAP huérfanas sin limpieza y mantenimiento solo en local | N/A |
 
 ## Review
 
