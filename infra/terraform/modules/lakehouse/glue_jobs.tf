@@ -103,6 +103,7 @@ resource "aws_s3_object" "check_rules" {
 }
 
 resource "aws_glue_job" "this" {
+  #checkov:skip=CKV_AWS_195:S3 y CloudWatch cifran en reposo por defecto; jobs de demo lanzados a mano. La security configuration exige glue:*SecurityConfiguration en bootstrap (deuda, findings.md).
   for_each = local.glue_jobs
 
   name              = "${local.name_prefix}-${each.key}"
