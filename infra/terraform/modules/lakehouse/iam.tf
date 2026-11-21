@@ -11,31 +11,53 @@ locals {
   glue_arn_prefix = "arn:aws:glue:${local.region}:${local.account_id}"
   hmac_param_arn  = "arn:aws:ssm:${local.region}:${local.account_id}:parameter/skyroute/${var.env}/hmac-email-key"
 
-  # Rutas de datos (sin scripts/: solo lectura).
-  read_prefixes   = ["landing", "bronze", "silver", "scripts", "athena-results", "glue-temp"]
-  write_prefixes  = ["bronze", "silver", "athena-results", "glue-temp"]
-  delete_prefixes = ["bronze", "silver", "athena-results", "glue-temp"]
+  # Rutas de datos por rol (sin scripts/ en escritura: solo lectura). athena-results/ solo
+  # lo usa local-data: ningun Glue job consulta Athena.
+  s3_prefixes = {
+    glue_job = {
+      read   = ["landing", "bronze", "silver", "scripts", "glue-temp"]
+      write  = ["bronze", "silver", "glue-temp"]
+      delete = ["bronze", "silver", "glue-temp"]
+    }
+    local_data = {
+      read   = ["landing", "bronze", "silver", "scripts", "athena-results", "glue-temp"]
+      write  = ["bronze", "silver", "athena-results", "glue-temp"]
+      delete = ["bronze", "silver", "athena-results", "glue-temp"]
+    }
+  }
 
-  # Sentencias comunes a glue-job y local-data.
+  s3_data_statements = {
+    for role, p in local.s3_prefixes : role => [
+      {
+        Sid      = "DataRead"
+        Effect   = "Allow"
+        Action   = "s3:GetObject"
+        Resource = [for x in p.read : "${local.bucket_arn}/${x}/*"]
+      },
+      {
+        Sid      = "DataWrite"
+        Effect   = "Allow"
+        Action   = "s3:PutObject"
+        Resource = [for x in p.write : "${local.bucket_arn}/${x}/*"]
+      },
+      {
+        Sid      = "DataDelete"
+        Effect   = "Allow"
+        Action   = "s3:DeleteObject"
+        Resource = [for x in p.delete : "${local.bucket_arn}/${x}/*"]
+      },
+    ]
+  }
+
+  glue_catalog_resources = [
+    "${local.glue_arn_prefix}:catalog",
+    "${local.glue_arn_prefix}:database/skyroute_${var.env}_*",
+    "${local.glue_arn_prefix}:table/skyroute_${var.env}_*/*",
+  ]
+
+  # Sentencias comunes a glue-job y local-data (sin DeleteTable ni Athena: ver
+  # local_data_only_statements).
   common_statements = [
-    {
-      Sid      = "DataRead"
-      Effect   = "Allow"
-      Action   = "s3:GetObject"
-      Resource = [for p in local.read_prefixes : "${local.bucket_arn}/${p}/*"]
-    },
-    {
-      Sid      = "DataWrite"
-      Effect   = "Allow"
-      Action   = "s3:PutObject"
-      Resource = [for p in local.write_prefixes : "${local.bucket_arn}/${p}/*"]
-    },
-    {
-      Sid      = "DataDelete"
-      Effect   = "Allow"
-      Action   = "s3:DeleteObject"
-      Resource = [for p in local.delete_prefixes : "${local.bucket_arn}/${p}/*"]
-    },
     {
       # Riesgo aceptado: ListBucket sin condicion s3:prefix. Solo lista las
       # claves del bucket de su propio entorno y Spark/Iceberg necesitan listar.
@@ -58,25 +80,8 @@ locals {
         "glue:GetPartitions",
         "glue:CreateTable",
         "glue:UpdateTable",
-        "glue:DeleteTable",
       ]
-      Resource = [
-        "${local.glue_arn_prefix}:catalog",
-        "${local.glue_arn_prefix}:database/skyroute_${var.env}_*",
-        "${local.glue_arn_prefix}:table/skyroute_${var.env}_*/*",
-      ]
-    },
-    {
-      Sid    = "AthenaWorkgroup"
-      Effect = "Allow"
-      Action = [
-        "athena:StartQueryExecution",
-        "athena:StopQueryExecution",
-        "athena:GetQueryExecution",
-        "athena:GetQueryResults",
-        "athena:GetWorkGroup",
-      ]
-      Resource = aws_athena_workgroup.this.arn
+      Resource = local.glue_catalog_resources
     },
     {
       Sid      = "HmacParameter"
@@ -99,10 +104,34 @@ locals {
       }
     },
   ]
+
+  # Solo local-data: Spark local puede reconstruir tablas (DeleteTable) y consultar con
+  # Athena. Ni los Glue jobs ni el mantenimiento borran tablas ni usan Athena.
+  local_data_only_statements = [
+    {
+      Sid      = "GlueCatalogDeleteTable"
+      Effect   = "Allow"
+      Action   = "glue:DeleteTable"
+      Resource = local.glue_catalog_resources
+    },
+    {
+      Sid    = "AthenaWorkgroup"
+      Effect = "Allow"
+      Action = [
+        "athena:StartQueryExecution",
+        "athena:StopQueryExecution",
+        "athena:GetQueryExecution",
+        "athena:GetQueryResults",
+        "athena:GetWorkGroup",
+      ]
+      Resource = aws_athena_workgroup.this.arn
+    },
+  ]
 }
 
-# Rol que asume Glue para los jobs de demo (Fase 8). Los logs usan los log
-# groups por defecto /aws-glue/*, que la boundary ya permite.
+# Rol que asume Glue para los jobs de demo (Fase 8). Los logs de Glue 5.0 van a los log
+# groups por defecto /aws-glue/jobs/error y /aws-glue/jobs/output (doc "Logging behavior
+# changes in AWS Glue 5.0"), que la boundary ya permite con /aws-glue/*.
 resource "aws_iam_role" "glue_job" {
   name                 = "${local.name_prefix}-glue-job"
   path                 = "/workload/"
@@ -135,14 +164,15 @@ resource "aws_iam_role_policy" "glue_job" {
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = concat(local.common_statements, [
+    Statement = concat(local.s3_data_statements["glue_job"], local.common_statements, [
       {
+        # Acotado a /aws-glue/jobs/* (antes /aws-glue/*): los log groups de Glue 5.0.
         Sid    = "GlueJobLogs"
         Effect = "Allow"
         Action = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
         Resource = [
-          "arn:aws:logs:${local.region}:${local.account_id}:log-group:/aws-glue/*",
-          "arn:aws:logs:${local.region}:${local.account_id}:log-group:/aws-glue/*:*",
+          "arn:aws:logs:${local.region}:${local.account_id}:log-group:/aws-glue/jobs/*",
+          "arn:aws:logs:${local.region}:${local.account_id}:log-group:/aws-glue/jobs/*:*",
         ]
       },
     ])
@@ -189,13 +219,18 @@ resource "aws_iam_role_policy" "local_data" {
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = concat(local.common_statements, [
-      {
-        Sid      = "LandingWrite"
-        Effect   = "Allow"
-        Action   = "s3:PutObject"
-        Resource = "${local.bucket_arn}/landing/*"
-      },
-    ])
+    Statement = concat(
+      local.s3_data_statements["local_data"],
+      local.common_statements,
+      local.local_data_only_statements,
+      [
+        {
+          Sid      = "LandingWrite"
+          Effect   = "Allow"
+          Action   = "s3:PutObject"
+          Resource = "${local.bucket_arn}/landing/*"
+        },
+      ],
+    )
   })
 }

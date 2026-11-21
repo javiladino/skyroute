@@ -36,7 +36,7 @@ from pathlib import Path
 
 from jobs.silver.bookings_scd2 import DEFAULT_CHECKS_DIR, TS_FORMAT, amount_decimal
 from lib.args import parse_args
-from lib.checks import Failure
+from lib.checks import Failure, require_rules_file
 from lib.session import build_spark
 from lib.wap import WapCheckError, branch_name, run_wap
 from pyspark.sql import SparkSession
@@ -101,13 +101,27 @@ def resolve_hmac_key(parameter_name: str, region: str, environ=None, ssm_client=
 def hmac_column(key: bytes, column: str):
     """HMAC-SHA256 hexadecimal de `lower(trim(column))`; nulo si falta o queda vacio."""
 
-    def _hmac(email):
-        normalized = email.strip().lower() if email else ""
-        if not normalized:
-            return None
-        return hmac.new(key, normalized.encode("utf-8"), hashlib.sha256).hexdigest()
+    return F.udf(make_hmac_fn(key), StringType())(F.col(column))
 
-    return F.udf(_hmac, StringType())(F.col(column))
+
+def make_hmac_fn(key: bytes):
+    """Funcion email -> HMAC hexadecimal de `lower(trim(email))`; nulo si falta o queda vacio.
+
+    Es una clausura (Spark la serializa por valor: los workers no importan este modulo). Si
+    falla, el error no incluye el email ni encadena la excepcion original: las trazas de Spark
+    y los logs de Glue no deben contener datos personales.
+    """
+
+    def _hmac(email):
+        try:
+            normalized = email.strip().lower() if email else ""
+            if not normalized:
+                return None
+            return hmac.new(key, normalized.encode("utf-8"), hashlib.sha256).hexdigest()
+        except Exception:
+            raise ValueError("no se pudo calcular el HMAC de un email (valor omitido)") from None
+
+    return _hmac
 
 
 def typed_events(bronze, run_date: str, key: bytes):
@@ -213,6 +227,7 @@ def run(spark: SparkSession, args, key: bytes) -> dict:
 def main(argv=None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
     args = parse_args(argv, description=__doc__.splitlines()[0], extra=_extra_args)
+    require_rules_file(args.checks_dir / "events.yaml")
     parameter = args.hmac_ssm_parameter or f"/skyroute/{args.env}/hmac-email-key"
     key = resolve_hmac_key(parameter, args.region)
     spark = build_spark(args)

@@ -95,11 +95,12 @@ Todo trabajo de diseño o código no trivial sigue las cinco etapas, cada una co
 
 ## Comandos de build y test
 
-Todavía no hay código. Rellena estos comandos cuando exista cada componente:
+Ejecuta Python desde el venv de Python 3.11 (`.venv/`, con `requirements-dev.txt` y `spark/requirements.txt`). Rellena los `TODO` cuando exista cada componente:
 
 ```bash
-# TODO: lint Python        (ruff …)
-# TODO: tests Spark        (pytest spark/tests)
+.venv/bin/python -m ruff check spark generators
+.venv/bin/python -m pytest generators/tests -q
+.venv/bin/python -m pytest spark/tests -q
 # TODO: dbt                (dbt build …)
 terraform fmt -check -recursive infra/terraform
 # validate: antes, terraform -chdir=infra/terraform/<root-module> init -backend=false
