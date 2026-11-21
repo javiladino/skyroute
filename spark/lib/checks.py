@@ -6,6 +6,7 @@ Formato de las reglas:
       - {type: min_rows, value: 1}
       - {type: not_null, column: booking_id}
       - {type: unique, columns: [booking_id, history_id]}
+      - {type: unique, columns: [booking_id], where: "is_current"}   # `where` es opcional
       - {type: accepted_values, column: status, values: [confirmed, cancelled]}
       - {type: expression, name: valid_range, sql: "valid_to IS NULL OR valid_to >= valid_from"}
 
@@ -47,9 +48,12 @@ def _check(df: DataFrame, rule: dict) -> Failure | None:
             return Failure(f"not_null:{column}", f"{bad} filas con {column} nulo", bad)
     elif kind == "unique":
         columns = rule["columns"]
-        bad = df.groupBy(*columns).count().filter(F.col("count") > 1).count()
+        where = rule.get("where")
+        scope = df.filter(F.expr(where)) if where else df
+        bad = scope.groupBy(*columns).count().filter(F.col("count") > 1).count()
         if bad:
-            return Failure(f"unique:{','.join(columns)}", f"{bad} claves repetidas", bad)
+            label = f"unique:{','.join(columns)}" + (f"[{where}]" if where else "")
+            return Failure(label, f"{bad} claves repetidas", bad)
     elif kind == "accepted_values":
         column = rule["column"]
         bad = df.filter(~F.col(column).isin(*rule["values"]) | F.col(column).isNull()).count()

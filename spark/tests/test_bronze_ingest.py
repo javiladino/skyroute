@@ -398,3 +398,13 @@ checks:
         "unique:id",
     ]
     assert run_checks(frame, "checks:\n  - {type: min_rows, value: 3}\n") == []
+
+
+def test_unique_with_where_only_counts_rows_in_scope(lake):
+    frame = lake.spark.createDataFrame(
+        [("a", True), ("a", False), ("b", True), ("b", True)], "k string, cur boolean"
+    )
+    rule = "checks:\n  - {type: unique, columns: [k], where: cur}\n"
+    failures = run_checks(frame, rule)
+    assert [(f.rule, f.count) for f in failures] == [("unique:k[cur]", 1)]
+    assert run_checks(frame.filter("k = 'a'"), rule) == []

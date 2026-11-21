@@ -1,0 +1,13 @@
+# Checks WAP de silver.bookings_scd2 (motor: spark/lib/checks.py). Se evaluan sobre la rama run_<D>.
+checks:
+  - {type: not_null, column: booking_id}
+  - {type: not_null, column: history_id}
+  - {type: not_null, column: valid_from}
+  - {type: not_null, column: is_current}
+  - {type: not_null, column: row_hash}
+  - {type: not_null, column: amount}
+  - {type: unique, columns: [booking_id, history_id]}
+  - {type: unique, columns: [booking_id], where: "is_current"}
+  - {type: accepted_values, column: status, values: [pending, confirmed, cancelled]}
+  - {type: expression, name: valid_range, sql: "valid_to IS NULL OR valid_to >= valid_from"}
+  - {type: expression, name: current_is_open, sql: "is_current = (valid_to IS NULL)"}
