@@ -240,3 +240,7 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 ### bronze-silver — Fase 3 (generador) verificada
 - Generador con sesiones por cliente y reservas con varias versiones, trigger `bookings_history`, export diario idéntico byte a byte y FX del BCE (un archivo por día natural, enmienda del Ruling Plan decisions). `ruff.toml` en la raíz. 52 tests en verde y G3 comprobado contra Postgres.
 - PR #28 aplicada en dev y prod. La Lambda de prod también pasó al generador nuevo, en contra de lo previsto; el owner lo aceptó y el Ruling Plan decisions quedó enmendado.
+
+### bronze-silver — Fase 4 (Bronze genérico e histórico en dev)
+- Ingesta Bronze en Spark con Iceberg y Glue: esquema explícito por fuente y rangos `--from/--to` con un commit por día (PR #30). Runbook del gate Histórico (PR #31).
+- El owner ejecutó el runbook. Bronze de dev tiene 182 días de clickstream, bookings y fx (Athena). R=2026-11-21. Clickstream se reanudó una vez por la sesión MFA de 1 h. La espera del paso 7 del runbook tenía una carrera y se corrigió.

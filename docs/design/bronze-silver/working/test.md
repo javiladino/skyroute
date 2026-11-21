@@ -6,7 +6,7 @@ type: Test
 
 > **Fecha:** 2026-11-20 · **Base:** main (rama `infra/bronze-silver-bootstrap`) · **Plan:** docs/design/bronze-silver/working/plan.md
 
-## Verdict: IN PROGRESS (fases 1, 1b, 2 y 3 en PASS; siguiente: fase 4)
+## Verdict: IN PROGRESS (fases 1, 1b, 2, 3 y 4 en PASS; siguiente: fase 5)
 
 Fase 1 (PR #24, permisos de `bootstrap/`): PASS. Los checks estáticos, la review de seguridad, el plan del owner, el tamaño de `ci-boundary` y el apply del owner están en PASS. El veredicto no es PASS hasta cerrar las fases 2 a 8.
 
@@ -67,6 +67,17 @@ Gate: `aws sts get-caller-identity --profile skyroute-dev-local-data` con `skyro
 | 3.6 | Export real byte a byte (a vs b, y vs simulación) | plan.md Fase 3 (executor, 2026-11-21) | `make export-bookings RUN_DATE=2026-05-02 OUT_DIR=build/a` (y `build/b`), `cmp`; `build/sim_export.py` y `cmp` con `build/a` | Ejecutado por el owner con `PGPASSWORD` desde su `.env` (Verification ownership: salida aportada por el owner, 2026-11-21). `make export-bookings RUN_DATE=2026-05-02` con OUT_DIR=build/a y build/b: "part.json.gz (188 filas)" en ambas. `cmp` a vs b: IGUALES. `build/sim_export.py` (simulación con `replay_history`): 188 filas. `cmp` a vs `build/sim/part.json.gz`: IGUALES_SIM | PASS |
 
 Nota de revisión: adversarial-reviewer dio GO-WITH-FIXES. Los hallazgos 2 a 6 están aplicados: FX exige publicación de D o publicación posterior; `ruff.toml`; docs de recorridos fuera de slot y de REBUILD; Makefile con `$(PY)`; test de `normalize`.
+
+## Fase 4: regeneración del histórico en dev y Bronze genérico
+
+| # | Check | Source | Command | Result | Status |
+|---|-------|--------|---------|--------|--------|
+| 4.1 | Tests y lint locales | plan.md Fase 4 (orquestador, antes de la PR #30) | `pytest spark/tests`; `pytest generators/tests`; `ruff check .` | Spark: 19 passed (el conftest fija PYSPARK_PYTHON y TZ=UTC). Generadores: 52 passed. `ruff check .` limpio | PASS |
+| 4.2 | Revisión adversarial del diff de fase 4 | plan.md Fase 4 (adversarial-reviewer) | adversarial-reviewer | GO-WITH-FIXES. H1: inferencia de esquema sustituida por esquema explícito StructType por fuente con FAILFAST (decisión del owner). H2: sesión MFA de 1 h, por lo que `--from/--to` va en una SparkSession, con un commit por día y reanudación. M1 a M3 y L1 a L3 aplicados. Fusionado en la PR #30; runbook en la PR #31 | PASS |
+| 4.3 | Gate Histórico (pasos 1 a 5 del runbook) | owner (Verification ownership), `docs/runbooks/bronze-silver-historico-dev.md` | Pasos 1 a 5 del runbook | R=2026-11-21, rango 2026-05-23..2026-11-20 (182 días); vence R+30 = 2026-12-21. Paso 2: 182 `ok` de la Lambda, Timeout 60 s, 96 objetos en el día S. Paso 3: seed REBUILD sin error. Paso 4: 182 exports de bookings y "182 archivos en build" de FX; ambos `wc -l` = 182. Paso 5: sync a landing con 182 bookings y 182 fx | PASS |
+| 4.4 | Ingesta Bronze (paso 6) | owner (Verification ownership) | `python -m jobs.bronze.ingest --source <src> --from $S --to $E ...` por fuente | Clickstream se cortó en 2026-08-14 por `ExpiredToken` de Glue (sesión de 1 h; última fecha OK 2026-08-13; el commit de ese día no se escribió). Se reanudó con `--from 2026-08-14` tras un nuevo `export-credentials`, exit 0. Bookings y fx: exit 0. fx: 29 filas por día en los 182 días | PASS |
+| 4.5 | Verificación en Athena (paso 7) | owner (Verification ownership) | `SELECT count(DISTINCT _ingest_date) FROM skyroute_dev_bronze.<t>` | clickstream 182, bookings 182, fx 182 (fx SUCCEEDED 182 con la espera corregida; el primer intento leyó resultados con la consulta aún RUNNING por el bug del bucle, ver 4.6) | PASS |
+| 4.6 | Defecto del runbook, paso 7 | orquestador | Edición de `docs/runbooks/bronze-silver-historico-dev.md` | La espera evaluaba el estado dos veces y podía salir con QUEUED a RUNNING. Sustituida por una lectura por iteración (`while :; do s=$(...); case $s in QUEUED\|RUNNING) sleep 3;; *) break;; esac; done`); el echo muestra el estado | PASS |
 
 ## Review
 

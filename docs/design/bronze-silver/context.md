@@ -43,6 +43,8 @@ Fase 3 — Bronze y Silver con Spark + Iceberg (README § Fases): "Jobs PySpark 
 
 ## Journal (newest first)
 
+**2026-11-21 (Implement, fase 4):** executor (Sonnet) implementó el Bronze genérico en Spark/Iceberg (19 tests). adversarial-reviewer (Opus) dio GO-WITH-FIXES; el owner eligió esquema explícito, y los rangos `--from/--to` cubren la sesión MFA de 1 h. PRs #30 (código) y #31 (runbook). El owner ejecutó el runbook en dev: R=2026-11-21, rango 2026-05-23..2026-11-20, gate vence 2026-12-21. Clickstream se reanudó una vez por `ExpiredToken`. Athena: clickstream, bookings y fx con 182 días cada una. La espera del paso 7 del runbook tenía una carrera y se corrigió. Siguiente: fase 5.
+
 **2026-11-21 (Implement, fase 3):** executor (Sonnet) implementó el generador (sesiones, versiones de reserva, trigger `bookings_history`, export, FX del BCE). El owner aprobó guardar FX también en fin de semana (enmienda del Ruling Plan decisions) y fijar `ruff.toml`. adversarial-reviewer (Opus) dio GO-WITH-FIXES; executor aplicó los hallazgos 2–6 (FX exige publicación de D o una posterior). Verificación: 52 passed y ruff limpio (re-ejecutados por el orquestador); G3 contra Postgres con md5 idéntico en dos rebuilds (578 filas); export real idéntico byte a byte, ejecutado por el owner. PR #28 fusionada y aplicada en dev y prod; la Lambda de prod también pasó al generador nuevo, y el owner lo aceptó (enmienda del Ruling Plan decisions). Siguiente: fase 4.
 
 **2026-11-21 (Implement, fase 2):** executor (Sonnet) implementó el módulo `lakehouse`; security-reviewer encontró el refresh de SSM con WithDecryption (resuelto con la enmienda 1b, PR #25) y cost-guard dio APTO. PR #26 fusionada y aplicada en dev y prod (plan: dev 9 add / 2 change, prod 7 add / 2 change, 0 destroy; el segundo change añade `BUCKET_NAME` a la Lambda). Gate de MFA en PASS: `skyroute-dev-local-data` se asume desde `aws login` con MFA. Siguiente: fase 3.
@@ -55,9 +57,8 @@ Fase 3 — Bronze y Silver con Spark + Iceberg (README § Fases): "Jobs PySpark 
 
 **2026-11-20 (grill-me):** El owner aprobó el gate del Research y el grill-me resolvió 13 preguntas, recogidas en el Ruling Research decisions. Siguiente: Propose (stage-author Opus en `working/proposal.md`), con aws-researcher para confirmar MFA con `aws login` y el precio de Glue Flex en eu-west-3.
 
-**2026-11-19 (Research):** stage-author (Opus) escribió `working/research.md`. Revisión en paralelo: adversarial-reviewer (Opus, GO-WITH-FIXES, 14 hallazgos), security-reviewer (Opus, 7) y cost-guard (Sonnet, 7). executor (Sonnet) ejecutó los checks locales: `.env.example` existe y está versionado (el hallazgo contrario de security era erróneo, lo confirmó el orquestador); pytest no está instalado. Un stage-author (Opus) aplicó los hallazgos: 14 tensiones (T1-T14) y una sección "No comprobado" con los checks de AWS, que son del owner. Siguiente: gate del owner y grill-me antes de Propose.
-
-**2026-11-14:** Topic abierto (scaffold) y Research lanzado con `session-orchestration` (Opus para el documento consolidado y los revisores profundos, Sonnet para notas de área, cost-guard y executor).
+- 2026-11-19: Research escrito y revisado (adversarial, security, cost-guard); 14 tensiones T1-T14 en `working/research.md`.
+- 2026-11-14: topic abierto y Research lanzado con `session-orchestration`.
 
 ## Document map
 
@@ -65,7 +66,7 @@ Rutas relativas a esta carpeta.
 
 | File | Role | Load | What it holds |
 |------|------|------|---------------|
-| `working/test.md` | draft | on-demand | Test de la Fase 3, por fases; fases 1, 1b, 2 y 3 en PASS (generador verificado contra Postgres, 2026-11-21) |
+| `working/test.md` | draft | on-demand | Test de la Fase 3, por fases; fases 1, 1b, 2, 3 y 4 en PASS (Bronze histórico de 182 días en dev, 2026-11-21) |
 | `working/plan.md` | draft | on-demand | Plan de la Fase 3 (Proposal 2): 8 PRs, gates del owner, tests de idempotencia U1–U23 |
 | `working/proposal.md` | draft | on-demand | Propose de la Fase 3: 3 propuestas revisadas; Decision: Proposal 2 |
 | `working/research.md` | draft | on-demand | Research de la Fase 3: lo que existe hoy para Bronze y Silver (C1–C6, T1–T14, revisado y corregido) |
