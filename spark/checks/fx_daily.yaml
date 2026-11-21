@@ -1,0 +1,11 @@
+# Checks WAP de silver.fx_daily (motor: spark/lib/checks.py). Se evaluan sobre la rama run_<D>.
+# "Sin tipo para D" lo detecta el job antes de escribir (fallo fx_rate_available, no se publica).
+checks:
+  - {type: min_rows, value: 1}
+  - {type: not_null, column: fx_date}
+  - {type: not_null, column: currency}
+  - {type: not_null, column: rate_per_eur}
+  - {type: not_null, column: source_date}
+  - {type: unique, columns: [fx_date, currency]}
+  - {type: expression, name: positive_rate, sql: "rate_per_eur > 0"}
+  - {type: expression, name: source_not_after_date, sql: "source_date <= fx_date"}
