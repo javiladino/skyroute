@@ -1,8 +1,12 @@
 """Argumentos comunes de los jobs: iguales en local y en Glue (Ruling "Dónde corre Spark")."""
 
 import argparse
+import logging
+import sys
 from datetime import date, timedelta
 
+LOG = logging.getLogger("lib.args")
+GLUE_MARKER = "--JOB_NAME"  # Glue siempre lo añade; solo entonces se toleran argumentos ajenos
 DEFAULT_REGION = "eu-west-3"
 DEFAULT_PACKAGES = ",".join(
     [
@@ -11,6 +15,59 @@ DEFAULT_PACKAGES = ",".join(
         "org.apache.hadoop:hadoop-aws:3.3.4",
     ]
 )
+
+
+# Argumentos que Glue pasa al script y que los jobs no usan. Fuente: "Using job parameters in
+# AWS Glue jobs" (docs.aws.amazon.com/glue/latest/dg/aws-glue-programming-etl-glue-arguments.html,
+# comprobada el 2026-11-21) y "Logging behavior changes in AWS Glue 5.0"
+# (.../migrating-version-50.html). --JOB_ID y --JOB_RUN_ID los anade Glue al lanzar el run
+# (no figuran en esa pagina). Cualquier otro "--nombre" ignorado es un error, p. ej. un typo
+# como --session-gap-minute que correria con el valor por defecto.
+GLUE_RESERVED = frozenset(
+    {
+        "--JOB_NAME",
+        "--JOB_ID",
+        "--JOB_RUN_ID",
+        "--TempDir",
+        "--scriptLocation",
+        "--job-bookmark-option",
+        "--job-bookmark-from",
+        "--job-bookmark-to",
+        "--job-language",
+        "--class",
+        "--conf",
+        "--datalake-formats",
+        "--extra-files",
+        "--extra-jars",
+        "--extra-py-files",
+        "--additional-python-modules",
+        "--python-modules-installer-option",
+        "--python-virtual-env",
+        "--user-jars-first",
+        "--executor-cores",
+        "--disable-proxy-v2",
+        "--spark-event-logs-path",
+        "--system-logs-kms-key-arn",
+        "--customer-driver-env-vars",
+        "--customer-executor-env-vars",
+        "--encryption-type",
+        "--debug",
+        "--mode",
+        "--endpoint",
+    }
+)
+GLUE_RESERVED_PREFIXES = ("--enable-", "--continuous-log-", "--custom-log")
+
+
+def _unexpected_glue_args(ignored: list[str]) -> list[str]:
+    """Opciones `--x` ignoradas que Glue no reserva (los valores sueltos no se comprueban)."""
+    return [
+        token
+        for token in ignored
+        if token.startswith("--")
+        and token.split("=", 1)[0] not in GLUE_RESERVED
+        and not token.startswith(GLUE_RESERVED_PREFIXES)
+    ]
 
 
 def run_date_type(value: str) -> str:
@@ -53,11 +110,21 @@ def add_common_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
 
 def parse_args(argv=None, description: str = "", extra=None) -> argparse.Namespace:
     """`extra(parser)` añade los argumentos propios del job."""
-    parser = argparse.ArgumentParser(description=description)
+    # allow_abbrev=False: un prefijo (--session-gap) no puede asignar otra opcion en silencio.
+    parser = argparse.ArgumentParser(description=description, allow_abbrev=False)
     add_common_args(parser)
     if extra is not None:
         extra(parser)
-    args = parser.parse_args(argv)
+    argv = sys.argv[1:] if argv is None else list(argv)
+    if GLUE_MARKER in argv:
+        # Glue pasa sus propios argumentos (--TempDir, --extra-py-files, ...) al script.
+        args, ignored = parser.parse_known_args(argv)
+        unexpected = _unexpected_glue_args(ignored)
+        if unexpected:
+            parser.error(f"argumentos desconocidos que Glue no reserva: {unexpected}")
+        LOG.info("argumentos de Glue ignorados: %s", ignored)
+    else:
+        args = parser.parse_args(argv)
     if args.run_date and (args.date_from or args.date_to):
         parser.error("usa --run-date o --from/--to, no ambos")
     if args.run_date:

@@ -192,3 +192,18 @@ def test_hmac_key_comes_from_env_then_ssm_and_never_from_argv():
 class FakeSsmEmpty:
     def get_parameter(self, **kwargs):
         return {"Parameter": {"Value": ""}}
+
+
+def test_hmac_failure_does_not_leak_the_email():
+    email = "ana.lopez@example.com"
+    with pytest.raises(ValueError) as caught:
+        silver_events.make_hmac_fn(None)(email)  # clave invalida: hmac.new lanza TypeError
+    assert email not in str(caught.value)
+    assert caught.value.__cause__ is None and caught.value.__suppress_context__
+    assert silver_events.make_hmac_fn(b"k")("  ") is None
+
+
+def test_missing_checks_file_fails_before_writing(lake, tmp_path):
+    with pytest.raises(FileNotFoundError, match="events.yaml"):
+        silver_events.main(silver_argv(lake, day(1), tmp_path))
+    assert not lake.spark.catalog.tableExists(f"{lake.catalog}.{SILVER}.events")

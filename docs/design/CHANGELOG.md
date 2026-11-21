@@ -253,3 +253,6 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 
 ### bronze-silver — Fase 7 (Silver clickstream)
 - `events` (deduplicado, email → HMAC sobre `lower(trim(email))`) y `sessions` (hueco > 30 min, tope de 24 h, reescritura de [D-4, D]), escritos con WAP. Dos revisiones adversariales: la primera NEEDS-REVISION por los tardíos que cruzaban medianoche; las decisiones del owner están en plan.md §5 y §8. 110 tests en verde.
+
+### bronze-silver — Fase 8 (mantenimiento y Glue), verificada en local
+- `expire_snapshots` y `rewrite_data_files`; 7 jobs Glue 5 Flex en el módulo `lakehouse` con scripts, zip y YAML en `scripts/`; `spark-tests.yml` en CI; comandos de AGENTS.md. Revisiones: adversarial, security y cost-guard, todas con notas, ya aplicadas. Glue 5.0 no trae PyYAML y se añadió como módulo. Deuda aceptada: un log group de Glue por entorno (necesita `bootstrap/`). 126 tests en verde. Faltan el apply y la demo.

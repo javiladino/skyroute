@@ -28,6 +28,18 @@ class Failure:
     count: int
 
 
+def require_rules_file(path: Path) -> Path:
+    """Falla al arrancar si falta el YAML de reglas, antes de escribir nada.
+
+    En Glue, `--extra-files` copia el YAML al directorio de trabajo del script en el driver
+    ("working directory of your script on the driver node", doc de job parameters) y
+    `--checks-dir .` lo busca ahi; si la copia no ocurrio, el job falla aqui y no a mitad de WAP.
+    """
+    if not path.is_file():
+        raise FileNotFoundError(f"no existe el archivo de checks {path} (cwd: {Path.cwd()})")
+    return path
+
+
 def load_rules(rules_yaml) -> list[dict]:
     """`rules_yaml` es un Path a un archivo YAML o el texto YAML."""
     text = rules_yaml.read_text() if isinstance(rules_yaml, Path) else rules_yaml

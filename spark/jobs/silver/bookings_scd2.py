@@ -27,6 +27,7 @@ import sys
 from pathlib import Path
 
 from lib.args import parse_args
+from lib.checks import require_rules_file
 from lib.session import build_spark
 from lib.wap import run_wap
 from pyspark.sql import SparkSession, Window
@@ -223,6 +224,7 @@ def run(spark: SparkSession, args) -> dict:
 def main(argv=None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
     args = parse_args(argv, description=__doc__.splitlines()[0], extra=_extra_args)
+    require_rules_file(args.checks_dir / "bookings_scd2.yaml")
     spark = build_spark(args)
     last_ok = None
     for day in args.dates:
