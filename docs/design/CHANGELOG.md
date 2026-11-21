@@ -239,3 +239,4 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 
 ### bronze-silver — Fase 3 (generador) verificada
 - Generador con sesiones por cliente y reservas con varias versiones, trigger `bookings_history`, export diario idéntico byte a byte y FX del BCE (un archivo por día natural, enmienda del Ruling Plan decisions). `ruff.toml` en la raíz. 52 tests en verde y G3 comprobado contra Postgres.
+- PR #28 aplicada en dev y prod. La Lambda de prod también pasó al generador nuevo, en contra de lo previsto; el owner lo aceptó y el Ruling Plan decisions quedó enmendado.
