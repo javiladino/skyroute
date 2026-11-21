@@ -6,7 +6,7 @@ type: Test
 
 > **Fecha:** 2026-11-20 · **Base:** main (rama `infra/bronze-silver-bootstrap`) · **Plan:** docs/design/bronze-silver/working/plan.md
 
-## Verdict: IN PROGRESS (fase 1 y enmienda 1b en PASS; fase 2 en curso)
+## Verdict: IN PROGRESS (fases 1, 1b y 2 en PASS; siguiente: fase 3)
 
 Fase 1 (PR #24, permisos de `bootstrap/`): PASS. Los checks estáticos, la review de seguridad, el plan del owner, el tamaño de `ci-boundary` y el apply del owner están en PASS. El veredicto no es PASS hasta cerrar las fases 2 a 8.
 
@@ -51,7 +51,9 @@ Gate: `aws sts get-caller-identity --profile skyroute-dev-local-data` con `skyro
 
 | # | Check | Source | Command | Result | Status |
 |---|-------|--------|---------|--------|--------|
-| 2.1 | MFA con `aws login` | plan.md Fase 2 (owner) | `aws sts get-caller-identity --profile skyroute-dev-local-data` | (sin ejecutar) | PENDING |
+| 2.x | CI plan de la PR #26 | plan.md Fase 2 (CI) | run 44809403791 (terraform-plan) | dev: "Plan: 9 to add, 2 to change, 0 to destroy". prod: "Plan: 7 to add, 2 to change, 0 to destroy", sin `skyroute-prod-local-data`. El refresh de `aws_ssm_parameter` no dio AccessDenied (enmienda de la PR #25 verificada). Los 2 change: el lifecycle del bucket (reglas athena-results 7 d y glue-temp 1 d, abort-multipart reordenada) y `aws_lambda_function.generator`, que añade la variable de entorno `BUCKET_NAME` (no estaba en el checklist; update in-place, sin impacto) | PASS |
+| 2.y | Apply en main | plan.md Fase 2 (CI) | run 44809535857 (terraform-apply, merge de la PR #26) | success en dev y prod | PASS |
+| 2.z | Gate de MFA con `aws login` | plan.md Fase 2 (owner) | `aws sts get-caller-identity --profile skyroute-dev-local-data` (source_profile `skyroute-dev-login` de `aws login`, mfa_serial `arn:aws:iam::437266392155:mfa/skyroute`) | Pidió el código MFA y devolvió Arn `arn:aws:sts::437266392155:assumed-role/skyroute-dev-local-data/botocore-session-1795254817` (owner, 2026-11-21). Confirma que el trust con MFA funciona con `aws login`, sin fallback | PASS |
 
 ## Review
 
