@@ -1,0 +1,13 @@
+# Checks WAP de silver.sessions (motor: spark/lib/checks.py). Se evaluan sobre la rama run_<D>.
+checks:
+  - {type: not_null, column: session_key}
+  - {type: not_null, column: customer_id}
+  - {type: not_null, column: session_start}
+  - {type: not_null, column: session_end}
+  - {type: not_null, column: session_start_date}
+  - {type: not_null, column: n_events}
+  - {type: unique, columns: [session_key]}
+  - {type: expression, name: positive_events, sql: "n_events >= 1"}
+  - {type: expression, name: valid_range, sql: "session_end >= session_start"}
+  - {type: expression, name: start_date_matches, sql: "session_start_date = to_date(session_start)"}
+  - {type: expression, name: converted_has_booking, sql: "NOT converted OR booking_id IS NOT NULL"}

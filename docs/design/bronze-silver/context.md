@@ -43,6 +43,8 @@ Fase 3 — Bronze y Silver con Spark + Iceberg (README § Fases): "Jobs PySpark 
 
 ## Journal (newest first)
 
+**2026-11-21 (Implement, fase 7):** executor (Sonnet) implementó el Silver de clickstream (`events` con HMAC, `sessions`). Revisión 1 (Opus): NEEDS-REVISION, porque los tardíos que cruzaban medianoche se perdían (H1). El owner decidió reescribir [D-4, D] con tope de 24 h, que un hueco > 30 min parte la sesión, que el HMAC va sobre el email normalizado y que session_key no es estable hasta D+4. Revisión 2 (Opus): GO-WITH-FIXES, aplicados (comparación sin email_hmac, check contra Bronze, fallo en cadenas largas en el borde). stage-author alineó §5, §8 y U23 de plan.md. Verificación del orquestador: 110 passed, ruff limpio. Siguiente: fase 8.
+
 **2026-11-21 (Implement, fase 6):** executor (Sonnet) implementó el Silver FX (`fx_daily`, `bookings_eur`, U10-U12). adversarial-reviewer (Opus) dio GO-WITH-FIXES. El owner renombró el tipo a `rate_per_eur` (cotización BCE) y fijó que Silver no arrastra el fin de semana, porque lo hace el generador. executor aplicó M1, M2 y M4 y L1 a L4, y renombró el test a `test_silver_fx.py`. stage-author ajustó el §6 de plan.md. Verificación del orquestador: 92 passed (generators + spark) y ruff limpio. Pendiente: el rango de FX debe cubrir todo el rango de created_at. Siguiente: fase 7.
 
 **2026-11-21 (Implement, fase 5):** executor (Sonnet) implementó el Silver de Reservas (`bookings_scd2`, `bookings_current`, checks YAML, U5-U9 y U21). adversarial-reviewer (Opus) dio GO-WITH-FIXES (M1-M4, L1-L5). executor aplicó M1-M4, L1, L2 y L5; M2 se resolvió con una precondición, porque el export garantiza `changed_at` dentro de D. El owner fijó `amount` en decimal(12,2) y excluyó `.claude/` de ruff. Verificación del orquestador: 32 passed, ruff limpio. L3 y L4 pasan a la fase 8. Siguiente: fase 6.
@@ -55,8 +57,7 @@ Fase 3 — Bronze y Silver con Spark + Iceberg (README § Fases): "Jobs PySpark 
 
 **2026-11-20 (Implement, fase 1):** executor (Sonnet) implementó la PR de bootstrap; el orquestador re-ejecutó `validate` (Success). En la primera revisión, security-reviewer (Opus) encontró un H1 High: las bases Glue compartidas dejaban a dev tocar prod. El owner eligió bases por entorno, con la Convention Medallion layers enmendada. executor aplicó H1–H6 y la segunda revisión dio OK para re-aplicar, con dos notas Low aceptadas (N1, N2). Tamaño estimado de ci-boundary: ~5.890 caracteres. Siguiente: el owner ejecuta plan, `policy_size.py` y apply de bootstrap.
 
-**2026-11-20 (Plan):** stage-author (Opus) escribió `working/plan.md` (8 fases). El owner confirmó Glue Flex en eu-west-3 a 0,29 USD/DPU-h y aceptó las 9 recomendaciones (Ruling Plan decisions). adversarial-reviewer (Opus) dio NEEDS-REVISION con 11 hallazgos; para los scripts el owner eligió `aws_s3_object` con `scripts/*` exento del Deny. executor (Sonnet) comprobó en local: validate de bootstrap correcto, pytest no instalado y ci-boundary en unos 5.535 de 6.144 caracteres. Un stage-author aplicó los hallazgos. Siguiente: aprobación del owner y después Implement.
-
+- 2026-11-20: Plan con 8 fases (Glue Flex a 0,29 USD/DPU-h, scripts como `aws_s3_object`); revisión NEEDS-REVISION con 11 hallazgos, ya aplicados.
 - 2026-11-20: Propose; 3 propuestas revisadas dos veces y el owner eligió la Proposal 2 (relanzar sin depender del orden, export desde `bookings_history`, tipo por `created_at`).
 - 2026-11-20: grill-me tras el gate del Research; 13 preguntas resueltas (Ruling Research decisions).
 - 2026-11-19: Research escrito y revisado (adversarial, security, cost-guard); 14 tensiones T1-T14 en `working/research.md`.
@@ -68,7 +69,7 @@ Rutas relativas a esta carpeta.
 
 | File | Role | Load | What it holds |
 |------|------|------|---------------|
-| `working/test.md` | draft | on-demand | Test de la Fase 3, por fases; fases 1, 1b, 2, 3, 4, 5 y 6 en PASS (Silver FX verificado en local, 2026-11-21) |
+| `working/test.md` | draft | on-demand | Test de la Fase 3, por fases; fases 1, 1b, 2, 3, 4, 5, 6 y 7 en PASS (Silver clickstream verificado en local, 2026-11-21) |
 | `working/plan.md` | draft | on-demand | Plan de la Fase 3 (Proposal 2): 8 PRs, gates del owner, tests de idempotencia U1–U23 |
 | `working/proposal.md` | draft | on-demand | Propose de la Fase 3: 3 propuestas revisadas; Decision: Proposal 2 |
 | `working/research.md` | draft | on-demand | Research de la Fase 3: lo que existe hoy para Bronze y Silver (C1–C6, T1–T14, revisado y corregido) |
