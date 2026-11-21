@@ -230,3 +230,9 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 
 ### bronze-silver — Fase 1 (bootstrap) implementada
 - Permisos de CI y boundaries para Glue, Athena, SSM y KMS, PassRole acotado a `glue-job` y `scripts/*` exento del Deny de ci-plan. Dos rondas de security-reviewer, la última con OK para re-aplicar.
+
+## 2026-11-21
+
+### bronze-silver — Fase 2 (módulo lakehouse) aplicada
+- PR #26 fusionada y aplicada por CI en dev y prod: bases Glue `skyroute_<env>_{bronze,silver,ops}`, workgroup Athena con corte de 100 MB, parámetro HMAC con `value_wo` y roles `glue-job` y `local-data` (este solo en dev). 0 destroy.
+- Gate de MFA en PASS: `skyroute-dev-local-data` se asume desde `aws login` con MFA.

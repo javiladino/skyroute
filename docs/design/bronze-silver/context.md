@@ -41,6 +41,8 @@ Fase 3 — Bronze y Silver con Spark + Iceberg (README § Fases): "Jobs PySpark 
 
 ## Journal (newest first)
 
+**2026-11-21 (Implement, fase 2):** executor (Sonnet) implementó el módulo `lakehouse`; security-reviewer encontró el refresh de SSM con WithDecryption (resuelto con la enmienda 1b, PR #25) y cost-guard dio APTO. PR #26 fusionada y aplicada en dev y prod (plan: dev 9 add / 2 change, prod 7 add / 2 change, 0 destroy; el segundo change añade `BUCKET_NAME` a la Lambda). Gate de MFA en PASS: `skyroute-dev-local-data` se asume desde `aws login` con MFA. Siguiente: fase 3.
+
 **2026-11-20 (Implement, fase 1):** executor (Sonnet) implementó la PR de bootstrap; el orquestador re-ejecutó `validate` (Success). En la primera revisión, security-reviewer (Opus) encontró un H1 High: las bases Glue compartidas dejaban a dev tocar prod. El owner eligió bases por entorno, con la Convention Medallion layers enmendada. executor aplicó H1–H6 y la segunda revisión dio OK para re-aplicar, con dos notas Low aceptadas (N1, N2). Tamaño estimado de ci-boundary: ~5.890 caracteres. Siguiente: el owner ejecuta plan, `policy_size.py` y apply de bootstrap.
 
 **2026-11-20 (Plan):** stage-author (Opus) escribió `working/plan.md` (8 fases). El owner confirmó Glue Flex en eu-west-3 a 0,29 USD/DPU-h y aceptó las 9 recomendaciones (Ruling Plan decisions). adversarial-reviewer (Opus) dio NEEDS-REVISION con 11 hallazgos; para los scripts el owner eligió `aws_s3_object` con `scripts/*` exento del Deny. executor (Sonnet) comprobó en local: validate de bootstrap correcto, pytest no instalado y ci-boundary en unos 5.535 de 6.144 caracteres. Un stage-author aplicó los hallazgos. Siguiente: aprobación del owner y después Implement.
@@ -59,7 +61,7 @@ Rutas relativas a esta carpeta.
 
 | File | Role | Load | What it holds |
 |------|------|------|---------------|
-| `working/test.md` | draft | on-demand | Test de la Fase 3, por fases; fase 1 en PASS (bootstrap aplicado 2026-11-20) |
+| `working/test.md` | draft | on-demand | Test de la Fase 3, por fases; fases 1, 1b y 2 en PASS (lakehouse aplicado y gate de MFA, 2026-11-21) |
 | `working/plan.md` | draft | on-demand | Plan de la Fase 3 (Proposal 2): 8 PRs, gates del owner, tests de idempotencia U1–U23 |
 | `working/proposal.md` | draft | on-demand | Propose de la Fase 3: 3 propuestas revisadas; Decision: Proposal 2 |
 | `working/research.md` | draft | on-demand | Research de la Fase 3: lo que existe hoy para Bronze y Silver (C1–C6, T1–T14, revisado y corregido) |
