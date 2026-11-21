@@ -247,3 +247,6 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 
 ### bronze-silver — Fase 5 (Silver de Reservas)
 - `bookings_scd2` (SCD2 por `(booking_id, history_id)` con cierre acotado y precondición de `changed_at` dentro de D) y `bookings_current`, escritos con WAP. Hay un check de una sola `is_current` por reserva y `amount` es decimal(12,2) HALF_EVEN. 32 tests en verde y `ruff.toml` excluye `.claude/`.
+
+### bronze-silver — Fase 6 (Silver FX)
+- `fx_daily` (copia el día D con `rate_per_eur` y `source_date`, sin arrastre en Silver) y `bookings_eur` (tipo del día UTC de `created_at`, HALF_EVEN, UPDATE solo con una versión más nueva), escritos con WAP. Decisiones del owner: renombrar el tipo y no arrastrar en Silver. 92 tests en verde (generators + spark).

@@ -6,7 +6,7 @@ type: Test
 
 > **Fecha:** 2026-11-20 · **Base:** main (rama `infra/bronze-silver-bootstrap`) · **Plan:** docs/design/bronze-silver/working/plan.md
 
-## Verdict: IN PROGRESS (fases 1, 1b, 2, 3, 4 y 5 en PASS; siguiente: fase 6)
+## Verdict: IN PROGRESS (fases 1, 1b, 2, 3, 4, 5 y 6 en PASS; siguiente: fase 7)
 
 Fase 1 (PR #24, permisos de `bootstrap/`): PASS. Los checks estáticos, la review de seguridad, el plan del owner, el tamaño de `ci-boundary` y el apply del owner están en PASS. El veredicto no es PASS hasta cerrar las fases 2 a 8.
 
@@ -87,6 +87,15 @@ Nota de revisión: adversarial-reviewer dio GO-WITH-FIXES. Los hallazgos 2 a 6 e
 | 5.2 | Cobertura U5-U9 y U21 | plan.md Fase 5 (executor) | `spark/tests/test_bookings_scd2.py`, `spark/tests/test_bookings_current.py` | U5: relanzar D da un resultado idéntico y una sola `is_current` por reserva. U6: D, D+1, D sin retroceso. U7: empate de `changed_at` resuelto por `history_id`. U8: D..D+5 y relanzar D igual al orden. U9: `bookings_current` con la versión final y primera pasada fuera de orden en lago nuevo. U21: WAP publica sin rama residual y un check fallido deja main intacto (los MERGE van a la rama WAP) | PASS |
 | 5.3 | Revisión adversarial (Opus) | plan.md Fase 5 (adversarial-reviewer) | adversarial-reviewer | GO-WITH-FIXES. M1: cierre acotado con orden (`changed_at`, `history_id`). M2: precondición `changed_at` en [D, D+1) UTC (el export lo garantiza, `generators/ota/export_bookings.py:71-74`). M3: check unique `booking_id` where `is_current` (`checks.py` admite `where`). M4: tests de primera pasada fuera de orden y empate entre lotes. L1: `amount` decimal(12,2) HALF_EVEN + not_null (decisión del owner). L2: `accepted_values` también en current. L5: try/finally. Aplicados. L3 (MERGE solo INSERT: corregir requiere reconstruir) y L4 (`--checks-dir` en Glue) quedan para la fase 8 | PASS |
 | 5.4 | Pendiente fuera de local | plan.md Fase 5 (orquestador) | n/a | Ejecución sobre dev en la fase 8 (Apply gate). `bookings_current` no tiene test propio de check fallido (misma ruta WAP) | PASS |
+
+## Fase 6: corte FX (fx_daily, bookings_eur)
+
+| # | Check | Source | Command | Result | Status |
+|---|-------|--------|---------|--------|--------|
+| 6.1 | Tests y lint | plan.md Fase 6 (orquestador, Verification ownership) | `.venv/bin/python -m pytest generators spark -q`; `.venv/bin/ruff check .` | pytest: 92 passed. ruff: All checks passed. El test de Spark se renombró a `spark/tests/test_silver_fx.py` (choque de basename con `generators/tests/test_fx.py`) | PASS |
+| 6.2 | Cobertura U10-U12 | plan.md Fase 6 (executor) | `spark/tests/test_silver_fx.py` | U10: el sábado lleva el tipo del viernes con `source_date` real; relanzar no duplica. U11: un día sin tipo no publica y main queda intacto; un relanzamiento con éxito deja solo la rama main; `bookings_eur` sin tipo del día de `created_at` no se publica. U12: tipo del día UTC de `created_at`, EUR = 1, HALF_EVEN contra Decimal, relanzamiento fuera de orden igual al orden, y la misma reserva en dos días fuera de orden conserva la versión más nueva | PASS |
+| 6.3 | Revisión adversarial (Opus) | plan.md Fase 6 (adversarial-reviewer) | adversarial-reviewer | GO-WITH-FIXES. Decisiones del owner: M5 columna renombrada a `rate_per_eur` (cotización BCE, divisa por 1 EUR); M3 sin arrastre en Silver (lo hace el generador). Aplicados: M4 UPDATE condicionado por (`changed_at`, `history_id`); M2 bloqueo mantenido con mensaje que indica qué fechas faltan; M1 documentado (relanzar `fx_daily` de X obliga a relanzar `bookings_eur`); L1 numerador decimal(38,18); L2 assert de zona UTC; L3 duplicados con tipos distintos fallan; L4 relanzamiento tras fallo. `plan.md` §6 ajustado | PASS |
+| 6.4 | Pendiente fuera de local | plan.md Fase 6 (orquestador) | n/a | El rango de FX debe cubrir todo el rango de `created_at`: el generador no los ata (`generators/fx/ecb.py` y `seed_postgres.py` usan `--from/--to` propios). Ejecución en dev en la fase 8 | N/A |
 
 ## Review
 

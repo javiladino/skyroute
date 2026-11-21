@@ -1,0 +1,11 @@
+# Checks WAP de silver.bookings_eur (motor: spark/lib/checks.py). Se evaluan sobre la rama run_<D>.
+# fx_rate_applied nulo = falta en silver.fx_daily el par (fecha UTC de created_at, currency) de
+# esas reservas: no se publica; carga fx_daily de esos dias y relanza.
+checks:
+  - {type: not_null, column: booking_id}
+  - {type: not_null, column: currency}
+  - {type: not_null, column: amount}
+  - {type: not_null, column: fx_rate_applied}
+  - {type: not_null, column: amount_eur}
+  - {type: unique, columns: [booking_id]}
+  - {type: expression, name: positive_rate, sql: "fx_rate_applied > 0"}
