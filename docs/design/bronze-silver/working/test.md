@@ -6,7 +6,7 @@ type: Test
 
 > **Fecha:** 2026-11-20 · **Base:** main (rama `infra/bronze-silver-bootstrap`) · **Plan:** docs/design/bronze-silver/working/plan.md
 
-## Verdict: IN PROGRESS (fases 1, 1b, 2, 3, 4, 5 y 6 en PASS; siguiente: fase 7)
+## Verdict: IN PROGRESS (fases 1, 1b, 2, 3, 4, 5, 6 y 7 en PASS; siguiente: fase 8)
 
 Fase 1 (PR #24, permisos de `bootstrap/`): PASS. Los checks estáticos, la review de seguridad, el plan del owner, el tamaño de `ci-boundary` y el apply del owner están en PASS. El veredicto no es PASS hasta cerrar las fases 2 a 8.
 
@@ -96,6 +96,16 @@ Nota de revisión: adversarial-reviewer dio GO-WITH-FIXES. Los hallazgos 2 a 6 e
 | 6.2 | Cobertura U10-U12 | plan.md Fase 6 (executor) | `spark/tests/test_silver_fx.py` | U10: el sábado lleva el tipo del viernes con `source_date` real; relanzar no duplica. U11: un día sin tipo no publica y main queda intacto; un relanzamiento con éxito deja solo la rama main; `bookings_eur` sin tipo del día de `created_at` no se publica. U12: tipo del día UTC de `created_at`, EUR = 1, HALF_EVEN contra Decimal, relanzamiento fuera de orden igual al orden, y la misma reserva en dos días fuera de orden conserva la versión más nueva | PASS |
 | 6.3 | Revisión adversarial (Opus) | plan.md Fase 6 (adversarial-reviewer) | adversarial-reviewer | GO-WITH-FIXES. Decisiones del owner: M5 columna renombrada a `rate_per_eur` (cotización BCE, divisa por 1 EUR); M3 sin arrastre en Silver (lo hace el generador). Aplicados: M4 UPDATE condicionado por (`changed_at`, `history_id`); M2 bloqueo mantenido con mensaje que indica qué fechas faltan; M1 documentado (relanzar `fx_daily` de X obliga a relanzar `bookings_eur`); L1 numerador decimal(38,18); L2 assert de zona UTC; L3 duplicados con tipos distintos fallan; L4 relanzamiento tras fallo. `plan.md` §6 ajustado | PASS |
 | 6.4 | Pendiente fuera de local | plan.md Fase 6 (orquestador) | n/a | El rango de FX debe cubrir todo el rango de `created_at`: el generador no los ata (`generators/fx/ecb.py` y `seed_postgres.py` usan `--from/--to` propios). Ejecución en dev en la fase 8 | N/A |
+
+## Fase 7: corte clickstream (events, sessions)
+
+| # | Check | Source | Command | Result | Status |
+|---|-------|--------|---------|--------|--------|
+| 7.1 | Tests y lint | plan.md Fase 7 (orquestador, Verification ownership) | `.venv/bin/python -m pytest generators spark -q`; `.venv/bin/ruff check .` | pytest: 110 passed. ruff: All checks passed. Tests en `spark/tests/test_silver_events.py`, `spark/tests/test_silver_sessions.py` y `spark/tests/test_silver_rerun_order.py` (nombres únicos frente a `generators/tests`) | PASS |
+| 7.2 | Cobertura U13-U19 y U21-U23 | plan.md Fase 7 (executor) | `spark/tests/test_silver_events.py`, `test_silver_sessions.py`, `test_silver_rerun_order.py` | U13: duplicados y tardíos sin duplicar. U14: email a HMAC sobre `lower(trim(email))` y `consent_ts` conservado. U15: hueco de 31 min parte la sesión; 29 y 30 min exactos no. U16: sesiones iguales a las del generador en un día real. U17: relanzar es idempotente. U18: D..D+5 y relanzar D igual al orden (seis tablas). U19: tardío que pasa a primero sin sesión huérfana. U22: primera pasada permutada igual al orden. U23: sesión que cruza de D-5 a D-4 pertenece a su primer día. Además, tests de H1 (tardío que une sesiones en medianoche, en cualquier orden) y del tope de 24 h (24 h − 1 s no parte, 24 h sí) | PASS |
+| 7.3 | Revisión adversarial 1 (Opus) | plan.md Fase 7 (adversarial-reviewer) | adversarial-reviewer | NEEDS-REVISION. H1: los tardíos que cruzan medianoche se perdían y dependían del orden. M1: sesiones largas truncadas. M2: `session_key` inestable. L1 a L4. Decisiones del owner: reescritura [D-4, D] con tope de 24 h; documentar que `session_key` no es estable hasta D+4; hueco estrictamente > 30 min; HMAC sobre email normalizado. Antes del fix, U18 con el escenario de H1 fallaba | PASS |
+| 7.4 | Revisión adversarial 2 (Opus) | plan.md Fase 7 (adversarial-reviewer) | adversarial-reviewer | GO-WITH-FIXES. El fix de H1/M1 es correcto con margen exacto (tardío <= 72 h; `_ingest_date` sale de la fecha lógica: `spark/lib/technical_columns.py:33`). Aplicados: comparación de events sin `email_hmac` (rotación de clave); check de sessions contra la partición Bronze de D; fallo `sessions_chain_touches_context` en cadenas largas en el borde; test de 24 h − 1 s; poda del destino en events. `plan.md` §5, §8 y U23 alineados | PASS |
+| 7.5 | Pendiente fuera de local | plan.md Fase 7 (orquestador) | n/a | Falta boto3 para la rama SSM del HMAC (preinstalado en Glue) y la ejecución en dev en la fase 8. Si `silver.events` no existe, `sessions` falla siempre | N/A |
 
 ## Review
 

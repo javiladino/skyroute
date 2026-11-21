@@ -250,3 +250,6 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 
 ### bronze-silver — Fase 6 (Silver FX)
 - `fx_daily` (copia el día D con `rate_per_eur` y `source_date`, sin arrastre en Silver) y `bookings_eur` (tipo del día UTC de `created_at`, HALF_EVEN, UPDATE solo con una versión más nueva), escritos con WAP. Decisiones del owner: renombrar el tipo y no arrastrar en Silver. 92 tests en verde (generators + spark).
+
+### bronze-silver — Fase 7 (Silver clickstream)
+- `events` (deduplicado, email → HMAC sobre `lower(trim(email))`) y `sessions` (hueco > 30 min, tope de 24 h, reescritura de [D-4, D]), escritos con WAP. Dos revisiones adversariales: la primera NEEDS-REVISION por los tardíos que cruzaban medianoche; las decisiones del owner están en plan.md §5 y §8. 110 tests en verde.
