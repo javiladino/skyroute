@@ -1,0 +1,8 @@
+# Checks WAP de silver.bookings_current (motor: spark/lib/checks.py). Se evaluan sobre la rama run_<D>.
+checks:
+  - {type: not_null, column: booking_id}
+  - {type: not_null, column: history_id}
+  - {type: not_null, column: changed_at}
+  - {type: not_null, column: amount}
+  - {type: unique, columns: [booking_id]}
+  - {type: accepted_values, column: status, values: [pending, confirmed, cancelled]}

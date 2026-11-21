@@ -244,3 +244,6 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 ### bronze-silver — Fase 4 (Bronze genérico e histórico en dev)
 - Ingesta Bronze en Spark con Iceberg y Glue: esquema explícito por fuente y rangos `--from/--to` con un commit por día (PR #30). Runbook del gate Histórico (PR #31).
 - El owner ejecutó el runbook. Bronze de dev tiene 182 días de clickstream, bookings y fx (Athena). R=2026-11-21. Clickstream se reanudó una vez por la sesión MFA de 1 h. La espera del paso 7 del runbook tenía una carrera y se corrigió.
+
+### bronze-silver — Fase 5 (Silver de Reservas)
+- `bookings_scd2` (SCD2 por `(booking_id, history_id)` con cierre acotado y precondición de `changed_at` dentro de D) y `bookings_current`, escritos con WAP. Hay un check de una sola `is_current` por reserva y `amount` es decimal(12,2) HALF_EVEN. 32 tests en verde y `ruff.toml` excluye `.claude/`.

@@ -6,7 +6,7 @@ type: Test
 
 > **Fecha:** 2026-11-20 · **Base:** main (rama `infra/bronze-silver-bootstrap`) · **Plan:** docs/design/bronze-silver/working/plan.md
 
-## Verdict: IN PROGRESS (fases 1, 1b, 2, 3 y 4 en PASS; siguiente: fase 5)
+## Verdict: IN PROGRESS (fases 1, 1b, 2, 3, 4 y 5 en PASS; siguiente: fase 6)
 
 Fase 1 (PR #24, permisos de `bootstrap/`): PASS. Los checks estáticos, la review de seguridad, el plan del owner, el tamaño de `ci-boundary` y el apply del owner están en PASS. El veredicto no es PASS hasta cerrar las fases 2 a 8.
 
@@ -78,6 +78,15 @@ Nota de revisión: adversarial-reviewer dio GO-WITH-FIXES. Los hallazgos 2 a 6 e
 | 4.4 | Ingesta Bronze (paso 6) | owner (Verification ownership) | `python -m jobs.bronze.ingest --source <src> --from $S --to $E ...` por fuente | Clickstream se cortó en 2026-08-14 por `ExpiredToken` de Glue (sesión de 1 h; última fecha OK 2026-08-13; el commit de ese día no se escribió). Se reanudó con `--from 2026-08-14` tras un nuevo `export-credentials`, exit 0. Bookings y fx: exit 0. fx: 29 filas por día en los 182 días | PASS |
 | 4.5 | Verificación en Athena (paso 7) | owner (Verification ownership) | `SELECT count(DISTINCT _ingest_date) FROM skyroute_dev_bronze.<t>` | clickstream 182, bookings 182, fx 182 (fx SUCCEEDED 182 con la espera corregida; el primer intento leyó resultados con la consulta aún RUNNING por el bug del bucle, ver 4.6) | PASS |
 | 4.6 | Defecto del runbook, paso 7 | orquestador | Edición de `docs/runbooks/bronze-silver-historico-dev.md` | La espera evaluaba el estado dos veces y podía salir con QUEUED a RUNNING. Sustituida por una lectura por iteración (`while :; do s=$(...); case $s in QUEUED\|RUNNING) sleep 3;; *) break;; esac; done`); el echo muestra el estado | PASS |
+
+## Fase 5: corte Reservas (bookings_scd2, bookings_current)
+
+| # | Check | Source | Command | Result | Status |
+|---|-------|--------|---------|--------|--------|
+| 5.1 | Tests y lint | plan.md Fase 5 (orquestador, Verification ownership) | `.venv/bin/python -m pytest spark/tests -q`; `.venv/bin/ruff check .` | pytest: 32 passed. ruff: All checks passed (`ruff.toml` excluye `.claude`, decisión del owner) | PASS |
+| 5.2 | Cobertura U5-U9 y U21 | plan.md Fase 5 (executor) | `spark/tests/test_bookings_scd2.py`, `spark/tests/test_bookings_current.py` | U5: relanzar D da un resultado idéntico y una sola `is_current` por reserva. U6: D, D+1, D sin retroceso. U7: empate de `changed_at` resuelto por `history_id`. U8: D..D+5 y relanzar D igual al orden. U9: `bookings_current` con la versión final y primera pasada fuera de orden en lago nuevo. U21: WAP publica sin rama residual y un check fallido deja main intacto (los MERGE van a la rama WAP) | PASS |
+| 5.3 | Revisión adversarial (Opus) | plan.md Fase 5 (adversarial-reviewer) | adversarial-reviewer | GO-WITH-FIXES. M1: cierre acotado con orden (`changed_at`, `history_id`). M2: precondición `changed_at` en [D, D+1) UTC (el export lo garantiza, `generators/ota/export_bookings.py:71-74`). M3: check unique `booking_id` where `is_current` (`checks.py` admite `where`). M4: tests de primera pasada fuera de orden y empate entre lotes. L1: `amount` decimal(12,2) HALF_EVEN + not_null (decisión del owner). L2: `accepted_values` también en current. L5: try/finally. Aplicados. L3 (MERGE solo INSERT: corregir requiere reconstruir) y L4 (`--checks-dir` en Glue) quedan para la fase 8 | PASS |
+| 5.4 | Pendiente fuera de local | plan.md Fase 5 (orquestador) | n/a | Ejecución sobre dev en la fase 8 (Apply gate). `bookings_current` no tiene test propio de check fallido (misma ruta WAP) | PASS |
 
 ## Review
 

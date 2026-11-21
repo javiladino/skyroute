@@ -43,6 +43,8 @@ Fase 3 — Bronze y Silver con Spark + Iceberg (README § Fases): "Jobs PySpark 
 
 ## Journal (newest first)
 
+**2026-11-21 (Implement, fase 5):** executor (Sonnet) implementó el Silver de Reservas (`bookings_scd2`, `bookings_current`, checks YAML, U5-U9 y U21). adversarial-reviewer (Opus) dio GO-WITH-FIXES (M1-M4, L1-L5). executor aplicó M1-M4, L1, L2 y L5; M2 se resolvió con una precondición, porque el export garantiza `changed_at` dentro de D. El owner fijó `amount` en decimal(12,2) y excluyó `.claude/` de ruff. Verificación del orquestador: 32 passed, ruff limpio. L3 y L4 pasan a la fase 8. Siguiente: fase 6.
+
 **2026-11-21 (Implement, fase 4):** executor (Sonnet) implementó el Bronze genérico en Spark/Iceberg (19 tests). adversarial-reviewer (Opus) dio GO-WITH-FIXES; el owner eligió esquema explícito, y los rangos `--from/--to` cubren la sesión MFA de 1 h. PRs #30 (código) y #31 (runbook). El owner ejecutó el runbook en dev: R=2026-11-21, rango 2026-05-23..2026-11-20, gate vence 2026-12-21. Clickstream se reanudó una vez por `ExpiredToken`. Athena: clickstream, bookings y fx con 182 días cada una. La espera del paso 7 del runbook tenía una carrera y se corrigió. Siguiente: fase 5.
 
 **2026-11-21 (Implement, fase 3):** executor (Sonnet) implementó el generador (sesiones, versiones de reserva, trigger `bookings_history`, export, FX del BCE). El owner aprobó guardar FX también en fin de semana (enmienda del Ruling Plan decisions) y fijar `ruff.toml`. adversarial-reviewer (Opus) dio GO-WITH-FIXES; executor aplicó los hallazgos 2–6 (FX exige publicación de D o una posterior). Verificación: 52 passed y ruff limpio (re-ejecutados por el orquestador); G3 contra Postgres con md5 idéntico en dos rebuilds (578 filas); export real idéntico byte a byte, ejecutado por el owner. PR #28 fusionada y aplicada en dev y prod; la Lambda de prod también pasó al generador nuevo, y el owner lo aceptó (enmienda del Ruling Plan decisions). Siguiente: fase 4.
@@ -55,8 +57,7 @@ Fase 3 — Bronze y Silver con Spark + Iceberg (README § Fases): "Jobs PySpark 
 
 **2026-11-20 (Propose):** aws-researcher confirmó el mínimo de 10 MB de Athena y que SSM estándar no cuesta nada; el MFA con `aws login` y el precio de Glue en eu-west-3 siguen sin confirmar. stage-author (Opus) escribió `working/proposal.md` con 3 propuestas. adversarial-reviewer (Opus) dio NEEDS-REVISION y un stage-author aplicó la corrección. Una comprobación de coherencia contra el Ruling dio otra vez NEEDS-REVISION, y un segundo stage-author aplicó esa corrección. El owner resolvió que relanzar no dependa del orden, el export desde `bookings_history` y el tipo de cambio por `created_at` (Ruling enmendado), y eligió la Proposal 2. Siguiente: el owner prueba el MFA y confirma el precio de Glue; después, Plan.
 
-**2026-11-20 (grill-me):** El owner aprobó el gate del Research y el grill-me resolvió 13 preguntas, recogidas en el Ruling Research decisions. Siguiente: Propose (stage-author Opus en `working/proposal.md`), con aws-researcher para confirmar MFA con `aws login` y el precio de Glue Flex en eu-west-3.
-
+- 2026-11-20: grill-me tras el gate del Research; 13 preguntas resueltas (Ruling Research decisions).
 - 2026-11-19: Research escrito y revisado (adversarial, security, cost-guard); 14 tensiones T1-T14 en `working/research.md`.
 - 2026-11-14: topic abierto y Research lanzado con `session-orchestration`.
 
@@ -66,7 +67,7 @@ Rutas relativas a esta carpeta.
 
 | File | Role | Load | What it holds |
 |------|------|------|---------------|
-| `working/test.md` | draft | on-demand | Test de la Fase 3, por fases; fases 1, 1b, 2, 3 y 4 en PASS (Bronze histórico de 182 días en dev, 2026-11-21) |
+| `working/test.md` | draft | on-demand | Test de la Fase 3, por fases; fases 1, 1b, 2, 3, 4 y 5 en PASS (Silver de Reservas verificado en local, 2026-11-21) |
 | `working/plan.md` | draft | on-demand | Plan de la Fase 3 (Proposal 2): 8 PRs, gates del owner, tests de idempotencia U1–U23 |
 | `working/proposal.md` | draft | on-demand | Propose de la Fase 3: 3 propuestas revisadas; Decision: Proposal 2 |
 | `working/research.md` | draft | on-demand | Research de la Fase 3: lo que existe hoy para Bronze y Silver (C1–C6, T1–T14, revisado y corregido) |
