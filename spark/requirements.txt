@@ -1,0 +1,6 @@
+# Paridad con AWS Glue 5.0 (Spark 3.5.4, Python 3.11, Java 17, Iceberg 1.7.1).
+# Doc oficial (migrating-version-50, Appendix A y D), comprobada en la Fase 4.
+# Los jars de Iceberg (iceberg-spark-runtime-3.5_2.12:1.7.1 e iceberg-aws-bundle:1.7.1)
+# no son paquetes pip: spark/lib/session.py los pide por spark.jars.packages en local.
+pyspark==3.5.4
+pyyaml==6.0.4

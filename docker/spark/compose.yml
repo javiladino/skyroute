@@ -1,0 +1,32 @@
+name: skyroute-spark
+
+# Uso (desde la raiz del repo): docker compose -f docker/spark/compose.yml run --rm spark \
+#   python -m jobs.bronze.ingest ...
+#
+# Credenciales, dos opciones (perfil skyroute-dev-local-data):
+#  A) Variables estaticas exportadas antes en el shell: AWS_ACCESS_KEY_ID,
+#     AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN. Caducan con la sesion (~1 h).
+#  B) Perfil: export AWS_PROFILE=skyroute-dev-local-data. Se monta ~/.aws de solo lectura y el
+#     SDK refresca via source_profile; pensado para rangos largos (--from/--to). Si no usas
+#     esta opcion, el montaje de ~/.aws es inocuo.
+services:
+  spark:
+    build:
+      context: ../..
+      dockerfile: docker/spark/Dockerfile
+    working_dir: /app
+    environment:
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_SESSION_TOKEN
+      - AWS_PROFILE
+      - AWS_REGION=eu-west-3
+      - AWS_DEFAULT_REGION=eu-west-3
+    volumes:
+      - ../../spark:/app/spark:ro
+      - ${HOME}/.aws:/root/.aws:ro
+      # Cache de jars (spark.jars.packages) para no bajarlos en cada ejecucion.
+      - ivy-cache:/root/.ivy2
+
+volumes:
+  ivy-cache:
