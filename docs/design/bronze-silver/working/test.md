@@ -6,7 +6,7 @@ type: Test
 
 > **Fecha:** 2026-11-20 · **Base:** main (rama `infra/bronze-silver-bootstrap`) · **Plan:** docs/design/bronze-silver/working/plan.md
 
-## Verdict: IN PROGRESS (fases 1 a 7 en PASS; fase 8 verificada en local, pendiente del apply y la demo en Glue)
+## Verdict: IN PROGRESS (fases 1 a 8 en PASS salvo el coste de la demo (Cost Explorer pendiente del 2026-11-23))
 
 Fase 1 (PR #24, permisos de `bootstrap/`): PASS. Los checks estáticos, la review de seguridad, el plan del owner, el tamaño de `ci-boundary` y el apply del owner están en PASS. El veredicto no es PASS hasta cerrar las fases 2 a 8.
 
@@ -114,8 +114,24 @@ Nota de revisión: adversarial-reviewer dio GO-WITH-FIXES. Los hallazgos 2 a 6 e
 | 8.1 | Tests, lint y Terraform | plan.md Fase 8 (orquestador, Verification ownership; tflint por el executor) | `pytest generators spark -q`; `ruff check .`; `terraform fmt -check -recursive infra/terraform`; `terraform validate` en dev y prod; `tflint` en dev y prod | pytest: 126 passed. ruff: All checks passed. fmt: sin diferencias. validate dev y prod: Success. tflint dev y prod: sin hallazgos | PASS |
 | 8.2 | Cobertura | plan.md Fase 8 (executor) | `spark/tests/test_maintenance.py`, `spark/tests/test_args.py`, `spark/tests/test_silver_events.py` | U20: el mantenimiento con fecha fija no cambia el contenido. `expire_snapshots` conserva las ramas WAP con snapshot propio y rechaza un run_date futuro sin `--force`. `rewrite_data_files` rechaza `--from/--to`. Los args en Glue fallan con argumentos desconocidos o abreviados y aceptan los reservados de Glue. Cada job Silver falla antes de escribir si falta su YAML. La UDF HMAC no expone el email | PASS |
 | 8.3 | Revisiones | plan.md Fase 8 (adversarial-reviewer, security-reviewer, cost-guard) | adversarial-reviewer (Opus); security-reviewer (Opus); cost-guard (Sonnet); documentación oficial de Glue 5.0 | Adversarial: GO-WITH-FIXES (M1 `spark-tests.yml` creado por el Ruling "Plan decisions"; M2 argumentos; M3 zip con globs y `source_hash`, el apply no reutiliza plan guardado; M4 `--extra-files` va al directorio de trabajo; M5 guardia de fecha; L1, L5, L6), aplicados. Security: OK con notas (rol glue-job sin Athena, athena-results ni DeleteTable; logs acotados a `/aws-glue/jobs/*`). Cost-guard: APTO con notas (sin cobro inactivo; demo de 6 ejecuciones ≈ 0,29-0,46 USD; job colgado 0,29 USD con timeout de 30 min). Documentación oficial: Glue 5.0 = Spark 3.5.4, Iceberg 1.7.1; PyYAML no viene preinstalado, se añadió `--additional-python-modules PyYAML==6.0.4` a los 6 jobs Silver | PASS |
-| 8.4 | Plan de CI, apply y demo en Glue | plan.md Fase 8 (CI; owner, Apply gate) | Plan de CI y apply en dev y prod. Demo del owner: lanzar en orden bronze-ingest (`--source bookings` y `--source fx`), fx_daily, bookings_scd2, bookings_current y bookings_eur con el mismo run_date; comparar en Athena `SELECT count(*), sum(amount_eur)` con la ejecución local | Éxito: valores idénticos a los locales y gasto < 0,50 USD en Cost Explorer | PENDIENTE |
+| 8.4 | Plan de CI, apply y demo en Glue | plan.md Fase 8 (CI; owner, Apply gate) | Plan de CI y apply en dev y prod. Demo del owner: lanzar en orden bronze-ingest (`--source bookings` y `--source fx`), fx_daily, bookings_scd2, bookings_current y bookings_eur con el mismo run_date; comparar en Athena `SELECT count(*), sum(amount_eur)` con la ejecución local | Demo: PASS (owner, 2026-11-22; ver "Notas de la Fase 8"). Coste de la demo: PENDIENTE (Cost Explorer disponible el 2026-11-23; éxito: valores idénticos a los locales y gasto < 0,50 USD) | PASS (demo); PENDIENTE (coste) |
 | 8.5 | Deuda aceptada: logs, ramas WAP y mantenimiento | owner, 2026-11-21 | n/a | Grupo de logs propio por entorno con retención de 14 días: requiere cambiar `bootstrap/` (`ci_roles.tf` AllowWorkloadServices, `ci_apply_dev/prod.tf`, `ci_plan` ListTagsForResource) para `/aws-glue/skyroute-<env>/*`, y luego `--custom-logGroup-prefix` en los jobs. Hasta entonces los logs van a `/aws-glue/jobs/*`, compartidos y sin retención. Glue 5.0 depreca `--continuous-log-logGroup`. También: ramas WAP huérfanas sin limpieza y mantenimiento solo en local | N/A |
+
+### Notas de la Fase 8 (fila 8.4, aportadas por el owner, 2026-11-22)
+
+- **Apply.** PR #36 (run 44947476599: apply-dev OK, apply-prod OK). Correcciones fusionadas y aplicadas en dev y prod el 2026-11-22:
+  - #37: archivos `__init__.py` para que zipimport encuentre `jobs`.
+  - #38: argumentos de runtime de Glue.
+  - #39: diagnósticos que nombran los argumentos rechazados.
+  - #40: argumentos no documentados de Glue 5.0 Flex `--internal-lib-urls`, `--glue-di-packages-correlation-ids` y `--tenant-internal`.
+  - #41: sin `sys.exit(0)`, porque Glue marca cualquier SystemExit como FAILED.
+- **Demo.** D=2026-11-20, C=2026-11-19.
+  - `skyroute-dev-silver-fx_daily --from 2026-11-19 --to 2026-11-20`: SUCCEEDED, jr_946b876632ffa8d9aae1bcf318a6e3a7735584611b1fa98d6aae72eea38dfd89.
+  - `skyroute-dev-silver-bookings_eur --run-date 2026-11-20`: SUCCEEDED, jr_02195fe5cc981db15377e7110fa55c38b6e4d684aca4278135f2fdd6c11f0038.
+- **Athena** `SELECT count(*), sum(amount_eur) FROM skyroute_dev_silver.bookings_eur`: `132  109297.89`. Medido tras las ejecuciones anteriores, que escribieron los datos pero quedaron marcadas FAILED (jr_2cd3c07c…, jr_a16684ac…). No se volvió a medir tras las ejecuciones SUCCEEDED.
+- **Pipeline local en Docker** (catálogo hadoop, `spark/tools/count_table.py`): `count=132 sum_amount_eur=109297.89`, rows_in_batch 132. Glue y local son idénticos.
+- **Coste:** PENDIENTE, Cost Explorer el 2026-11-23; debe ser < 0,50 USD.
+- **Aviso conocido, no fatal:** al cerrar, los executors reciben AccessDenied de `cloudwatch:PutMetricData` para el rol `skyroute-dev-glue-job`. No falla el job; queda registrado como deuda.
 
 ## Review
 

@@ -43,6 +43,8 @@ Fase 3 — Bronze y Silver con Spark + Iceberg (README § Fases): "Jobs PySpark 
 
 ## Journal (newest first)
 
+**2026-11-22 (Implement, fase 8, demo Glue):** PR #36 aplicada en dev y prod. La demo del owner (runbook `docs/runbooks/bronze-silver-demo-glue.md`, D=2026-11-20) destapó cuatro fallos solo de Glue, que executor (Sonnet) corrigió en PRs #37-#41: zipimport sin namespace packages (`__init__.py`), argumentos de runtime e internos no documentados (`--internal-lib-urls`, `--glue-di-packages-correlation-ids`, `--tenant-internal`; #39 añadió el diagnóstico que los nombró) y `SystemExit: 0` tratado como FAILED. Resultado: `fx_daily` y `bookings_eur` en SUCCEEDED; Athena 132 filas y 109297.89 €, idéntico al pipeline local. Verificación del orquestador: 142 passed, ruff limpio. Pendiente: coste en Cost Explorer (2026-11-23, < 0,50 USD). Deuda nueva: `cloudwatch:PutMetricData` denegado al rol de Glue (aviso no fatal). Siguiente: coste y cierre del topic.
+
 **2026-11-21 (Implement, fase 8):** executor (Sonnet) implementó el mantenimiento Iceberg, los 7 jobs Glue 5 Flex, `spark-tests.yml` y los comandos de AGENTS.md. Revisiones: adversarial (Opus) GO-WITH-FIXES, security-reviewer (Opus) OK con notas y cost-guard (Sonnet) APTO con notas. executor aplicó los hallazgos y añadió PyYAML porque Glue 5.0 no lo trae. El owner aplazó el log group por entorno, porque necesita cambiar bootstrap (deuda en findings). Verificación del orquestador: 126 passed, ruff, fmt y validate en dev y prod. Siguiente: PR, apply y demo del owner.
 
 **2026-11-21 (Implement, fase 7):** executor (Sonnet) implementó el Silver de clickstream (`events` con HMAC, `sessions`). Revisión 1 (Opus): NEEDS-REVISION, porque los tardíos que cruzaban medianoche se perdían (H1). El owner decidió reescribir [D-4, D] con tope de 24 h, que un hueco > 30 min parte la sesión, que el HMAC va sobre el email normalizado y que session_key no es estable hasta D+4. Revisión 2 (Opus): GO-WITH-FIXES, aplicados (comparación sin email_hmac, check contra Bronze, fallo en cadenas largas en el borde). stage-author alineó §5, §8 y U23 de plan.md. Verificación del orquestador: 110 passed, ruff limpio. Siguiente: fase 8.
@@ -55,8 +57,7 @@ Fase 3 — Bronze y Silver con Spark + Iceberg (README § Fases): "Jobs PySpark 
 
 **2026-11-21 (Implement, fase 3):** executor (Sonnet) implementó el generador (sesiones, versiones de reserva, trigger `bookings_history`, export, FX del BCE). El owner aprobó guardar FX también en fin de semana (enmienda del Ruling Plan decisions) y fijar `ruff.toml`. adversarial-reviewer (Opus) dio GO-WITH-FIXES; executor aplicó los hallazgos 2–6 (FX exige publicación de D o una posterior). Verificación: 52 passed y ruff limpio (re-ejecutados por el orquestador); G3 contra Postgres con md5 idéntico en dos rebuilds (578 filas); export real idéntico byte a byte, ejecutado por el owner. PR #28 fusionada y aplicada en dev y prod; la Lambda de prod también pasó al generador nuevo, y el owner lo aceptó (enmienda del Ruling Plan decisions). Siguiente: fase 4.
 
-**2026-11-21 (Implement, fase 2):** executor (Sonnet) implementó el módulo `lakehouse`; security-reviewer encontró el refresh de SSM con WithDecryption (resuelto con la enmienda 1b, PR #25) y cost-guard dio APTO. PR #26 fusionada y aplicada en dev y prod (plan: dev 9 add / 2 change, prod 7 add / 2 change, 0 destroy; el segundo change añade `BUCKET_NAME` a la Lambda). Gate de MFA en PASS: `skyroute-dev-local-data` se asume desde `aws login` con MFA. Siguiente: fase 3.
-
+- 2026-11-21: fase 2, módulo `lakehouse` (PRs #25 y #26) aplicado en dev y prod; gate de MFA en PASS.
 - 2026-11-20: fase 1 (PR de bootstrap); H1 High (bases Glue compartidas) resuelto con bases por entorno.
 - 2026-11-20: Plan con 8 fases (Glue Flex a 0,29 USD/DPU-h, scripts como `aws_s3_object`); revisión NEEDS-REVISION con 11 hallazgos, ya aplicados.
 - 2026-11-20: Propose; 3 propuestas revisadas dos veces y el owner eligió la Proposal 2 (relanzar sin depender del orden, export desde `bookings_history`, tipo por `created_at`).
@@ -70,7 +71,7 @@ Rutas relativas a esta carpeta.
 
 | File | Role | Load | What it holds |
 |------|------|------|---------------|
-| `working/test.md` | draft | on-demand | Test de la Fase 3, por fases; fases 1 a 7 en PASS; fase 8 verificada en local, pendiente del apply y la demo en Glue (2026-11-21) |
+| `working/test.md` | draft | on-demand | Test de la Fase 3, por fases; fases 1 a 8 en PASS salvo el coste de la demo, pendiente de Cost Explorer (2026-11-22) |
 | `working/plan.md` | draft | on-demand | Plan de la Fase 3 (Proposal 2): 8 PRs, gates del owner, tests de idempotencia U1–U23 |
 | `working/proposal.md` | draft | on-demand | Propose de la Fase 3: 3 propuestas revisadas; Decision: Proposal 2 |
 | `working/research.md` | draft | on-demand | Research de la Fase 3: lo que existe hoy para Bronze y Silver (C1–C6, T1–T14, revisado y corregido) |
