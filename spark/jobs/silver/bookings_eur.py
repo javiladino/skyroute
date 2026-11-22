@@ -24,11 +24,11 @@ los dias en que se ingestaron reservas con created_at en X. Checks: spark/checks
 
 import copy
 import logging
-import sys
 from pathlib import Path
 
 from lib.args import parse_args
 from lib.checks import require_rules_file
+from lib.entrypoint import exit_on_error
 from lib.session import build_spark
 from lib.wap import run_wap
 from pyspark.sql import SparkSession
@@ -160,4 +160,4 @@ def main(argv=None) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    exit_on_error(main())

@@ -36,12 +36,12 @@ dar sesiones distintas en silencio. Checks: spark/checks/sessions.yaml.
 
 import copy
 import logging
-import sys
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from lib.args import parse_args
 from lib.checks import Failure, require_rules_file
+from lib.entrypoint import exit_on_error
 from lib.session import build_spark
 from lib.wap import WapCheckError, branch_name, run_wap
 from pyspark.sql import SparkSession, Window
@@ -333,4 +333,4 @@ def main(argv=None) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    exit_on_error(main())
