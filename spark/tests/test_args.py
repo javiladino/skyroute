@@ -101,6 +101,27 @@ def test_run_date_variant_of_glue_argv_is_accepted():
     assert parse_args(argv, extra=with_checks).dates == ["2026-11-20"]
 
 
+def test_glue_values_do_not_leak_into_unexpected():
+    argv = [
+        "--JOB_ID", "j_1", "--JOB_RUN_ID", "jr_1", "--JOB_NAME", "n",
+        "--job-bookmark-option", "job-bookmark-disable", "--TempDir", "s3://b/t",
+        "--warehouse", "s3://b/silver", "--from", "2026-11-19", "--to", "2026-11-20",
+    ]  # fmt: skip
+    assert parse_args(argv).dates == ["2026-11-19", "2026-11-20"]
+
+
+def test_rejected_names_are_printed_without_values(capsys):
+    argv = [*GLUE_SILVER_ARGV, "--mystery-key", "secret-value", "--other=hush"]
+    with pytest.raises(SystemExit):
+        parse_args(argv, extra=with_checks)
+    captured = capsys.readouterr()
+    for stream in (captured.out, captured.err):
+        assert "--mystery-key" in stream
+        assert "--other" in stream
+        assert "secret-value" not in stream
+        assert "hush" not in stream
+
+
 def test_typo_in_realistic_glue_argv_is_rejected():
     with pytest.raises(SystemExit):
         parse_args([*GLUE_SILVER_ARGV, "--run-dat", "2026-11-20"], extra=with_checks)
