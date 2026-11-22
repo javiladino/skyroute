@@ -61,6 +61,9 @@ GLUE_RESERVED = frozenset(
         "--python-virtual-env-version",
         "--use-postgres-driver",
         "--auto-scale-within-microbatch",
+        "--internal-lib-urls",
+        "--glue-di-packages-correlation-ids",
+        "--tenant-internal",
     }
 )
 # Familias de Glue (documentadas o inyectadas por el servicio segun version del runtime).
@@ -76,6 +79,9 @@ GLUE_RESERVED_PREFIXES = (
     "--system-",
     "--customer-",
     "--disable-",
+    "--internal-",
+    "--glue-",
+    "--tenant-",
     "--conf",
 )
 # Parametros internos en MAYUSCULAS (--JOB_ID, --JOB_RUN_ID, --SECURITY_CONFIGURATION, ...).
