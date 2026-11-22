@@ -40,7 +40,6 @@ import sys
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-from jobs.silver.bookings_scd2 import DEFAULT_CHECKS_DIR
 from lib.args import parse_args
 from lib.checks import Failure, require_rules_file
 from lib.session import build_spark
@@ -48,6 +47,8 @@ from lib.wap import WapCheckError, branch_name, run_wap
 from pyspark.sql import SparkSession, Window
 from pyspark.sql import functions as F
 from pyspark.sql.types import ArrayType, StringType, StructField, StructType
+
+from jobs.silver.bookings_scd2 import DEFAULT_CHECKS_DIR
 
 LOG = logging.getLogger("silver.sessions")
 DEFAULT_GAP_MINUTES = 30

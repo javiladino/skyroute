@@ -27,14 +27,15 @@ import logging
 import sys
 from pathlib import Path
 
-from jobs.silver.bookings_current import latest_per_booking
-from jobs.silver.bookings_scd2 import DEFAULT_CHECKS_DIR
 from lib.args import parse_args
 from lib.checks import require_rules_file
 from lib.session import build_spark
 from lib.wap import run_wap
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
+
+from jobs.silver.bookings_current import latest_per_booking
+from jobs.silver.bookings_scd2 import DEFAULT_CHECKS_DIR
 
 LOG = logging.getLogger("silver.bookings_eur")
 
