@@ -2,6 +2,7 @@
 
 import argparse
 import logging
+import re
 import sys
 from datetime import date, timedelta
 
@@ -54,9 +55,31 @@ GLUE_RESERVED = frozenset(
         "--debug",
         "--mode",
         "--endpoint",
+        "--execution_class",
+        "--redshiftTmpDir",
+        "--python-virtual-env-storage-prefix",
+        "--python-virtual-env-version",
+        "--use-postgres-driver",
+        "--auto-scale-within-microbatch",
     }
 )
-GLUE_RESERVED_PREFIXES = ("--enable-", "--continuous-log-", "--custom-log")
+# Familias de Glue (documentadas o inyectadas por el servicio segun version del runtime).
+GLUE_RESERVED_PREFIXES = (
+    "--enable-",
+    "--continuous-log-",
+    "--custom-log",
+    "--spark-",
+    "--job-",
+    "--extra-",
+    "--additional-",
+    "--python-",
+    "--system-",
+    "--customer-",
+    "--disable-",
+    "--conf",
+)
+# Parametros internos en MAYUSCULAS (--JOB_ID, --JOB_RUN_ID, --SECURITY_CONFIGURATION, ...).
+GLUE_UPPERCASE = re.compile(r"--[A-Z][A-Z0-9_]*")
 
 
 def _unexpected_glue_args(ignored: list[str]) -> list[str]:
@@ -67,6 +90,7 @@ def _unexpected_glue_args(ignored: list[str]) -> list[str]:
         if token.startswith("--")
         and token.split("=", 1)[0] not in GLUE_RESERVED
         and not token.startswith(GLUE_RESERVED_PREFIXES)
+        and not GLUE_UPPERCASE.fullmatch(token.split("=", 1)[0])
     ]
 
 
