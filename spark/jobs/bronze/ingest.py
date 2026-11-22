@@ -15,9 +15,9 @@ El landing va con s3a:// (Hadoop) y el warehouse de Glue con s3:// (Iceberg).
 
 import copy
 import logging
-import sys
 
 from lib.args import parse_args
+from lib.entrypoint import exit_on_error
 from lib.schemas import SCHEMAS
 from lib.session import build_spark
 from lib.technical_columns import add_technical_columns
@@ -143,4 +143,4 @@ def main(argv=None) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    exit_on_error(main())

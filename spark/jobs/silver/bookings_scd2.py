@@ -23,11 +23,11 @@ Escribe con WAP (rama run_<D>, checks de spark/checks/bookings_scd2.yaml, fast_f
 
 import copy
 import logging
-import sys
 from pathlib import Path
 
 from lib.args import parse_args
 from lib.checks import require_rules_file
+from lib.entrypoint import exit_on_error
 from lib.session import build_spark
 from lib.wap import run_wap
 from pyspark.sql import SparkSession, Window
@@ -241,4 +241,4 @@ def main(argv=None) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    exit_on_error(main())

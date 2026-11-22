@@ -11,10 +11,10 @@ fallo un check y espera inspeccion). El contenido de la tabla en `main` no cambi
 
 import copy
 import logging
-import sys
 from datetime import date, datetime, time, timedelta
 
 from lib.args import parse_args
+from lib.entrypoint import exit_on_error
 from lib.session import build_spark
 from pyspark.sql import SparkSession
 
@@ -105,4 +105,4 @@ def main(argv=None) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    exit_on_error(main())
