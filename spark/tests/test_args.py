@@ -29,6 +29,9 @@ def test_glue_reserved_arguments_with_values_are_accepted():
         "--conf", "spark.sql.extensions=x --conf spark.sql.session.timeZone=UTC",
         "--enable-spark-ui", "false",
         "--continuous-log-logGroup", "g",
+        "--internal-lib-urls", "s3://bucket/internal/lib.zip",
+        "--glue-di-packages-correlation-ids", "c1",
+        "--tenant-internal", "t1",
     ]  # fmt: skip
     assert parse_args([*BASE, *glue]).dates == ["2026-01-01"]
 
@@ -82,6 +85,9 @@ GLUE_SILVER_ARGV = [
     "--encryption-type", "sse-s3",
     "--spark-event-logs-path", "s3://bucket/logs/",
     "--execution_class", "FLEX",
+    "--internal-lib-urls", "s3://bucket/internal/lib.zip",
+    "--glue-di-packages-correlation-ids", "c1",
+    "--tenant-internal", "t1",
     "--from", "2026-11-19", "--to", "2026-11-20",
 ]  # fmt: skip
 
@@ -120,6 +126,22 @@ def test_rejected_names_are_printed_without_values(capsys):
         assert "--other" in stream
         assert "secret-value" not in stream
         assert "hush" not in stream
+
+
+def test_observed_glue_5_flex_argv_is_accepted():
+    argv = [
+        "--internal-lib-urls", "s3://bucket/internal/lib.zip",
+        "--JOB_ID", "j_1",
+        "--JOB_NAME", "skyroute-dev-silver-fx_daily",
+        "--glue-di-packages-correlation-ids", "c1",
+        "--job-bookmark-option", "job-bookmark-disable",
+        "--JOB_RUN_ID", "jr_1",
+        "--tenant-internal", "t1",
+        "--TempDir", "s3://b/t",
+        "--warehouse", "s3://b/silver",
+        "--from", "2026-11-19", "--to", "2026-11-20",
+    ]  # fmt: skip
+    assert parse_args(argv).dates == ["2026-11-19", "2026-11-20"]
 
 
 def test_typo_in_realistic_glue_argv_is_rejected():
