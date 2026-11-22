@@ -23,13 +23,14 @@ import logging
 import sys
 from pathlib import Path
 
-from jobs.silver.bookings_scd2 import DEFAULT_CHECKS_DIR
 from lib.args import parse_args
 from lib.checks import Failure, require_rules_file
 from lib.session import build_spark
 from lib.wap import WapCheckError, branch_name, run_wap
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
+
+from jobs.silver.bookings_scd2 import DEFAULT_CHECKS_DIR
 
 LOG = logging.getLogger("silver.fx_daily")
 
