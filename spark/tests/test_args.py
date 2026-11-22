@@ -53,3 +53,54 @@ def test_abbreviation_does_not_assign_an_option():
 def test_full_option_name_still_works_in_glue():
     args = parse_args([*BASE, *GLUE, "--session-gap-minutes", "5"], extra=with_gap)
     assert args.session_gap_minutes == 5
+
+
+# argv de un job Silver en Glue: default_arguments de glue_jobs.tf + los que inyecta Glue.
+GLUE_SILVER_ARGV = [
+    "--JOB_ID", "j_x", "--JOB_RUN_ID", "jr_x", "--JOB_NAME", "skyroute-dev-silver-fx_daily",
+    "--scriptLocation", "s3://bucket/scripts/jobs/silver/fx_daily.py",
+    "--job-language", "python",
+    "--datalake-formats", "iceberg",
+    "--TempDir", "s3://bucket/glue-temp/",
+    "--extra-py-files", "s3://bucket/scripts/spark-libs.zip",
+    "--env", "dev",
+    "--catalog-name", "skyroute",
+    "--catalog-impl", "glue",
+    "--warehouse", "s3://bucket/silver",
+    "--region", "eu-west-3",
+    "--jars-packages", "none",
+    "--enable-metrics", "true",
+    "--enable-spark-ui", "false",
+    "--enable-glue-datacatalog",
+    "--enable-job-insights", "false",
+    "--job-bookmark-option", "job-bookmark-disable",
+    "--conf", "spark.sql.extensions=x --conf spark.sql.session.timeZone=UTC",
+    "--extra-files", "s3://bucket/scripts/checks/fx_daily.yaml",
+    "--checks-dir", ".",
+    "--additional-python-modules", "PyYAML==6.0.4",
+    "--SECURITY_CONFIGURATION", "sc",
+    "--encryption-type", "sse-s3",
+    "--spark-event-logs-path", "s3://bucket/logs/",
+    "--execution_class", "FLEX",
+    "--from", "2026-11-19", "--to", "2026-11-20",
+]  # fmt: skip
+
+
+def with_checks(parser):
+    parser.add_argument("--checks-dir", default=".")
+
+
+def test_realistic_glue_argv_is_accepted():
+    args = parse_args(GLUE_SILVER_ARGV, extra=with_checks)
+    assert args.dates == ["2026-11-19", "2026-11-20"]
+    assert args.checks_dir == "."
+
+
+def test_run_date_variant_of_glue_argv_is_accepted():
+    argv = [*GLUE_SILVER_ARGV[:-4], "--run-date=2026-11-20"]
+    assert parse_args(argv, extra=with_checks).dates == ["2026-11-20"]
+
+
+def test_typo_in_realistic_glue_argv_is_rejected():
+    with pytest.raises(SystemExit):
+        parse_args([*GLUE_SILVER_ARGV, "--run-dat", "2026-11-20"], extra=with_checks)
