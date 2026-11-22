@@ -94,6 +94,23 @@ def _unexpected_glue_args(ignored: list[str]) -> list[str]:
     ]
 
 
+def _option_names(tokens: list[str]) -> list[str]:
+    """Solo los nombres `--x` (sin `=valor`); los valores sueltos nunca se imprimen."""
+    return [token.split("=", 1)[0] for token in tokens if token.startswith("--")]
+
+
+def _report_rejected(unexpected: list[str], ignored: list[str]) -> None:
+    """Deja los nombres rechazados en stdout, stderr y logging: CloudWatch no muestra el
+    mensaje de parser.error (solo el traceback). Nunca imprime valores."""
+    message = (
+        f"argumentos desconocidos que Glue no reserva: {_option_names(unexpected)}; "
+        f"nombres ignorados en total: {_option_names(ignored)}"
+    )
+    print(message, flush=True)
+    print(message, file=sys.stderr, flush=True)
+    LOG.error(message)
+
+
 def run_date_type(value: str) -> str:
     """Valida YYYY-MM-DD y devuelve el mismo texto; la fecha lógica nunca sale del reloj."""
     try:
@@ -145,7 +162,9 @@ def parse_args(argv=None, description: str = "", extra=None) -> argparse.Namespa
         args, ignored = parser.parse_known_args(argv)
         unexpected = _unexpected_glue_args(ignored)
         if unexpected:
-            parser.error(f"argumentos desconocidos que Glue no reserva: {unexpected}")
+            _report_rejected(unexpected, ignored)
+            names = _option_names(unexpected)
+            parser.error(f"argumentos desconocidos que Glue no reserva: {names}")
         LOG.info("argumentos de Glue ignorados: %s", ignored)
     else:
         args = parser.parse_args(argv)
