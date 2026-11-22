@@ -256,3 +256,8 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 
 ### bronze-silver — Fase 8 (mantenimiento y Glue), verificada en local
 - `expire_snapshots` y `rewrite_data_files`; 7 jobs Glue 5 Flex en el módulo `lakehouse` con scripts, zip y YAML en `scripts/`; `spark-tests.yml` en CI; comandos de AGENTS.md. Revisiones: adversarial, security y cost-guard, todas con notas, ya aplicadas. Glue 5.0 no trae PyYAML y se añadió como módulo. Deuda aceptada: un log group de Glue por entorno (necesita `bootstrap/`). 126 tests en verde. Faltan el apply y la demo.
+
+## 2026-11-22
+
+### bronze-silver — Fase 8: apply y demo en Glue
+- PR #36 aplicada en dev y prod. La demo del owner encontró cuatro fallos solo de Glue, corregidos en PRs #37-#41: `__init__.py` para zipimport, argumentos de runtime e internos no documentados, diagnóstico de argumentos rechazados y `SystemExit: 0` tratado como FAILED. `silver-fx_daily` y `silver-bookings_eur` en SUCCEEDED; Athena y local coinciden (132 filas, 109297.89 €). 142 tests en verde. Pendiente: coste en Cost Explorer (2026-11-23). Finding nuevo sobre Glue 5.0 Flex en `findings.md`.
