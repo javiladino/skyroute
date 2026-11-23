@@ -15,7 +15,7 @@ Proyecto de portfolio para un puesto de Data Engineer Senior: una plataforma de 
 | **1** — Fundaciones | Cuenta AWS con MFA y usuario no root, presupuesto, repo, bootstrap de Terraform (state, rol OIDC), CI básica. Hecho cuando un PR muestra un plan de Terraform y el merge lo aplica. | Done 2026-11-13 ([`foundations`](foundations/context.md); PR #1) |
 | **2** — Generador y landing | Simulador OTA coherente, Lambda + EventBridge, Postgres local, archivos en `landing/`. Hecho cuando hay 6 meses de histórico y llegan micro-lotes nuevos. | Done 2026-11-19 ([`generator-landing`](generator-landing/context.md); PRs #7-#20) |
 | **3** — Bronze y Silver con Spark + Iceberg | Jobs PySpark con tests, MERGE, sesionización, SCD2, conversión de divisas. Hecho cuando relanzar un día da exactamente el mismo resultado. | In progress ([`bronze-silver`](bronze-silver/context.md); Research) |
-| **4** — Gold con dbt | Staging, modelo dimensional, atribución en tres modelos, ROAS, funnel, RFM, tests, contratos, exposures, docs. Hecho cuando el glosario de KPIs coincide con el SQL. | Planned - no topic |
+| **4** — Gold con dbt | Staging, modelo dimensional, atribución en tres modelos, ROAS, funnel, RFM, tests, contratos, exposures, docs. Hecho cuando el glosario de KPIs coincide con el SQL. | In progress (`gold-dbt`, Research) |
 | **5** — Orquestación end to end | DAG diario, Cosmos para dbt, sensores, reintentos, backfill de 90 días, DAG semanal de mantenimiento Iceberg. Hecho cuando un backfill completo termina sin intervención. | Planned - no topic |
 | **6** — Calidad y observabilidad | WAP con ramas Iceberg, Elementary, tabla `ops.dq_results`, alertas SNS, métricas de coste. Hecho cuando un dato malo nunca llega a `main`. | Planned - no topic |
 | **7** — Gobierno | Contratos ODCS en CI, Marquez con lineage de punta a punta, OpenMetadata, Lake Formation con columnas PII ocultas. Hecho cuando el impacto de un fallo se enseña en 2 clics. | Planned - no topic |
@@ -31,6 +31,7 @@ Proyecto de portfolio para un puesto de Data Engineer Senior: una plataforma de 
 | [`foundations`](foundations/context.md) | Fase 1 — Fundaciones: cuenta, presupuesto, bootstrap de Terraform, OIDC y CI | Done |
 | [`generator-landing`](generator-landing/context.md) | Fase 2 — Generador y landing: simulador OTA, Lambda + EventBridge, Postgres local, `landing/` | Done |
 | [`bronze-silver`](bronze-silver/context.md) | Fase 3 — Bronze y Silver con Spark + Iceberg | In progress |
+| [`gold-dbt`](gold-dbt/context.md) | Fase 4 — Gold con dbt sobre Athena | In progress |
 
 ## Documentos
 
