@@ -340,13 +340,13 @@ resource "aws_iam_policy" "ci_boundary" {
       },
       {
         # Techo: Decrypt de las variables de entorno de las funciones skyroute-*.
+        # Techo: el FunctionArn skyroute-<env>-* lo acotan las inline (límite de 6.144 caracteres de la boundary).
         Sid      = "AllowKmsViaLambda"
         Effect   = "Allow"
         Action   = "kms:Decrypt"
         Resource = "*"
         Condition = {
           StringEquals = { "kms:ViaService" = local.kms_via_lambda_service }
-          StringLike   = { (local.kms_lambda_fn_context) = "arn:aws:lambda:${local.aws_region}:${local.account_id}:function:skyroute-*" }
         }
       },
       {
