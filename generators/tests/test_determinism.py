@@ -35,3 +35,11 @@ def _run(hashseed: str) -> str:
 def test_ts_u2_same_bytes_across_hashseeds():
     here = hashlib.sha256(generate("2026-05-01", 17)).hexdigest()
     assert _run("0") == _run("1") == here
+
+
+def test_same_run_date_same_bytes():
+    from ota import ad_spend
+
+    assert generate("2026-05-01", 3) == generate("2026-05-01", 3)
+    assert ad_spend.generate("2026-05-01") == ad_spend.generate("2026-05-01")
+    assert ad_spend.generate("2026-05-01") != ad_spend.generate("2026-05-02")

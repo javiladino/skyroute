@@ -22,12 +22,52 @@ from ota.keys import (
 MAX_LATE_SECONDS = 72 * 3600
 LATE_PROBABILITY = 0.05
 DUPLICATE_PROBABILITY = 0.03
+JOURNEY_ID_BASE = 2000
+JOURNEY_ID_STRIDE = 100  # pasos por sesion de recorrido: n < 100
+FUNNEL_RANK = {step: i for i, step in enumerate(model.FUNNEL_STEPS)}
+
+
+def journey_event_n(j: int, k: int) -> int:
+    """Rango `n` de `event_id` del paso `k` del recorrido `j`: 2000 + j*100 + k, con k < 100.
+
+    `j` efectivo: `offset * BOOKINGS_PER_DAY + j_reserva` (offset 0..6 = dias entre el run_date
+    y la reserva). Una reserva solo tiene `j` unico dentro de su dia, pero el generador del
+    dia X emite sesiones de reservas de X a X+6 en el mismo slot; sin `offset` dos reservas
+    con el mismo indice colisionarian en `event_id`.
+    """
+    if not 0 <= k < JOURNEY_ID_STRIDE:
+        raise ValueError(f"paso de recorrido fuera de rango: {k!r} (max {JOURNEY_ID_STRIDE - 1})")
+    return JOURNEY_ID_BASE + j * JOURNEY_ID_STRIDE + k
+
+
+def journey_events(run_date: str, slot: int, journey: dict) -> list:
+    """Eventos de una sesion de recorrido, con su `event_id` en el rango reservado."""
+    if len(journey["events"]) > JOURNEY_ID_STRIDE:
+        raise ValueError(f"recorrido de {len(journey['events'])} pasos: maximo {JOURNEY_ID_STRIDE}")
+    return [
+        {
+            "event_id": event_id(run_date, slot, journey_event_n(journey["j"], step["n"])),
+            **{k: v for k, v in step.items() if k != "n"},
+        }
+        for step in journey["events"]
+    ]
 
 
 def _validate(run_date: str, slot: int) -> None:
     model.parse_day(run_date)
     if isinstance(slot, bool) or not isinstance(slot, int) or not 0 <= slot < SLOTS_PER_DAY:
         raise ValueError(f"slot fuera de rango: {slot!r}")
+
+
+def _order_funnel_types(group: list) -> None:
+    """Reasigna los tipos `search`/`product_view` de una sesion de fondo para que, por
+    (`event_ts`, `event_id`), `search` no vaya despues de `product_view`: el fondo no invierte
+    el funnel."""
+    funnel = [e for e in group if e["event_type"] in FUNNEL_RANK]
+    types = sorted((e["event_type"] for e in funnel), key=FUNNEL_RANK.get)
+    in_order = sorted(funnel, key=lambda e: (e["event_ts"], e["event_id"]))
+    for event, etype in zip(in_order, types, strict=True):
+        event["event_type"] = etype
 
 
 def build_events(run_date: str, slot: int) -> list:
@@ -46,8 +86,10 @@ def build_events(run_date: str, slot: int) -> list:
         campaign_idx = rng.randrange(len(model.CAMPAIGNS))
         cust = customer_id(customer_n)
         sess = session_id(run_date, slot, i)
+        first = len(events)
         for _ in range(group):
-            etype = rng.choices(model.EVENT_TYPES, weights=model.EVENT_WEIGHTS)[0]
+            etype = rng.choices(model.BACKGROUND_EVENT_TYPES,
+                                weights=model.BACKGROUND_EVENT_WEIGHTS)[0]
             offset = rng.randrange(900)
             late = rng.random() < LATE_PROBABILITY
             late_shift = rng.randint(1, MAX_LATE_SECONDS)
@@ -70,14 +112,11 @@ def build_events(run_date: str, slot: int) -> list:
                 event["email"] = email_for(cust)
             events.append(event)
             i += 1
+        _order_funnel_types(events[first:])
 
     # Recorridos: eventos previos de la sesion de cada reserva, y despues su purchase.
     for journey in model.journeys_for_slot(run_date, slot):
-        for step in journey["events"]:
-            events.append({
-                "event_id": event_id(run_date, slot, 2000 + journey["j"] * 10 + step["n"]),
-                **{k: v for k, v in step.items() if k != "n"},
-            })
+        events.extend(journey_events(run_date, slot, journey))
 
     for j, booking in enumerate(model.bookings_for_slot(run_date, slot)):
         events.append({

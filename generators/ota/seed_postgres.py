@@ -18,7 +18,8 @@ from ota import model
 
 COLUMNS = (
     "booking_id", "customer_id", "session_id", "campaign_id",
-    "status", "currency", "amount", "created_at", "updated_at",
+    "origin", "destination", "travel_date", "status", "currency", "amount",
+    "created_at", "updated_at",
 )
 
 

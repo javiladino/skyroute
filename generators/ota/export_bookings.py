@@ -2,8 +2,9 @@
 
 Lee las filas con `changed_at` en [D 00:00, D+1 00:00) UTC ordenadas por
 `history_id` y escribe JSON lines gzip deterministas (mtime=0, sort_keys), como
-clickstream.py. Solo depende de D: dos ejecuciones dan los mismos bytes. No entra
-en el zip de Lambda; necesita `psycopg` solo al leer de Postgres. Uso:
+clickstream.py. Solo depende de D: dos ejecuciones dan los mismos bytes. Va dentro
+del zip de la Lambda (lambda.tf no lo excluye) aunque la Lambda no lo importa; necesita
+`psycopg` solo al leer de Postgres. Uso:
 
     PYTHONPATH=generators python3 -m ota.export_bookings --run-date 2026-01-01 \
         --out-dir build [--dsn postgresql://...]
@@ -18,7 +19,7 @@ import gzip
 import json
 import os
 import sys
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -27,7 +28,8 @@ from ota.keys import BOOKINGS_PREFIX, daily_key
 
 FIELDS = (
     "history_id", "booking_id", "customer_id", "session_id", "campaign_id",
-    "status", "currency", "amount", "created_at", "updated_at", "changed_at",
+    "origin", "destination", "travel_date", "status", "currency", "amount",
+    "created_at", "updated_at", "changed_at",
 )
 DEFAULT_DSN = "postgresql://postgres@127.0.0.1:5433/postgres"
 
@@ -40,6 +42,8 @@ def day_bounds(run_date: str) -> tuple:
 def _jsonable(value):
     if isinstance(value, datetime):
         return model.fmt_ts(value.astimezone(UTC))
+    if isinstance(value, date):
+        return value.isoformat()
     if isinstance(value, Decimal):
         return float(value)
     return value

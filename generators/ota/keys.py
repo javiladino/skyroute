@@ -9,6 +9,7 @@ SLOTS_PER_DAY = 96
 CLICKSTREAM_PREFIX = "landing/clickstream"
 BOOKINGS_PREFIX = "landing/bookings"
 FX_PREFIX = "landing/fx"
+AD_SPEND_PREFIX = "landing/ad_spend"
 
 
 def seed_for(run_date: str, slot: int, source: str) -> int:
@@ -54,5 +55,5 @@ def landing_key(run_date: str, slot: int) -> str:
 
 
 def daily_key(prefix: str, run_date: str) -> str:
-    """Clave de una fuente diaria (bookings, fx): <prefix>/ingest_date=D/part.json.gz."""
+    """Clave de una fuente diaria (bookings, fx, ad_spend): <prefix>/ingest_date=D/part.json.gz."""
     return f"{prefix}/ingest_date={run_date}/part.json.gz"
