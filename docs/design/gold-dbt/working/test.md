@@ -12,6 +12,8 @@ Fase de implementación en curso; filas por fase; veredicto global pendiente has
 
 Fase 0a: PASS (gate de 0b cumplido)
 
+Fase 0b: PASS (O17 completo; deriva de la Lambda BUCKET_NAME anotada como deuda)
+
 ## Checks
 
 ### Fase 0a (PR `bootstrap/`: `gold/*` en las boundaries y workgroup `skyroute-<env>-dbt`)
@@ -29,10 +31,28 @@ Veredicto de fase 0a: PASS (gate de 0b cumplido).
 
 Nota: las filas 0a.1 a 0a.3 las ejecutó el orquestador y las 0a.5 y 0a.6 el owner (Apply gate); este documento registra su evidencia tal como se aportó, no la reejecuta el ejecutor.
 
+### Fase 0b (PR #45, módulo `lakehouse`: base gold, workgroup `skyroute-<env>-dbt` y rol `skyroute-<env>-local-dbt`)
+
+| # | Check | Source | Command | Result | Status |
+|---|-------|--------|---------|--------|--------|
+| 0b.1 | Formato Terraform (V) | plan.md Testing Strategy; orquestador, 2026-11-23 | `terraform fmt -check -recursive infra/terraform` | sin salida | PASS |
+| 0b.2 | Validate de dev y prod (V) | plan.md Testing Strategy; orquestador, 2026-11-23 | `terraform -chdir=infra/terraform/envs/dev validate` y `terraform -chdir=infra/terraform/envs/prod validate` | `Success! The configuration is valid.` en los dos | PASS |
+| 0b.3 | tflint del módulo lakehouse (V) | plan.md Testing Strategy; orquestador, 2026-11-23 | `tflint --chdir=infra/terraform/modules/lakehouse --config=$PWD/infra/terraform/.tflint.hcl` | sin salida | PASS |
+| 0b.4 | Revisión de seguridad del módulo | security-reviewer | revisión del diff de 0b | Sin hallazgos sobre el módulo. Sus H1-H3 (boundary sin `gold/`) eran falsos positivos: leyó bootstrap desde `main` antes de fusionar la #43; el orquestador comprobó con `git grep` que la rama de la #43 tiene `gold/*` y `athena_workgroup_dbt` en las dos boundaries | PASS |
+| 0b.5 | O2, apply de CI | plan.md O2; run 45165899617 de `terraform-apply` (merge de la #45, 2026-11-23) | apply de CI en dev y en prod | En dev y en prod: `Plan: 4 to add, 1 to change, 0 to destroy.` y `Apply complete! Resources: 4 added, 1 changed, 0 destroyed.` Los 4 adds son los esperados: `module.lakehouse.aws_athena_workgroup.dbt`, `aws_glue_catalog_database.layer["gold"]`, `aws_iam_role.local_dbt[0]` y `aws_iam_role_policy.local_dbt[0]`. El change es `module.generator_landing.aws_lambda_function.generator`, que vuelve a añadir `environment.variables.BUCKET_NAME`; no viene de 0b: ya aparecía igual en los applies de la #42 (run 45036663569) y de la #43 (run 45165802461), en dev y en prod. Deriva perpetua previa, registrada como deuda abierta | PASS (con nota) |
+| 0b.6 | O17, parte S3 sobre silver | plan.md O17; owner, 2026-11-23 | `aws iam simulate-principal-policy --policy-source-arn arn:aws:iam::437266392155:role/workload/skyroute-dev-local-dbt --action-names s3:PutObject s3:DeleteObject --resource-arns arn:aws:s3:::skyroute-dev-data-437266392155/silver/__o17_probe__/x` | `s3:PutObject` y `s3:DeleteObject`: `EvalDecision: explicitDeny`, MatchedStatements `role_skyroute-dev-local-dbt_local-dbt`, `AllowedByPermissionsBoundary: true` (deniega la inline aunque la boundary lo permita, como se quería) | PASS |
+| 0b.7 | O17, resto (Glue sobre silver y S3 sobre landing y bronze) | plan.md O17; owner, 2026-11-23 | `aws iam simulate-principal-policy --policy-source-arn arn:aws:iam::437266392155:role/workload/skyroute-dev-local-dbt --action-names glue:CreateTable glue:UpdateTable glue:DeleteTable --resource-arns arn:aws:glue:eu-west-3:437266392155:table/skyroute_dev_silver/__o17_probe__`; y `aws iam simulate-principal-policy ... --action-names s3:PutObject s3:DeleteObject --resource-arns .../landing/__o17_probe__/x .../bronze/__o17_probe__/x --query EvaluationResults[].ResourceSpecificResults[]` | Glue: `explicitDeny` en las 3 acciones (`glue:CreateTable`, `glue:UpdateTable`, `glue:DeleteTable`). S3: `explicitDeny` en las 4 combinaciones de acción y recurso (landing y bronze). Nota: la vista agregada por acción no basta con varios recursos, por eso se usó `ResourceSpecificResults` | PASS |
+
+Veredicto de fase 0b: PASS (O17 completo; deriva de la Lambda BUCKET_NAME anotada como deuda).
+
+Nota: las filas 0b.1 a 0b.3 las ejecutó el orquestador, la 0b.5 la CI y la 0b.6 el owner; este documento registra su evidencia tal como se aportó, no la reejecuta el ejecutor.
+
 ## Review
 
 Fase 0a: security-reviewer OK. Un hallazgo low informativo (`gold/*` en `AllowLakehouseDelete` de prod): rechazado, es intencionado (S13). La review adversarial global sobre el diff completo queda pendiente hasta la fase 7.
 
 ## Follow-up
 
-Filas de las fases 0b a 7 pendientes. Sin fallos ni diferidos en la fase 0a.
+Filas de las fases 1 a 7 pendientes. Sin fallos ni diferidos en la fase 0a.
+
+- Deriva perpetua en `aws_lambda_function.generator` (`environment.variables.BUCKET_NAME` se re-añade en cada apply desde al menos la #42): investigar con terraform-researcher.
