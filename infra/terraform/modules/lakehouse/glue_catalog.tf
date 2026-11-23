@@ -1,12 +1,11 @@
 # Convention Medallion layers: bases Glue por entorno skyroute_<env>_<capa>.
-# gold queda fuera: lo crea la fase de dbt.
 locals {
   account_id  = data.aws_caller_identity.current.account_id
   region      = "eu-west-3"
   name_prefix = "skyroute-${var.env}"
   bucket_arn  = "arn:aws:s3:::${var.bucket_name}"
 
-  databases = toset(["bronze", "silver", "ops"])
+  databases = toset(["bronze", "silver", "gold", "ops"])
 }
 
 data "aws_caller_identity" "current" {}

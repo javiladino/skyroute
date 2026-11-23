@@ -12,4 +12,5 @@ module "lakehouse" {
   env                    = "dev"
   bucket_name            = module.generator_landing.bucket_name
   create_local_data_role = true
+  create_local_dbt_role  = true
 }

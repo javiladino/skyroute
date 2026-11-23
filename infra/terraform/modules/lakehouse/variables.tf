@@ -19,6 +19,12 @@ variable "create_local_data_role" {
   default     = true
 }
 
+variable "create_local_dbt_role" {
+  description = "true crea el rol skyroute-<env>-local-dbt; false lo omite."
+  type        = bool
+  default     = true
+}
+
 variable "owner_user_name" {
   description = "Usuario IAM del owner al que confia el rol local-data (con MFA)."
   type        = string

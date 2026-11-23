@@ -24,6 +24,13 @@ locals {
       write  = ["bronze", "silver", "athena-results", "glue-temp"]
       delete = ["bronze", "silver", "athena-results", "glue-temp"]
     }
+    # dbt lee silver y escribe solo gold y athena-results (el Deny de local_dbt_statements
+    # cubre landing, bronze y silver).
+    local_dbt = {
+      read   = ["silver", "gold", "athena-results"]
+      write  = ["gold", "athena-results"]
+      delete = ["gold", "athena-results"]
+    }
   }
 
   s3_data_statements = {
@@ -127,6 +134,91 @@ locals {
       Resource = aws_athena_workgroup.this.arn
     },
   ]
+
+  # Solo local-dbt (Design Decision 12). No usa common_statements ni
+  # glue_catalog_resources: ni SSM ni KMS, y Glue acotado por capa. El Deny es
+  # explicito porque la boundary concede escritura en bronze y silver.
+  local_dbt_statements = concat(
+    local.s3_data_statements["local_dbt"],
+    [
+      {
+        Sid      = "BucketList"
+        Effect   = "Allow"
+        Action   = ["s3:ListBucket", "s3:GetBucketLocation"]
+        Resource = local.bucket_arn
+      },
+      {
+        Sid    = "GlueSilverRead"
+        Effect = "Allow"
+        Action = [
+          "glue:GetDatabase",
+          "glue:GetDatabases",
+          "glue:GetTable",
+          "glue:GetTables",
+          "glue:GetTableVersion",
+          "glue:GetTableVersions",
+          "glue:GetPartition",
+          "glue:GetPartitions",
+        ]
+        Resource = [
+          "${local.glue_arn_prefix}:catalog",
+          "${local.glue_arn_prefix}:database/skyroute_${var.env}_silver",
+          "${local.glue_arn_prefix}:table/skyroute_${var.env}_silver/*",
+        ]
+      },
+      {
+        Sid    = "GlueGoldWrite"
+        Effect = "Allow"
+        Action = [
+          "glue:GetDatabase",
+          "glue:GetDatabases",
+          "glue:GetTable",
+          "glue:GetTables",
+          "glue:GetTableVersion",
+          "glue:GetTableVersions",
+          "glue:GetPartition",
+          "glue:GetPartitions",
+          "glue:CreateTable",
+          "glue:UpdateTable",
+          "glue:DeleteTable",
+        ]
+        Resource = [
+          "${local.glue_arn_prefix}:catalog",
+          "${local.glue_arn_prefix}:database/skyroute_${var.env}_gold",
+          "${local.glue_arn_prefix}:table/skyroute_${var.env}_gold/*",
+        ]
+      },
+      {
+        Sid    = "AthenaDbtWorkgroup"
+        Effect = "Allow"
+        Action = [
+          "athena:StartQueryExecution",
+          "athena:StopQueryExecution",
+          "athena:GetQueryExecution",
+          "athena:GetQueryResults",
+          "athena:GetWorkGroup",
+        ]
+        Resource = aws_athena_workgroup.dbt.arn
+      },
+      {
+        Sid      = "DenyUpstreamS3Write"
+        Effect   = "Deny"
+        Action   = ["s3:PutObject", "s3:DeleteObject"]
+        Resource = [for x in ["landing", "bronze", "silver"] : "${local.bucket_arn}/${x}/*"]
+      },
+      {
+        Sid    = "DenyUpstreamGlueWrite"
+        Effect = "Deny"
+        Action = ["glue:Create*", "glue:Update*", "glue:Delete*"]
+        Resource = flatten([
+          for layer in ["bronze", "silver"] : [
+            "${local.glue_arn_prefix}:database/skyroute_${var.env}_${layer}",
+            "${local.glue_arn_prefix}:table/skyroute_${var.env}_${layer}/*",
+          ]
+        ])
+      },
+    ],
+  )
 }
 
 # Rol que asume Glue para los jobs de demo (Fase 8). Los logs de Glue 5.0 van a los log
@@ -232,5 +324,48 @@ resource "aws_iam_role_policy" "local_data" {
         },
       ],
     )
+  })
+}
+
+# Rol para dbt en local (Design Decision 12): misma trust con MFA que local-data,
+# sesion de 1 hora y politica propia, sin common_statements (sin SSM ni KMS).
+resource "aws_iam_role" "local_dbt" {
+  count = var.create_local_dbt_role ? 1 : 0
+
+  name                 = "${local.name_prefix}-local-dbt"
+  path                 = "/workload/"
+  description          = "Rol de dbt para ejecucion local en ${var.env}; solo ${var.owner_user_name} con MFA."
+  permissions_boundary = local.workload_boundary_arn
+  max_session_duration = 3600
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect    = "Allow"
+        Principal = { AWS = local.owner_user_arn }
+        Action    = "sts:AssumeRole"
+        Condition = {
+          Bool = {
+            "aws:MultiFactorAuthPresent" = "true"
+          }
+          NumericLessThan = {
+            "aws:MultiFactorAuthAge" = "3600"
+          }
+        }
+      },
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "local_dbt" {
+  count = var.create_local_dbt_role ? 1 : 0
+
+  name = "local-dbt"
+  role = aws_iam_role.local_dbt[0].id
+
+  policy = jsonencode({
+    Version   = "2012-10-17"
+    Statement = local.local_dbt_statements
   })
 }
