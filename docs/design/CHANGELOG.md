@@ -261,3 +261,15 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 
 ### bronze-silver — Fase 8: apply y demo en Glue
 - PR #36 aplicada en dev y prod. La demo del owner encontró cuatro fallos solo de Glue, corregidos en PRs #37-#41: `__init__.py` para zipimport, argumentos de runtime e internos no documentados, diagnóstico de argumentos rechazados y `SystemExit: 0` tratado como FAILED. `silver-fx_daily` y `silver-bookings_eur` en SUCCEEDED; Athena y local coinciden (132 filas, 109297.89 €). 142 tests en verde. Pendiente: coste en Cost Explorer (2026-11-23). Finding nuevo sobre Glue 5.0 Flex en `findings.md`.
+
+## 2026-11-23
+
+### bronze-silver — coste de la demo sin confirmar
+- Cost Explorer da 0 USD de AWS Glue del 21 al 23 de noviembre, pero con `Estimated: true` (retraso de facturación). El owner reconsultará; la fila 8.4 de `test.md` y el cierre del topic quedan pendientes.
+- Guía de demo nueva: `docs/runbooks/demo-recorrido-fases-1-3.md` (generador → landing → Bronze → Silver → Athena).
+
+### gold-dbt — Fase 4 abierta, Research hecho
+- Topic `gold-dbt` creado. `working/research.md` con una ronda adversarial (GO-WITH-FIXES, hallazgos aplicados): Silver no tiene gasto publicitario, canal, ruta, fecha de viaje ni eventos de funnel, y los tres modelos de atribución coincidían con el generador actual.
+- Grill-me de 10 preguntas: el generador se amplía en un único backfill (ad_spend, recorridos multi-campaña, ruta y fecha, funnel ordenado); rol `local-dbt`; CI de dbt sin AWS; CRM aplazada a la Fase 7 (Ruling Research decisions).
+- Propose: tres propuestas con dos rondas adversariales; el owner eligió la Proposal 1 (recrear Bronze y Silver, generador y después dbt, spike de dbt-athena) y aprobó la Ruling Bronze rebuild exception (DROP de un solo uso en dev y en prod).
+- Plan: `working/plan.md` (fases 0a-7) revisado por security-reviewer, cost-guard y dos rondas adversariales. Ruling Plan decisions: workgroup propio `skyroute-<env>-dbt`, `local-data` temporal en prod para el rebuild, backfill en Spark local (en Glue costaría 20-60 USD) y `ad_spend` local.
