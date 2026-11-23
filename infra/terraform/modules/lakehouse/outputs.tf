@@ -8,6 +8,11 @@ output "workgroup_name" {
   value       = aws_athena_workgroup.this.name
 }
 
+output "dbt_workgroup_name" {
+  description = "Nombre del workgroup de Athena de dbt (skyroute-<env>-dbt)."
+  value       = aws_athena_workgroup.dbt.name
+}
+
 output "glue_job_role_arn" {
   description = "ARN del rol skyroute-<env>-glue-job."
   value       = aws_iam_role.glue_job.arn
@@ -21,6 +26,11 @@ output "glue_job_names" {
 output "local_data_role_arn" {
   description = "ARN del rol skyroute-<env>-local-data; null si no se crea."
   value       = one(aws_iam_role.local_data[*].arn)
+}
+
+output "local_dbt_role_arn" {
+  description = "ARN del rol skyroute-<env>-local-dbt; null si no se crea."
+  value       = one(aws_iam_role.local_dbt[*].arn)
 }
 
 output "hmac_parameter_name" {
