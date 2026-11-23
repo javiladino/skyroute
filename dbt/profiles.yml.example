@@ -1,0 +1,26 @@
+# Copia a ~/.dbt/profiles.yml (o a un directorio propio con --profiles-dir). Sin credenciales:
+# boto3 las toma de la sesion del rol skyroute-<env>-local-dbt (assume-role con MFA).
+# SKYROUTE_BUCKET = bucket del lakehouse del entorno (output `bucket_name` del modulo lakehouse).
+skyroute:
+  target: dev
+  outputs:
+    dev:
+      type: athena
+      region_name: eu-west-3
+      database: awsdatacatalog
+      schema: skyroute_dev_gold
+      work_group: skyroute-dev-dbt
+      s3_staging_dir: "s3://{{ env_var('SKYROUTE_BUCKET') }}/athena-results/"
+      s3_data_dir: "s3://{{ env_var('SKYROUTE_BUCKET') }}/gold/"
+      threads: 2
+      num_retries: 1
+    prod:
+      type: athena
+      region_name: eu-west-3
+      database: awsdatacatalog
+      schema: skyroute_prod_gold
+      work_group: skyroute-prod-dbt
+      s3_staging_dir: "s3://{{ env_var('SKYROUTE_BUCKET') }}/athena-results/"
+      s3_data_dir: "s3://{{ env_var('SKYROUTE_BUCKET') }}/gold/"
+      threads: 2
+      num_retries: 1

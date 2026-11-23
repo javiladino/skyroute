@@ -1,0 +1,13 @@
+# Perfil ficticio para `dbt parse` y `dbt ls` en local y en CI: sin credenciales, sin conexion.
+skyroute:
+  target: dev
+  outputs:
+    dev:
+      type: athena
+      region_name: eu-west-3
+      database: awsdatacatalog
+      schema: skyroute_dev_gold
+      work_group: skyroute-dev-dbt
+      s3_staging_dir: "s3://ci-placeholder-bucket/athena-results/"
+      s3_data_dir: "s3://ci-placeholder-bucket/gold/"
+      threads: 1

@@ -1,0 +1,8 @@
+version: 2
+
+sources:
+  - name: silver
+    # skyroute_<env>_silver: el target (dev, prod) fija el entorno.
+    schema: "skyroute_{{ target.name }}_silver"
+    tables:
+      - name: bookings_eur
