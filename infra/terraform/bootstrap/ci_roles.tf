@@ -17,6 +17,7 @@ locals {
     for env in ["dev", "prod"] : env => {
       data_bucket       = "arn:aws:s3:::skyroute-${env}-data-${data.aws_caller_identity.current.account_id}"
       function          = "arn:aws:lambda:${local.aws_region}:${data.aws_caller_identity.current.account_id}:function:skyroute-${env}-generator"
+      function_pattern  = "arn:aws:lambda:${local.aws_region}:${data.aws_caller_identity.current.account_id}:function:skyroute-${env}-*"
       schedule          = "arn:aws:scheduler:${local.aws_region}:${data.aws_caller_identity.current.account_id}:schedule/default/skyroute-${env}-generator"
       workload_roles    = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/workload/skyroute-${env}-*"
       log_group         = "arn:aws:logs:${local.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/skyroute-${env}-generator"
@@ -42,9 +43,13 @@ locals {
   }
 
   # Clave gestionada aws/ssm: DescribeKey se acota por alias, no por ARN de clave.
-  kms_ssm_alias        = ["alias/aws/ssm"]
-  kms_via_ssm_service  = "ssm.${local.aws_region}.amazonaws.com"
-  scripts_objects_read = [local.env_arns["dev"].scripts_objects, local.env_arns["prod"].scripts_objects]
+  kms_ssm_alias       = ["alias/aws/ssm"]
+  kms_via_ssm_service = "ssm.${local.aws_region}.amazonaws.com"
+  # Variables de entorno de Lambda cifradas con la clave aws/lambda: el contexto
+  # de cifrado lleva el ARN de la funcion.
+  kms_via_lambda_service = "lambda.${local.aws_region}.amazonaws.com"
+  kms_lambda_fn_context  = "kms:EncryptionContext:aws:lambda:FunctionArn"
+  scripts_objects_read   = [local.env_arns["dev"].scripts_objects, local.env_arns["prod"].scripts_objects]
 
   # Objetos de state que ci-plan lee (StateRead); DenyDataObjectRead los exime.
   ci_plan_state_read_arns = [
@@ -331,6 +336,17 @@ resource "aws_iam_policy" "ci_boundary" {
           StringEquals = {
             "kms:ViaService" = local.kms_via_ssm_service
           }
+        }
+      },
+      {
+        # Techo: Decrypt de las variables de entorno de las funciones skyroute-*.
+        # Techo: el FunctionArn skyroute-<env>-* lo acotan las inline (límite de 6.144 caracteres de la boundary).
+        Sid      = "AllowKmsViaLambda"
+        Effect   = "Allow"
+        Action   = "kms:Decrypt"
+        Resource = "*"
+        Condition = {
+          StringEquals = { "kms:ViaService" = local.kms_via_lambda_service }
         }
       },
       {
@@ -665,6 +681,17 @@ resource "aws_iam_role_policy" "ci_plan" {
         }
       },
       {
+        # El refresh de aws_lambda_function lee Environment.Variables (clave aws/lambda).
+        Sid      = "PlanKmsDecryptLambdaEnv"
+        Effect   = "Allow"
+        Action   = "kms:Decrypt"
+        Resource = "*"
+        Condition = {
+          StringEquals = { "kms:ViaService" = local.kms_via_lambda_service }
+          StringLike   = { (local.kms_lambda_fn_context) = [local.env_arns["dev"].function_pattern, local.env_arns["prod"].function_pattern] }
+        }
+      },
+      {
         # DescribeParameters no admite ARN de recurso.
         Sid      = "PlanSsmDescribe"
         Effect   = "Allow"
@@ -702,6 +729,8 @@ resource "aws_iam_role_policy" "ci_plan" {
         # StringNotEquals es verdadero cuando la clave falta, asi que un Decrypt
         # directo (sin contexto de SSM) o sobre otro parametro sigue denegado; solo
         # el Decrypt del HMAC (concedido en PlanKmsDecryptHmac) escapa del Deny.
+        # El StringNotLike de FunctionArn (AND) exime ademas el Decrypt de las
+        # variables de entorno de las funciones skyroute-<env>-* (PlanKmsDecryptLambdaEnv).
         Sid      = "DenyKmsDecrypt"
         Effect   = "Deny"
         Action   = "kms:Decrypt"
@@ -709,6 +738,9 @@ resource "aws_iam_role_policy" "ci_plan" {
         Condition = {
           StringNotEquals = {
             "kms:EncryptionContext:PARAMETER_ARN" = [local.env_arns["dev"].hmac_key, local.env_arns["prod"].hmac_key]
+          }
+          StringNotLike = {
+            (local.kms_lambda_fn_context) = [local.env_arns["dev"].function_pattern, local.env_arns["prod"].function_pattern]
           }
         }
       },

@@ -164,6 +164,17 @@ resource "aws_iam_role_policy" "ci_apply_prod" {
         }
       },
       {
+        # El refresh de aws_lambda_function lee Environment.Variables (clave aws/lambda).
+        Sid      = "ApplyKmsDecryptLambdaEnv"
+        Effect   = "Allow"
+        Action   = "kms:Decrypt"
+        Resource = "*"
+        Condition = {
+          StringEquals = { "kms:ViaService" = local.kms_via_lambda_service }
+          StringLike   = { (local.kms_lambda_fn_context) = local.env_arns["prod"].function_pattern }
+        }
+      },
+      {
         Sid      = "ApplyKmsDescribe"
         Effect   = "Allow"
         Action   = "kms:DescribeKey"
@@ -206,7 +217,8 @@ resource "aws_iam_role_policy" "ci_apply_prod" {
       },
       {
         # Todo Decrypt cuyo PARAMETER_ARN no sea el HMAC de prod queda denegado
-        # (StringNotEquals es verdadero si la clave falta); espeja ci-plan.
+        # (StringNotEquals es verdadero si la clave falta); espeja ci-plan. El
+        # StringNotLike (AND) exime las variables de entorno de skyroute-prod-*.
         Sid      = "DenyKmsDecrypt"
         Effect   = "Deny"
         Action   = "kms:Decrypt"
@@ -214,6 +226,9 @@ resource "aws_iam_role_policy" "ci_apply_prod" {
         Condition = {
           StringNotEquals = {
             "kms:EncryptionContext:PARAMETER_ARN" = local.env_arns["prod"].hmac_key
+          }
+          StringNotLike = {
+            (local.kms_lambda_fn_context) = local.env_arns["prod"].function_pattern
           }
         }
       },
