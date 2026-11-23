@@ -1,8 +1,9 @@
 module "generator_landing" {
   source = "../../modules/generator-landing"
 
-  env              = "prod"
-  schedule_enabled = true
+  env = "prod"
+  # Pausado el 2026-11-23 hasta el rebuild de prod de la Fase 4 (gold-dbt, Ruling Plan decisions)
+  schedule_enabled = false
   alarm_email      = var.alarm_email
 }
 
