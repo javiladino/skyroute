@@ -17,6 +17,7 @@ resource "aws_iam_policy" "workload_boundary_dev" {
           "${local.env_arns["dev"].data_bucket}/landing/*",
           "${local.env_arns["dev"].data_bucket}/bronze/*",
           "${local.env_arns["dev"].data_bucket}/silver/*",
+          "${local.env_arns["dev"].data_bucket}/gold/*",
           "${local.env_arns["dev"].data_bucket}/athena-results/*",
           "${local.env_arns["dev"].data_bucket}/glue-temp/*",
         ]
@@ -30,6 +31,7 @@ resource "aws_iam_policy" "workload_boundary_dev" {
           "${local.env_arns["dev"].data_bucket}/landing/*",
           "${local.env_arns["dev"].data_bucket}/bronze/*",
           "${local.env_arns["dev"].data_bucket}/silver/*",
+          "${local.env_arns["dev"].data_bucket}/gold/*",
           "${local.env_arns["dev"].data_bucket}/scripts/*",
           "${local.env_arns["dev"].data_bucket}/athena-results/*",
           "${local.env_arns["dev"].data_bucket}/glue-temp/*",
@@ -48,6 +50,7 @@ resource "aws_iam_policy" "workload_boundary_dev" {
         Resource = [
           "${local.env_arns["dev"].data_bucket}/bronze/*",
           "${local.env_arns["dev"].data_bucket}/silver/*",
+          "${local.env_arns["dev"].data_bucket}/gold/*",
           "${local.env_arns["dev"].data_bucket}/athena-results/*",
           "${local.env_arns["dev"].data_bucket}/glue-temp/*",
         ]
@@ -78,7 +81,10 @@ resource "aws_iam_policy" "workload_boundary_dev" {
           "athena:GetQueryResults",
           "athena:GetWorkGroup",
         ]
-        Resource = local.env_arns["dev"].athena_workgroup
+        Resource = [
+          local.env_arns["dev"].athena_workgroup,
+          local.env_arns["dev"].athena_workgroup_dbt,
+        ]
       },
       {
         Sid      = "AllowHmacParameter"

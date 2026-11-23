@@ -116,10 +116,13 @@ resource "aws_iam_role_policy" "ci_apply_dev" {
         ]
       },
       {
-        Sid      = "ApplyAthena"
-        Effect   = "Allow"
-        Action   = local.apply_athena_actions
-        Resource = local.env_arns["dev"].athena_workgroup
+        Sid    = "ApplyAthena"
+        Effect = "Allow"
+        Action = local.apply_athena_actions
+        Resource = [
+          local.env_arns["dev"].athena_workgroup,
+          local.env_arns["dev"].athena_workgroup_dbt,
+        ]
       },
       {
         Sid      = "ApplySsm"
