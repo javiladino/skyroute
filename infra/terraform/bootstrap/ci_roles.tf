@@ -32,10 +32,12 @@ locals {
       glue_table       = "arn:aws:glue:${local.aws_region}:${data.aws_caller_identity.current.account_id}:table/skyroute_${env}_*/*"
       glue_job         = "arn:aws:glue:${local.aws_region}:${data.aws_caller_identity.current.account_id}:job/skyroute-${env}-*"
       athena_workgroup = "arn:aws:athena:${local.aws_region}:${data.aws_caller_identity.current.account_id}:workgroup/skyroute-${env}"
-      ssm_parameter    = "arn:aws:ssm:${local.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/skyroute/${env}/*"
-      hmac_key         = "arn:aws:ssm:${local.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/skyroute/${env}/hmac-email-key"
-      glue_job_role    = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/workload/skyroute-${env}-glue-job"
-      scripts_objects  = "arn:aws:s3:::skyroute-${env}-data-${data.aws_caller_identity.current.account_id}/scripts/*"
+      # Workgroup de dbt (Fase 4, Ruling "Plan decisions"): ARN exacto, sin comodin.
+      athena_workgroup_dbt = "arn:aws:athena:${local.aws_region}:${data.aws_caller_identity.current.account_id}:workgroup/skyroute-${env}-dbt"
+      ssm_parameter        = "arn:aws:ssm:${local.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/skyroute/${env}/*"
+      hmac_key             = "arn:aws:ssm:${local.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/skyroute/${env}/hmac-email-key"
+      glue_job_role        = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/workload/skyroute-${env}-glue-job"
+      scripts_objects      = "arn:aws:s3:::skyroute-${env}-data-${data.aws_caller_identity.current.account_id}/scripts/*"
     }
   }
 
@@ -626,10 +628,15 @@ resource "aws_iam_role_policy" "ci_plan" {
         ]
       },
       {
-        Sid      = "PlanAthenaRead"
-        Effect   = "Allow"
-        Action   = ["athena:GetWorkGroup", "athena:ListTagsForResource"]
-        Resource = [local.env_arns["dev"].athena_workgroup, local.env_arns["prod"].athena_workgroup]
+        Sid    = "PlanAthenaRead"
+        Effect = "Allow"
+        Action = ["athena:GetWorkGroup", "athena:ListTagsForResource"]
+        Resource = [
+          local.env_arns["dev"].athena_workgroup,
+          local.env_arns["dev"].athena_workgroup_dbt,
+          local.env_arns["prod"].athena_workgroup,
+          local.env_arns["prod"].athena_workgroup_dbt,
+        ]
       },
       {
         Sid      = "PlanSsmRead"
