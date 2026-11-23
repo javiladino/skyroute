@@ -12,7 +12,7 @@ Fase de implementación en curso; filas por fase; veredicto global pendiente has
 
 Fase 0a: PASS (gate de 0b cumplido)
 
-Fase 0b: PASS (O17 completo; deriva de la Lambda BUCKET_NAME anotada como deuda)
+Fase 0b: PASS (O17 completo; deriva de la Lambda BUCKET_NAME resuelta en la PR #47)
 
 Fase 0c: PASS (spike sobre bookings_eur; ventana de sessions en la fase 5)
 
@@ -45,7 +45,7 @@ Nota: las filas 0a.1 a 0a.3 las ejecutó el orquestador y las 0a.5 y 0a.6 el own
 | 0b.6 | O17, parte S3 sobre silver | plan.md O17; owner, 2026-11-23 | `aws iam simulate-principal-policy --policy-source-arn arn:aws:iam::437266392155:role/workload/skyroute-dev-local-dbt --action-names s3:PutObject s3:DeleteObject --resource-arns arn:aws:s3:::skyroute-dev-data-437266392155/silver/__o17_probe__/x` | `s3:PutObject` y `s3:DeleteObject`: `EvalDecision: explicitDeny`, MatchedStatements `role_skyroute-dev-local-dbt_local-dbt`, `AllowedByPermissionsBoundary: true` (deniega la inline aunque la boundary lo permita, como se quería) | PASS |
 | 0b.7 | O17, resto (Glue sobre silver y S3 sobre landing y bronze) | plan.md O17; owner, 2026-11-23 | `aws iam simulate-principal-policy --policy-source-arn arn:aws:iam::437266392155:role/workload/skyroute-dev-local-dbt --action-names glue:CreateTable glue:UpdateTable glue:DeleteTable --resource-arns arn:aws:glue:eu-west-3:437266392155:table/skyroute_dev_silver/__o17_probe__`; y `aws iam simulate-principal-policy ... --action-names s3:PutObject s3:DeleteObject --resource-arns .../landing/__o17_probe__/x .../bronze/__o17_probe__/x --query EvaluationResults[].ResourceSpecificResults[]` | Glue: `explicitDeny` en las 3 acciones (`glue:CreateTable`, `glue:UpdateTable`, `glue:DeleteTable`). S3: `explicitDeny` en las 4 combinaciones de acción y recurso (landing y bronze). Nota: la vista agregada por acción no basta con varios recursos, por eso se usó `ResourceSpecificResults` | PASS |
 
-Veredicto de fase 0b: PASS (O17 completo; deriva de la Lambda BUCKET_NAME anotada como deuda).
+Veredicto de fase 0b: PASS (O17 completo; deriva de la Lambda BUCKET_NAME resuelta en la PR #47).
 
 Nota: las filas 0b.1 a 0b.3 las ejecutó el orquestador, la 0b.5 la CI y la 0b.6 el owner; este documento registra su evidencia tal como se aportó, no la reejecuta el ejecutor.
 
@@ -73,7 +73,8 @@ Fase 0a: security-reviewer OK. Un hallazgo low informativo (`gold/*` en `AllowLa
 
 Filas de las fases 1 a 7 pendientes. Sin fallos ni diferidos en la fase 0a.
 
-- Deriva perpetua en `aws_lambda_function.generator` (`environment.variables.BUCKET_NAME` se re-añade en cada apply desde al menos la #42): investigar con terraform-researcher.
+- Resuelto el 2026-11-23: la deriva de `BUCKET_NAME` venía del `Deny kms:Decrypt` de los roles de CI, que ocultaba las variables de entorno de la Lambda. Corregido en `bootstrap/` (PR #47, aplicado por el owner: 4 changed). El plan de CI de la #47 (run 45237668116) da `No changes` en dev y prod. Ver `findings.md`.
+- `ci-boundary` queda en 6.068 de 6.144 caracteres: cualquier permiso nuevo de CI tiene que compactar algo o ir en otra boundary.
 - fase 5: fijar `dbt-core==1.12.7` y `dbt-athena==1.11.2` en `requirements-dev.txt`.
 - fase 5: añadir `dbt/ci/.user.yml` y `dbt/target/` y `dbt/logs/` a `.gitignore` si no lo están.
 - runbooks: el perfil de `local-dbt` necesita `mfa_serial`.
