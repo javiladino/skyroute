@@ -14,6 +14,8 @@ Fase 0a: PASS (gate de 0b cumplido)
 
 Fase 0b: PASS (O17 completo; deriva de la Lambda BUCKET_NAME anotada como deuda)
 
+Fase 0c: PASS (spike sobre bookings_eur; ventana de sessions en la fase 5)
+
 ## Checks
 
 ### Fase 0a (PR `bootstrap/`: `gold/*` en las boundaries y workgroup `skyroute-<env>-dbt`)
@@ -47,6 +49,22 @@ Veredicto de fase 0b: PASS (O17 completo; deriva de la Lambda BUCKET_NAME anotad
 
 Nota: las filas 0b.1 a 0b.3 las ejecutó el orquestador, la 0b.5 la CI y la 0b.6 el owner; este documento registra su evidencia tal como se aportó, no la reejecuta el ejecutor.
 
+### Fase 0c (spike de dbt-athena, rama `spike/gold-dbt-0c`, commit 4cfe307, resultados en `dbt/SPIKE.md`; la rama no se fusiona, la absorbe la fase 5)
+
+| # | Check | Source | Command | Result | Status |
+|---|-------|--------|---------|--------|--------|
+| 0c.1 | Parse y listado del proyecto (V7) | plan.md Testing Strategy; orquestador, 2026-11-23 | `.venv/bin/dbt parse --project-dir dbt --profiles-dir dbt/ci` y `dbt ls` | `dbt ls`: "Found 2 models, 1 test, 1 source" (`spike_bookings_table`, `spike_bookings_window`, `source silver.bookings_eur`, `window_matches_silver`). dbt-core 1.12.7, dbt-athena 1.11.2 | PASS |
+| 0c.2 | Precondición: datos de silver para el spike | plan.md fase 0c; owner, 2026-11-23 | consulta de `skyroute_dev_silver.sessions` y de `skyroute_dev_silver.bookings_eur` | `skyroute_dev_silver.sessions` no existe (TABLE_NOT_FOUND); silver de dev solo tiene `bookings_eur` y `fx_daily`. Deriva frente al plan: el owner decidió reapuntar el spike a `bookings_eur` (2026-11-23); la ventana D-4..D de `sessions` queda para la fase 5. `bookings_eur`: `changed_at` entre 2026-11-20 y 2026-11-20, 132 filas | PASS (con deriva) |
+| 0c.3 | Identidad del rol `local-dbt` | plan.md fase 0c; owner, 2026-11-23 | `sts get-caller-identity` y `dbt debug` con el perfil de `local-dbt` | Sin `mfa_serial` en el perfil, AssumeRole da AccessDenied porque la trust exige MFA. Con `mfa_serial = arn:aws:iam::437266392155:mfa/skyroute`, `sts get-caller-identity` muestra `assumed-role/skyroute-dev-local-dbt`. `dbt debug`: "All checks passed!" con el workgroup `skyroute-dev-dbt` y el schema `skyroute_dev_gold` | PASS |
+| 0c.4 | Incremental: merge, pre_hook DELETE e incremental_predicates | plan.md fase 0c; owner, 2026-11-23 | 3 builds de `spike_bookings_window` y `window_matches_silver` con `run_date` 2026-11-20, 2026-11-20 y 2026-11-21 | Cada build: OK 132 y PASS=2 ERROR=0 | PASS |
+| 0c.5 | Materialización table y full-refresh | plan.md fase 0c; owner, 2026-11-23 | `spike_bookings_table` dos veces; `--full-refresh` de `spike_bookings_window` | `spike_bookings_table`: OK 132 y PASS=1 las dos veces; `--full-refresh` de `spike_bookings_window`: OK 132 y PASS=2. Ningún AccessDenied, así que la tabla IAM de S5 queda vacía | PASS |
+| 0c.6 | Idempotencia | plan.md fase 0c; owner, 2026-11-23 | `SELECT count(*), count(DISTINCT booking_id) FROM skyroute_dev_gold.spike_bookings_window` | `132, 132` | PASS |
+| 0c.7 | Coste del spike | plan.md fase 0c; owner, 2026-11-23 | CloudWatch `ProcessedBytes` del workgroup `skyroute-dev-dbt` | Sum 45154 bytes y Maximum 4642 bytes, frente al corte de 100 MB | PASS |
+
+Veredicto de fase 0c: PASS (spike sobre bookings_eur; ventana de sessions en la fase 5).
+
+Nota: la fila 0c.1 la ejecutó el orquestador y las 0c.2 a 0c.7 el owner; este documento registra su evidencia tal como se aportó, no la reejecuta el ejecutor.
+
 ## Review
 
 Fase 0a: security-reviewer OK. Un hallazgo low informativo (`gold/*` en `AllowLakehouseDelete` de prod): rechazado, es intencionado (S13). La review adversarial global sobre el diff completo queda pendiente hasta la fase 7.
@@ -56,3 +74,7 @@ Fase 0a: security-reviewer OK. Un hallazgo low informativo (`gold/*` en `AllowLa
 Filas de las fases 1 a 7 pendientes. Sin fallos ni diferidos en la fase 0a.
 
 - Deriva perpetua en `aws_lambda_function.generator` (`environment.variables.BUCKET_NAME` se re-añade en cada apply desde al menos la #42): investigar con terraform-researcher.
+- fase 5: fijar `dbt-core==1.12.7` y `dbt-athena==1.11.2` en `requirements-dev.txt`.
+- fase 5: añadir `dbt/ci/.user.yml` y `dbt/target/` y `dbt/logs/` a `.gitignore` si no lo están.
+- runbooks: el perfil de `local-dbt` necesita `mfa_serial`.
+- fase 5: probar la salida de filas de la ventana con varios días.
