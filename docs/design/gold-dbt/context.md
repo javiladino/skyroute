@@ -29,6 +29,7 @@ Fase 4 — Gold con dbt (README § Fases): "Staging, modelo dimensional, atribuc
   - Rebuild de prod → rol `skyroute-prod-local-data` temporal: una PR lo activa (`create_local_data_role = true`) y otra lo retira, ambas aplicadas por CI; `rebuild_tables` verifica la identidad con `sts`, exige escribir el nombre del entorno y tiene `--dry-run`.
   - Backfill → en Spark local (0 USD de cómputo; Ruling de la Fase 3: local a diario, Glue solo en demos); Glue solo para un día de demo. Tope de alarma de 1 USD para dev.
   - `ad_spend` → fuente diaria local como `bookings` y `fx`; no se toca la Lambda.
+  - Amendment fase 3 (javiladino, 2026-11-24): la fase 3 añade `boto3` a `spark/requirements.txt` (versión de Glue 5.0; lo necesita `rebuild_tables`) y `--from`/`--to` a `ota.ad_spend` y `ota.export_bookings` (salida por rango idéntica en bytes a la diaria), antes del commit único del backfill.
   - Enmienda del 2026-11-23 (Implement, antes de la fase 1): el schedule del generador de prod se pausa por IaC (`envs/prod/main.tf`, `schedule_enabled = false`, queda `DISABLED` sin destruirse) hasta el rebuild de prod de la fase 7, cuyo runbook lo reactiva. Sustituye, para la Fase 4, la decisión de `bronze-silver` de mantenerlo activo. La PR de la fase 1 no se fusiona hasta que la pausa esté aplicada en prod.
 
 ## Document map

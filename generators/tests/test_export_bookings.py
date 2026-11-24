@@ -81,6 +81,44 @@ def test_export_has_route_and_travel_date():
         assert len(row["travel_date"]) == 10
 
 
+def test_range_output_is_byte_identical_to_each_single_day(tmp_path, monkeypatch):
+    from ota import export_bookings
+
+    history = _history()
+    calls = []
+
+    def fake_fetch(dsn, run_date):
+        calls.append(run_date)
+        return rows_in_day(history, run_date)
+
+    monkeypatch.setattr(export_bookings, "fetch_rows", fake_fetch)
+    days = ["2026-05-01", "2026-05-02", "2026-05-03"]
+    rng = tmp_path / "range"
+    assert export_bookings.main(["--from", days[0], "--to", days[-1], "--out-dir", str(rng)]) == 0
+    assert calls == days
+    written = sorted(p.relative_to(rng) for p in rng.rglob("*.json.gz"))
+    assert written == sorted(Path(daily_key(BOOKINGS_PREFIX, d)) for d in days)
+    for d in days:
+        single = tmp_path / d
+        assert export_bookings.main(["--run-date", d, "--out-dir", str(single)]) == 0
+        key = daily_key(BOOKINGS_PREFIX, d)
+        assert (rng / key).read_bytes() == (single / key).read_bytes()
+
+
+def test_range_args_are_validated(tmp_path, monkeypatch):
+    import pytest
+    from ota import export_bookings
+
+    monkeypatch.setattr(export_bookings, "fetch_rows", lambda dsn, d: [])
+    out = str(tmp_path)
+    assert export_bookings.main(["--from", END, "--to", START, "--out-dir", out]) == 2
+    with pytest.raises(SystemExit):
+        export_bookings.main(["--run-date", DAY, "--from", DAY, "--to", DAY, "--out-dir", out])
+    with pytest.raises(SystemExit):
+        export_bookings.main(["--from", DAY, "--out-dir", out])
+    assert not list(tmp_path.rglob("*.json.gz"))
+
+
 def test_normalize_serializes_date_columns():
     from datetime import date
 

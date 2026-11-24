@@ -6,6 +6,10 @@ gzip, `mtime=0`, `sort_keys`). Va dentro del zip de la Lambda (lambda.tf no lo e
 aunque la Lambda no lo importa; solo stdlib. Uso, con `generators/` en PYTHONPATH:
 
     python3 -m ota.ad_spend --run-date 2026-01-05 --out-dir build
+    python3 -m ota.ad_spend --from 2026-01-01 --to 2026-01-31 --out-dir build
+
+Con `--from`/`--to` (excluyente con `--run-date`) recorre los dias en orden ascendente y
+escribe cada uno con la misma funcion diaria: mismos bytes que un `--run-date` por dia.
 
 Escribe `<out-dir>/landing/ad_spend/ingest_date=D/part.json.gz`; subirlo a S3 es un paso
 aparte del owner.
@@ -16,6 +20,7 @@ import gzip
 import json
 import random
 import sys
+from datetime import timedelta
 from pathlib import Path
 
 from ota import model
@@ -58,17 +63,33 @@ def write_export(run_date: str, out_dir: str) -> Path:
     return target
 
 
+def days(start: str, end: str) -> list:
+    """Dias YYYY-MM-DD de start a end, ambos incluidos, ascendentes."""
+    first, last = model.parse_day(start), model.parse_day(end)
+    if first > last:
+        raise ValueError("--from debe ser <= --to")
+    span = (last - first).days + 1
+    return [(first + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(span)]
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--run-date", required=True, help="YYYY-MM-DD")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--run-date", help="YYYY-MM-DD")
+    group.add_argument("--from", dest="start", help="YYYY-MM-DD, con --to")
+    parser.add_argument("--to", dest="end", help="YYYY-MM-DD, con --from")
     parser.add_argument("--out-dir", required=True)
     args = parser.parse_args(argv)
+    if (args.start is None) != (args.end is None):
+        parser.error("--from y --to van juntos")
     try:
-        target = write_export(args.run_date, args.out_dir)
+        run_dates = [args.run_date] if args.run_date else days(args.start, args.end)
+        for run_date in run_dates:
+            target = write_export(run_date, args.out_dir)
+            sys.stdout.write(f"{target} ({len(model.CAMPAIGNS)} filas)\n")
     except ValueError as exc:
         sys.stderr.write(f"{exc}\n")
         return 2
-    sys.stdout.write(f"{target} ({len(model.CAMPAIGNS)} filas)\n")
     return 0
 
 
