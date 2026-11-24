@@ -18,6 +18,10 @@ Fase 0c: PASS (spike sobre bookings_eur; ventana de sessions en la fase 5)
 
 Fase 1: PASS (con desviaciones registradas; schedule de prod en pausa hasta la fase 7)
 
+Fase 2: PASS (con desviaciones registradas; hallazgos de review corregidos en 96dc5a1)
+
+Fase 3: PASS (con desviaciones registradas; `rebuild_tables` sin ejecutar contra AWS hasta la fase 4)
+
 ## Checks
 
 ### Fase 0a (PR `bootstrap/`: `gold/*` en las boundaries y workgroup `skyroute-<env>-dbt`)
@@ -93,13 +97,71 @@ Veredicto de fase 1: PASS (con desviaciones registradas; schedule de prod en pau
 
 Nota: las filas 1.1 a 1.5 las ejecutó el ejecutor en esta sesión; las 1.6 y 1.7 son evidencia de CI tal como la aportó el orquestador.
 
+### Fase 2 (PR #50, Spark: `ad_spend`, ruta y fecha en reservas, guard `schema_mismatch`, Glue job `silver-ad_spend_daily`)
+
+| # | Check | Source | Command | Result | Status |
+|---|-------|--------|---------|--------|--------|
+| 2.1 | Lint (V1) | plan.md fase 2 y Testing Strategy; ejecutor, 2026-11-24, `main` en 76e0845 | `.venv/bin/python -m ruff check spark generators` | `All checks passed!` | PASS |
+| 2.2 | Tests del generador (V2) | plan.md Testing Strategy; ejecutor, 2026-11-24 | `.venv/bin/python -m pytest generators/tests -q` | `71 passed` | PASS |
+| 2.3 | Tests de Spark (V3) | plan.md fase 2 y Testing Strategy; ejecutor, 2026-11-24 | `.venv/bin/python -m pytest spark/tests -q` | `105 passed in 336.07s`, código 0 (base 90, esperado 105) | PASS |
+| 2.4 | Formato Terraform (V4) | plan.md fase 2 y Testing Strategy; ejecutor, 2026-11-24 | `terraform fmt -check -recursive infra/terraform` | sin salida, código 0 | PASS |
+| 2.5 | Despliegue de la fase 2 (merge de la PR #50) | run 45372615727 de `terraform-apply` | apply de CI en dev y en prod | apply-dev y apply-prod: `3 added, 11 changed, 0 destroyed` | PASS |
+| 2.6 | Revisión de costes | cost-guard | revisión del diff de la fase 2 | OK | PASS |
+| 2.7 | Revisión de seguridad | security-reviewer | revisión del diff de la fase 2 | Apto. 2 LOW: cifrado por defecto del bucket (confirmado en `modules/generator-landing/bucket.tf:21,31`) y validación de `--run-date` (confirmada con `date.fromisoformat` en `spark/lib/args.py:120-127`); los dos cerrados sin cambio | PASS |
+| 2.8 | Revisión adversarial | adversarial-reviewer | revisión del diff contra plan.md | GO-WITH-FIXES: MEDIO idempotencia de `ad_spend_date_mismatch`; BAJO INSERT con columnas explícitas en `ad_spend_daily` y `fx_daily`; BAJO test de campañas frente al generador. Todo corregido en 96dc5a1 | PASS |
+
+#### Desviaciones respecto al plan (fase 2)
+
+- Los tests `test_schema_mismatch_<job>` de las reservas se agrupan en `spark/tests/test_schema_guard.py` en lugar de uno por archivo de job.
+- `spark/jobs/silver/fx_daily.py` cambia (INSERT con columnas explícitas, hallazgo BAJO de la review) aunque no estaba en Files Changed de la fase 2.
+- El guard `schema_mismatch` compara solo nombres de columna, no tipos.
+- El ejecutor editó dos archivos con heredoc de Python, incumpliendo la Convention "Simple shell commands".
+
+Veredicto de fase 2: PASS (con desviaciones registradas; hallazgos de review corregidos en 96dc5a1).
+
+Nota: las filas 2.1 a 2.4 las ejecutó el ejecutor en esta sesión; la 2.5 es evidencia de CI y las 2.6 a 2.8 son reviews, tal como las aportó el orquestador.
+
+### Fase 3 (PR #52, `rebuild_tables`, runbook `docs/runbooks/gold-dbt-backfill.md`, `--from/--to` en `ota.ad_spend` y `ota.export_bookings`; y PR #53, `GlueCatalogDeleteTable` de `local-data` acotado a bronze y silver)
+
+| # | Check | Source | Command | Result | Status |
+|---|-------|--------|---------|--------|--------|
+| 3.1 | Tests de `rebuild_tables` (paso 3, verify 1; tests closed_list, prod_guard, identity_mismatch, typed_confirmation, dry_run) | plan.md paso 3 y Testing Strategy; ejecutor, 2026-11-24, `main` en 990adad | `.venv/bin/python -m pytest spark/tests/test_rebuild_tables.py -q` | `21 passed in 36.71s` | PASS |
+| 3.2 | Lint (paso 3, verify 2; V1) | plan.md paso 3; ejecutor, 2026-11-24 | `.venv/bin/python -m ruff check spark generators` | `All checks passed!` | PASS |
+| 3.3 | Tests del generador (V2) | plan.md Testing Strategy; ejecutor, 2026-11-24 | `.venv/bin/python -m pytest generators/tests -q` | `75 passed in 16.17s` (fase 1: 71) | PASS |
+| 3.4 | Tests de Spark (V3) | plan.md Testing Strategy; ejecutor, 2026-11-24 | `.venv/bin/python -m pytest spark/tests -q` | `126 passed in 363.19s`, código 0 | PASS |
+| 3.5 | Formato Terraform (V4) | plan.md Testing Strategy; ejecutor, 2026-11-24 | `terraform fmt -check -recursive infra/terraform` | sin salida, código 0 | PASS |
+| 3.6 | Despliegue de la PR #52 (commits 4f85a0d, f5080a4, 5d60863) | run 45410568332 de `terraform-apply`; evidencia de CI aportada por el orquestador | apply de CI en dev y en prod | apply-dev y apply-prod: `0 added, 2 changed, 0 destroyed` | PASS |
+| 3.7 | Despliegue de la PR #53 (`iam.tf`) | run 45415319114 de `terraform-apply`; evidencia de CI aportada por el orquestador | apply de CI en dev y en prod | apply-dev: `0 added, 1 changed`; apply-prod: `0 changed` (el rol `local-data` no existe en prod) | PASS |
+| 3.8 | Revisión de seguridad de la #52 | security-reviewer | revisión del diff de la fase 3 | MEDIO `--catalog-name` inyectable; BAJO cuenta sin comprobar en `check_identity`. Los dos corregidos en f5080a4 | PASS |
+| 3.9 | Revisión adversarial de la #52 | adversarial-reviewer | revisión del diff contra plan.md | GO-WITH-FIXES: H1 ALTO boto3 sin fijar, H2 MEDIO rango, H3 MEDIO credenciales del runbook, H4/H5/H6 BAJO. Todos corregidos en f5080a4 (`boto3==1.34.131` en `spark/requirements.txt`) | PASS |
+| 3.10 | Revisión de seguridad de la #53 | security-reviewer | revisión del diff de `iam.tf` | Aprobado; deuda LOW: `CreateTable`/`UpdateTable` de `local-data` siguen cubriendo gold (`iam.tf:97-100`), en Follow-up | PASS |
+
+#### Desviaciones respecto al plan (fase 3)
+
+- Ampliación de alcance del owner: `--from/--to` en `ota.ad_spend` y `ota.export_bookings` y `boto3` en `spark/requirements.txt`; registrada en `context.md`, Ruling "Plan decisions" › "Amendment fase 3".
+- La invocación de la Lambda en el runbook sigue con `skyroute-dev-login`, porque `local-data` no tiene `lambda:InvokeFunction`.
+- `days()` está duplicada en dos generadores (`ad_spend.py` y `export_bookings.py`); deuda en Follow-up.
+- La PR #53 (acotar `GlueCatalogDeleteTable` de `local-data` a bronze y silver) no estaba en el plan.
+- Deuda LOW: `CreateTable`/`UpdateTable` de `local-data` siguen cubriendo gold.
+- `rebuild_tables` no se ha ejecutado contra AWS; solo hay tests locales con `sts` simulado. Lo ejecuta el owner en la fase 4 según el runbook.
+
+Veredicto de fase 3: PASS (con desviaciones registradas; `rebuild_tables` sin ejecutar contra AWS hasta la fase 4).
+
+Nota: las filas 3.1 a 3.5 las ejecutó el ejecutor en esta sesión; las 3.6 a 3.10 son evidencia de CI y de las reviews tal como la aportó el orquestador.
+
 ## Review
+
+Fase 2: cost-guard OK; security-reviewer apto con 2 LOW cerrados sin cambio; adversarial-reviewer GO-WITH-FIXES, los tres hallazgos corregidos en 96dc5a1 (filas 2.6 a 2.8).
 
 Fase 0a: security-reviewer OK. Un hallazgo low informativo (`gold/*` en `AllowLakehouseDelete` de prod): rechazado, es intencionado (S13). La review adversarial global sobre el diff completo queda pendiente hasta la fase 7.
 
 ## Follow-up
 
-Filas de las fases 1 a 7 pendientes. Sin fallos ni diferidos en la fase 0a.
+Filas de las fases 4 a 7 pendientes. Sin fallos en las fases 0a a 3; los diferidos se listan abajo.
+
+- fase 3 (deuda LOW, review de la #53): `CreateTable`/`UpdateTable` de `local-data` siguen cubriendo gold (`infra/terraform/modules/lakehouse/iam.tf:97-100`).
+- fase 3: `days()` duplicada en `generators/ota/ad_spend.py` y `generators/ota/export_bookings.py`.
+- fase 4 [owner]: primera ejecución de `rebuild_tables` contra AWS (`--dry-run` y real) según `docs/runbooks/gold-dbt-backfill.md`.
 
 - Resuelto el 2026-11-23: la deriva de `BUCKET_NAME` venía del `Deny kms:Decrypt` de los roles de CI, que ocultaba las variables de entorno de la Lambda. Corregido en `bootstrap/` (PR #47, aplicado por el owner: 4 changed). El plan de CI de la #47 (run 45237668116) da `No changes` en dev y prod. Ver `findings.md`.
 - `ci-boundary` queda en 6.068 de 6.144 caracteres: cualquier permiso nuevo de CI tiene que compactar algo o ir en otra boundary.

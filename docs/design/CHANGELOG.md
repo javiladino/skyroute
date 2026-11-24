@@ -281,3 +281,11 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 
 - PR #48 (pausa del schedule de prod) aplicada en prod; PR #49 (generador de la Fase 4) fusionada y desplegada en dev y prod (run 45361072667).
 - Umbral multi-campaña del test al 50 %, decisión del owner. Evidencia de la fase 1 en `gold-dbt/working/test.md` (rama `docs/gold-dbt-1-evidence`). Siguiente: fase 2.
+
+## 2026-11-24 — gold-dbt: fase 2 en PASS
+
+- PR #50 (Spark: `ad_spend`, ruta y fecha en reservas, guard `schema_mismatch`, Glue job `silver-ad_spend_daily`) fusionada y aplicada en dev y prod (run 45372615727, 3 added y 11 changed por entorno). Reviews: cost-guard OK, security apto, adversarial GO-WITH-FIXES corregido en 96dc5a1. Evidencia en `gold-dbt/working/test.md`. Siguiente: fase 3.
+
+## 2026-11-24 — gold-dbt: fase 3 en PASS
+
+- PR #52 (`rebuild_tables`, runbook del backfill, `boto3==1.34.131`, `--from/--to` en `ota.ad_spend` y `ota.export_bookings`; enmienda de alcance del owner) y PR #53 (`glue:DeleteTable` de `local-data` solo en bronze y silver) fusionadas y aplicadas. Evidencia de las fases 2 y 3 en `gold-dbt/working/test.md`. Deuda: Create/UpdateTable de `local-data` sobre gold. Siguiente: fase 4 (backfill de dev, owner).
