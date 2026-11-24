@@ -84,7 +84,8 @@ def write_rates(spark: SparkSession, target: str, rates, run_date: str) -> int:
         )
     rates.createOrReplaceTempView("_fx_batch")
     spark.sql(f"DELETE FROM {target} WHERE fx_date = DATE '{run_date}'")
-    spark.sql(f"INSERT INTO {target} SELECT * FROM _fx_batch")
+    cols = ", ".join(ddl_columns(DDL))
+    spark.sql(f"INSERT INTO {target} ({cols}) SELECT {cols} FROM _fx_batch")
     return rows
 
 

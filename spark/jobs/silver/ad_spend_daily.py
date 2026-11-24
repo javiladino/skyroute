@@ -78,7 +78,22 @@ def spend_from_bronze(bronze, run_date: str):
     return typed.distinct()
 
 
+def check_spend_within_day(spend, run_date: str) -> None:
+    """Precondicion: el lote de `_ingest_date = D` solo trae `spend_date = D`.
+
+    El DELETE borra por `spend_date = D`; una fila con otra fecha no se borraria al relanzar y
+    se duplicaria (Idempotency). Se falla antes de escribir nada.
+    """
+    day = F.to_date(F.lit(run_date))
+    bad = spend.where(F.col("spend_date").isNull() | (F.col("spend_date") != day)).count()
+    if bad:
+        message = f"{bad} filas del lote de {run_date} con spend_date distinto de {run_date}"
+        failure = Failure("ad_spend_date_mismatch", message, bad)
+        raise WapCheckError(branch_name(run_date), [failure])
+
+
 def write_spend(spark: SparkSession, target: str, spend, run_date: str) -> int:
+    check_spend_within_day(spend, run_date)
     rows = spend.count()
     conflicts = spend.groupBy(*KEY).count().where(F.col("count") > 1).count()
     if conflicts:
@@ -89,7 +104,8 @@ def write_spend(spark: SparkSession, target: str, spend, run_date: str) -> int:
     spend.createOrReplaceTempView("_ad_spend_batch")
     spark.sql(f"DELETE FROM {target} WHERE spend_date = DATE '{run_date}'")
     if rows:
-        spark.sql(f"INSERT INTO {target} SELECT * FROM _ad_spend_batch")
+        cols = ", ".join(ddl_columns(DDL))
+        spark.sql(f"INSERT INTO {target} ({cols}) SELECT {cols} FROM _ad_spend_batch")
     return rows
 
 

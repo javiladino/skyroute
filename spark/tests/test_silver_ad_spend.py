@@ -6,6 +6,7 @@ from decimal import Decimal
 from pathlib import Path
 
 import pytest
+import yaml
 from jobs.bronze import ingest
 from jobs.silver import ad_spend_daily
 from lib.schema_guard import SchemaMismatch
@@ -17,7 +18,7 @@ GENERATORS = Path(__file__).resolve().parents[2] / "generators"
 if str(GENERATORS) not in sys.path:
     sys.path.insert(0, str(GENERATORS))
 
-from ota import ad_spend, model  # noqa: E402
+from ota import ad_spend, keys, model  # noqa: E402
 
 D = "2026-01-05"
 D1 = "2026-01-06"
@@ -76,6 +77,29 @@ def test_ad_spend_conflicting_rows_fail_instead_of_picking_one(lake):
         run_spend(lake, D)
     assert [f.rule for f in err.value.failures] == ["ad_spend_conflicting_rows"]
     assert spend_rows(lake) == []
+
+
+def test_ad_spend_date_mismatch_fails_without_writing(lake):
+    rows = ad_spend.build_rows(D)
+    lake.write_landing(
+        f"landing/ad_spend/ingest_date={D}/part.json.gz",
+        rows[1:] + [{**rows[0], "spend_date": D1}],
+    )
+    assert ingest.main(lake.argv("ad_spend", D)) == 0
+    with pytest.raises(WapCheckError) as err:
+        run_spend(lake, D)
+    assert [f.rule for f in err.value.failures] == ["ad_spend_date_mismatch"]
+    assert spend_rows(lake) == []
+
+
+def test_accepted_campaign_ids_match_generator():
+    rules = yaml.safe_load((ad_spend_daily.DEFAULT_CHECKS_DIR / "ad_spend_daily.yaml").read_text())
+    accepted = next(
+        c["values"]
+        for c in rules["checks"]
+        if c["type"] == "accepted_values" and c["column"] == "campaign_id"
+    )
+    assert accepted == [keys.campaign_id(n) for n in range(1, len(model.CAMPAIGNS) + 1)]
 
 
 def test_ad_spend_unknown_campaign_and_negative_spend_are_not_published(lake):
