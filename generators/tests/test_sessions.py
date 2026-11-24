@@ -86,7 +86,7 @@ def test_g5_late_events_within_72h_and_duplicates_stay_in_their_file():
 from ota import model  # noqa: E402
 from ota.clickstream import build_events, journey_event_n, journey_events  # noqa: E402
 
-MULTI_CAMPAIGN_MIN_SHARE = 0.30  # Open question 1 del plan: umbral recomendado, no fijado
+MULTI_CAMPAIGN_MIN_SHARE = 0.50  # Open question 1 del plan: umbral fijado por el owner
 MULTI_CAMPAIGN_DAYS = 30
 MULTI_CAMPAIGN_START = "2026-05-01"
 FUNNEL_ORDER = ["search", "product_view", "add_to_cart", "begin_checkout", "purchase"]
