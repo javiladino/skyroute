@@ -28,6 +28,7 @@ from pathlib import Path
 from lib.args import parse_args
 from lib.checks import require_rules_file
 from lib.entrypoint import exit_on_error
+from lib.schema_guard import ddl_columns, require_columns
 from lib.session import build_spark
 from lib.wap import run_wap
 from pyspark.sql import SparkSession, Window
@@ -37,8 +38,8 @@ LOG = logging.getLogger("silver.bookings_scd2")
 DEFAULT_CHECKS_DIR = Path(__file__).resolve().parents[2] / "checks"
 TS_FORMAT = "yyyy-MM-dd'T'HH:mm:ssX"
 HASH_COLUMNS = (
-    "booking_id", "customer_id", "session_id", "campaign_id", "status", "currency",
-    "amount", "created_at", "updated_at",
+    "booking_id", "customer_id", "session_id", "campaign_id", "origin", "destination",
+    "travel_date", "status", "currency", "amount", "created_at", "updated_at",
 )  # fmt: skip
 
 DDL = """
@@ -48,6 +49,9 @@ CREATE TABLE IF NOT EXISTS {table} (
     customer_id string,
     session_id string,
     campaign_id string,
+    origin string,
+    destination string,
+    travel_date date,
     status string,
     currency string,
     amount decimal(12,2),
@@ -88,6 +92,9 @@ def versions_from_bronze(bronze, run_date: str):
         "customer_id",
         "session_id",
         "campaign_id",
+        "origin",
+        "destination",
+        F.to_date("travel_date").alias("travel_date"),
         "status",
         "currency",
         amount_decimal().alias("amount"),
@@ -134,8 +141,9 @@ def build_batch(spark: SparkSession, versions, target: str):
     joined = batch.join(next_in_target, "booking_id", "left")
     valid_to = F.coalesce(F.col("_next_vf"), F.col("_target_next_vf"))
     return joined.select(
-        "booking_id", "history_id", "customer_id", "session_id", "campaign_id", "status",
-        "currency", "amount", "created_at", "updated_at", "valid_from",
+        "booking_id", "history_id", "customer_id", "session_id", "campaign_id", "origin",
+        "destination", "travel_date", "status", "currency", "amount", "created_at",
+        "updated_at", "valid_from",
         valid_to.alias("valid_to"),
         valid_to.isNull().alias("is_current"),
         row_hash().alias("row_hash"),
@@ -207,6 +215,7 @@ def run(spark: SparkSession, args) -> dict:
     if args.catalog_impl == "hadoop":
         spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {args.catalog_name}.{silver_db}")
     spark.sql(DDL.format(table=target))
+    require_columns(spark, target, ddl_columns(DDL))
 
     versions = versions_from_bronze(spark.table(source), args.run_date)
     check_versions_within_day(versions, args.run_date)

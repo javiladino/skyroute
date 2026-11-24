@@ -29,6 +29,7 @@ from pathlib import Path
 from lib.args import parse_args
 from lib.checks import require_rules_file
 from lib.entrypoint import exit_on_error
+from lib.schema_guard import ddl_columns, require_columns
 from lib.session import build_spark
 from lib.wap import run_wap
 from pyspark.sql import SparkSession
@@ -44,6 +45,9 @@ CREATE TABLE IF NOT EXISTS {table} (
     booking_id string,
     history_id bigint,
     changed_at timestamp,
+    origin string,
+    destination string,
+    travel_date date,
     currency string,
     amount decimal(12,2),
     fx_rate_applied decimal(18,6),
@@ -87,6 +91,9 @@ def convert_to_eur(latest, fx):
         "booking_id",
         "history_id",
         "changed_at",
+        "origin",
+        "destination",
+        "travel_date",
         "currency",
         "amount",
         "fx_rate_applied",
@@ -123,6 +130,7 @@ def run(spark: SparkSession, args) -> dict:
     if args.catalog_impl == "hadoop":
         spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {args.catalog_name}.{silver_db}")
     spark.sql(DDL.format(table=target))
+    require_columns(spark, target, ddl_columns(DDL))
 
     latest = latest_per_booking(spark.table(source), args.run_date)
     converted = convert_to_eur(latest, spark.table(fx_table)).cache()

@@ -1,0 +1,15 @@
+# Checks WAP de silver.ad_spend_daily (motor: spark/lib/checks.py). Se evaluan sobre la rama run_<D>.
+# Campanas conocidas: generators/ota/model.py CAMPAIGNS (ocho), ids de keys.campaign_id.
+# Valores distintos para la misma (spend_date, campaign_id) los detecta el job antes de escribir
+# (fallo ad_spend_conflicting_rows, no se publica).
+checks:
+  - {type: min_rows, value: 1}
+  - {type: not_null, column: spend_date}
+  - {type: not_null, column: campaign_id}
+  - {type: not_null, column: spend}
+  - {type: not_null, column: currency}
+  - {type: unique, columns: [spend_date, campaign_id]}
+  - {type: accepted_values, column: campaign_id, values: [CMP-0001, CMP-0002, CMP-0003, CMP-0004, CMP-0005, CMP-0006, CMP-0007, CMP-0008]}
+  - {type: accepted_values, column: currency, values: [EUR]}
+  - {type: expression, name: spend_not_negative, sql: "spend >= 0"}
+  - {type: expression, name: counts_not_negative, sql: "impressions >= 0 AND clicks >= 0"}

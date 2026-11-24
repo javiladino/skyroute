@@ -42,6 +42,7 @@ from pathlib import Path
 from lib.args import parse_args
 from lib.checks import Failure, require_rules_file
 from lib.entrypoint import exit_on_error
+from lib.schema_guard import ddl_columns, require_columns
 from lib.session import build_spark
 from lib.wap import WapCheckError, branch_name, run_wap
 from pyspark.sql import SparkSession, Window
@@ -288,6 +289,7 @@ def run(spark: SparkSession, args) -> dict:
     if args.catalog_impl == "hadoop":
         spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {args.catalog_name}.{silver_db}")
     spark.sql(DDL.format(table=target))
+    require_columns(spark, target, ddl_columns(DDL))
 
     require_events_of_ingest_day(spark, bronze, source, args.run_date)
     if not spark.catalog.tableExists(source):
