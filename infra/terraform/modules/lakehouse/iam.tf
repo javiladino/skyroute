@@ -62,6 +62,15 @@ locals {
     "${local.glue_arn_prefix}:table/skyroute_${var.env}_*/*",
   ]
 
+  # DeleteTable solo en bronze y silver (rebuild_tables); gold queda fuera.
+  local_data_delete_table_resources = concat(
+    ["${local.glue_arn_prefix}:catalog"],
+    flatten([for layer in ["bronze", "silver"] : [
+      "${local.glue_arn_prefix}:database/skyroute_${var.env}_${layer}",
+      "${local.glue_arn_prefix}:table/skyroute_${var.env}_${layer}/*",
+    ]]),
+  )
+
   # Sentencias comunes a glue-job y local-data (sin DeleteTable ni Athena: ver
   # local_data_only_statements).
   common_statements = [
@@ -119,7 +128,7 @@ locals {
       Sid      = "GlueCatalogDeleteTable"
       Effect   = "Allow"
       Action   = "glue:DeleteTable"
-      Resource = local.glue_catalog_resources
+      Resource = local.local_data_delete_table_resources
     },
     {
       Sid    = "AthenaWorkgroup"
