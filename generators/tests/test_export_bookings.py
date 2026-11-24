@@ -70,3 +70,20 @@ def test_normalize_tz_aware_and_decimal_match_the_string_path():
     typed["amount"] = Decimal(str(row["amount"]))
     assert model.fmt_ts(typed["changed_at"].astimezone(UTC)) == row["changed_at"]
     assert build_payload([typed]) == build_payload([row])
+
+
+def test_export_has_route_and_travel_date():
+    rows = _lines(build_payload(rows_in_day(_history(), DAY)))
+    assert rows
+    for row in rows:
+        assert row["origin"] and row["destination"] and row["origin"] != row["destination"]
+        assert row["travel_date"] > row["created_at"][:10]
+        assert len(row["travel_date"]) == 10
+
+
+def test_normalize_serializes_date_columns():
+    from datetime import date
+
+    row = dict(_history()[0])
+    row["travel_date"] = date.fromisoformat(row["travel_date"])
+    assert build_payload([row]) == build_payload([_history()[0]])

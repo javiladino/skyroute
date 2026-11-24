@@ -5,6 +5,6 @@ checks:
   - {type: not_null, column: event_ts}
   - {type: not_null, column: customer_id}
   - {type: unique, columns: [event_id]}
-  - {type: accepted_values, column: event_type, values: [page_view, search, add_to_cart, consent, purchase]}
+  - {type: accepted_values, column: event_type, values: [page_view, search, product_view, add_to_cart, begin_checkout, purchase, consent]}
   - {type: expression, name: purchase_has_booking, sql: "event_type <> 'purchase' OR booking_id IS NOT NULL"}
   - {type: expression, name: email_hmac_is_sha256_hex, sql: "email_hmac IS NULL OR length(email_hmac) = 64"}
