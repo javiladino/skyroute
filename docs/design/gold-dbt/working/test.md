@@ -16,6 +16,8 @@ Fase 0b: PASS (O17 completo; deriva de la Lambda BUCKET_NAME resuelta en la PR #
 
 Fase 0c: PASS (spike sobre bookings_eur; ventana de sessions en la fase 5)
 
+Fase 1: PASS (con desviaciones registradas; schedule de prod en pausa hasta la fase 7)
+
 ## Checks
 
 ### Fase 0a (PR `bootstrap/`: `gold/*` en las boundaries y workgroup `skyroute-<env>-dbt`)
@@ -64,6 +66,32 @@ Nota: las filas 0b.1 a 0b.3 las ejecutó el orquestador, la 0b.5 la CI y la 0b.6
 Veredicto de fase 0c: PASS (spike sobre bookings_eur; ventana de sessions en la fase 5).
 
 Nota: la fila 0c.1 la ejecutó el orquestador y las 0c.2 a 0c.7 el owner; este documento registra su evidencia tal como se aportó, no la reejecuta el ejecutor.
+
+### Fase 1 (PR #49, generador: recorridos multi-campaña, funnel ordenado, ruta y fecha de viaje, `ad_spend`)
+
+| # | Check | Source | Command | Result | Status |
+|---|-------|--------|---------|--------|--------|
+| 1.1 | Lint (V1) | plan.md fase 1 y Testing Strategy; ejecutor, 2026-11-24, `main` en b1e422a | `.venv/bin/python -m ruff check spark generators` | `All checks passed!` | PASS |
+| 1.2 | Tests del generador (V2) | plan.md fase 1 y Testing Strategy; ejecutor, 2026-11-24 | `.venv/bin/python -m pytest generators/tests -q` | `71 passed` (base 52) | PASS |
+| 1.3 | Tests de Spark (V3) | plan.md Testing Strategy; ejecutor, 2026-11-24 | `.venv/bin/python -m pytest spark/tests -q` | `90 passed in 329.94s`, código 0 (base 90; los tests Spark nuevos llegan en la fase 2) | PASS |
+| 1.4 | Recuento esperado del backfill (fuente de la Validation 4b) | plan.md Testing Strategy, `test_backfill_counts`; ejecutor, 2026-11-24 | `PYTHONPATH=generators .venv/bin/python -m ota.backfill_counts --from 2026-05-01 --to 2026-05-07` | `30649` (esperado 30649) | PASS |
+| 1.5 | Archivos protegidos sin cambios (V9, V12) | plan.md Testing Strategy; ejecutor, 2026-11-24 | `git diff 95839cd~3 main --stat -- generators/tests/test_keys.py generators/lambda_handler.py` | vacío | PASS |
+| 1.6 | Pausa del schedule de prod (PR #48) | plan.md 7-pausa (H6); run 45242662094 de `terraform-apply` | apply de CI en prod | apply-prod: `state ENABLED -> DISABLED`, 1 changed | PASS |
+| 1.7 | Despliegue de la fase 1 (merge de la PR #49) | run 45361072667 de `terraform-apply` | apply de CI en dev y en prod | apply-dev: `0 added, 2 changed, 0 destroyed`; apply-prod: `0 added, 2 changed, 0 destroyed`. Los 2 changes son los esperados: `source_code_hash` de la Lambda del generador y `check_rules["events"]` | PASS |
+
+#### Desviaciones respecto al plan (fase 1)
+
+- `spark/checks/events.yaml` adelantado de la fase 2: añade `product_view` y `begin_checkout` a `accepted_values:event_type`. Lo destapó el fallo de CI `accepted_values:event_type: 931 valores fuera de lista`.
+- `generators/ota/backfill_counts.py` es nuevo y no estaba en Files Changed de la fase 1; da el recuento esperado de la Validation 4b (fila 1.4).
+- Fórmula de journey: `j = offset*120 + j_reserva`, para que los recorridos de días distintos no colisionen en el rango reservado de `event_id` (H8).
+- La última sesión del recorrido nunca abandona: termina siempre en la reserva, así el último touchpoint es la campaña de la reserva (test 2c).
+- Reordenación de los eventos de fondo con `BACKGROUND_EVENT_TYPES` (sin `add_to_cart`, `begin_checkout` ni `purchase`).
+- Umbral multi-campaña `MULTI_CAMPAIGN_MIN_SHARE = 0.50`, fijado por el owner el 2026-11-24 (Open question 1; el plan decía al menos 30 %); medido ~70,8 %.
+- Schedule de prod en pausa (PR #48, fila 1.6) hasta el rebuild de la fase 7.
+
+Veredicto de fase 1: PASS (con desviaciones registradas; schedule de prod en pausa hasta la fase 7).
+
+Nota: las filas 1.1 a 1.5 las ejecutó el ejecutor en esta sesión; las 1.6 y 1.7 son evidencia de CI tal como la aportó el orquestador.
 
 ## Review
 
