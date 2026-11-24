@@ -38,4 +38,4 @@ Fase 4 — Gold con dbt (README § Fases): "Staging, modelo dimensional, atribuc
 | Research | `working/research.md` | always |
 | Proposal (elegida P1) | `working/proposal.md` | always |
 | Plan | `working/plan.md` | always |
-| Test (por fase; 0a, 0b, 0c y 1 PASS) | `working/test.md` | always |
+| Test (por fase; 0a, 0b, 0c, 1 y 2 PASS) | `working/test.md` | always |
