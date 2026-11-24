@@ -41,6 +41,31 @@ def test_cli_rerun_gives_same_bytes_and_path(tmp_path):
     assert first == second == ad_spend.generate(DAY)
 
 
+def test_range_output_is_byte_identical_to_each_single_day(tmp_path):
+    days = ["2026-04-29", "2026-04-30", "2026-05-01", "2026-05-02"]
+    rng = tmp_path / "range"
+    assert ad_spend.main(["--from", days[0], "--to", days[-1], "--out-dir", str(rng)]) == 0
+    written = sorted(p.relative_to(rng) for p in rng.rglob("*.json.gz"))
+    assert written == sorted(Path(daily_key(AD_SPEND_PREFIX, d)) for d in days)
+    for d in days:
+        single = tmp_path / d
+        assert ad_spend.main(["--run-date", d, "--out-dir", str(single)]) == 0
+        key = daily_key(AD_SPEND_PREFIX, d)
+        assert (rng / key).read_bytes() == (single / key).read_bytes()
+
+
+def test_range_args_are_validated(tmp_path):
+    out = str(tmp_path)
+    assert ad_spend.main(["--from", "2026-05-02", "--to", "2026-05-01", "--out-dir", out]) == 2
+    with pytest.raises(SystemExit):
+        ad_spend.main(["--run-date", DAY, "--from", DAY, "--to", DAY, "--out-dir", out])
+    with pytest.raises(SystemExit):
+        ad_spend.main(["--from", DAY, "--out-dir", out])
+    with pytest.raises(SystemExit):
+        ad_spend.main(["--run-date", DAY, "--to", DAY, "--out-dir", out])
+    assert not list(tmp_path.rglob("*.json.gz"))
+
+
 def test_invalid_date_is_rejected(tmp_path):
     assert ad_spend.main(["--run-date", "2026-13-01", "--out-dir", str(tmp_path)]) == 2
     with pytest.raises(ValueError):

@@ -4,7 +4,7 @@ Lo ejecuta el owner en su shell (zsh, macOS), desde la raíz del repo. Objetivo:
 
 Reglas de este runbook:
 
-- Un comando por paso (Convention "Simple shell commands"); copia uno, ejecútalo, comprueba el esperado y pasa al siguiente. Los pasos por día se repiten cambiando `<D>`.
+- Un comando por paso (Convention "Simple shell commands"); copia uno, ejecútalo, comprueba el esperado y pasa al siguiente. La invocación de la Lambda por tramos se repite cambiando `<T1>`/`<T2>`.
 - Región `eu-west-3` en todo (Convention "Region").
 - Ningún cambio de infraestructura desde la consola ni con `terraform apply` local: las PRs las aplica CI (IaC only, Apply gate).
 - `rebuild_tables` es destructivo y de un solo uso por entorno: dev en la fase 4 y prod en la fase 7. Reintentar el backfill desde el paso de regeneración cuenta como el mismo backfill (plan, Open questions).
@@ -48,7 +48,7 @@ No exportes `AWS_PROFILE` junto a las variables: el contenedor de Spark usaría 
 
 ## 3. Rango y plazos
 
-- El owner fija la fecha de inicio `<INICIO>` y el fin `<FIN>` (plan, Open question 4; rango de 182 días). La regeneración arranca en `<S>` = `<INICIO>` menos 6 días, para que ninguna reserva desde `<INICIO>` tenga recorrido truncado (Design Decision 6).
+- El owner fija la fecha de inicio `<INICIO>` y el fin `<FIN>` (plan, Open question 4; rango de 182 días). `<FIN>` ≤ hoy-1 en UTC: la Lambda rechaza `to` posterior (`generators/lambda_handler.py:80-81`, `to debe ser <= hoy-1 (UTC)`). La regeneración arranca en `<S>` = `<INICIO>` menos 6 días, para que ninguna reserva desde `<INICIO>` tenga recorrido truncado (Design Decision 6).
 - `landing/` conserva 30 días por antigüedad del objeto (`bucket.tf:79-89`): Bronze del rango completo debe estar ingerido antes de 30 días desde la primera subida.
 - Cómputo en Spark local (0 USD). En AWS solo quedan S3 y Glue Catalog. Tope de alarma de dev: 1 USD (O12). Si Cost Explorer lo supera, para.
 
@@ -67,16 +67,17 @@ Datos de dev: bucket `skyroute-dev-data-437266392155` (`<B>`), Lambda `skyroute-
 
 ### 5.1 Regenerar `landing/` desde `<S>`
 
-Por cada día `<D>` de `<S>` a `<FIN>`, en orden ascendente:
+Las subidas a `landing/` las hace `skyroute-dev-local-data` (plan, DD4; sentencia `LandingWrite` de `infra/terraform/modules/lakehouse/iam.tf`) con las credenciales exportadas en el paso 2.2, sin `--profile`. Antes, comprueba con `aws sts get-caller-identity --region eu-west-3` que el `Arn` es `assumed-role/skyroute-dev-local-data/...`.
 
-1. Clickstream (Lambda de dev, un día por invocación): `aws lambda invoke --function-name skyroute-dev-generator --cli-binary-format raw-in-base64-out --cli-read-timeout 0 --payload '{"from":"<D>","to":"<D>"}' --query FunctionError --output text --region eu-west-3 --profile skyroute-dev-login /dev/null` → esperado: `None`.
-2. Reservas: `make export-bookings RUN_DATE=<D> OUT_DIR=build`
-3. Gasto: `PYTHONPATH=generators .venv/bin/python -m ota.ad_spend --run-date <D> --out-dir build`
+1. Clickstream (Lambda de dev), por tramos de 7 días consecutivos `<T1>`..`<T2>` de `<S>` a `<FIN>` (el último puede ser más corto), en orden ascendente: `aws lambda invoke --function-name skyroute-dev-generator --cli-binary-format raw-in-base64-out --cli-read-timeout 0 --payload '{"from":"<T1>","to":"<T2>"}' --query FunctionError --output text --region eu-west-3 --profile skyroute-dev-login /dev/null` → esperado: `None`.
+   Nota: esta invocación es la única que usa `--profile skyroute-dev-login`. `local-data` no tiene `lambda:InvokeFunction` (`grep -n "lambda:InvokeFunction" infra/terraform/modules/lakehouse/iam.tf` no devuelve nada) y darle ese permiso sería un cambio de IaC fuera de esta fase. La Lambda escribe en `landing/clickstream` con su propio rol; el perfil del login solo la invoca. El `--profile` explícito tiene prioridad sobre las variables exportadas solo para ese comando.
+2. Reservas, todo el rango: `PYTHONPATH=generators .venv/bin/python -m ota.export_bookings --from <S> --to <FIN> --out-dir build`
+3. Gasto, todo el rango: `PYTHONPATH=generators .venv/bin/python -m ota.ad_spend --from <S> --to <FIN> --out-dir build`
+4. FX, todo el rango: `PYTHONPATH=generators .venv/bin/python -m fx.ecb --from <S> --to <FIN> --out-dir build`
 
-Una vez para todo el rango:
+Los pasos 2 y 3 escriben un archivo por día, idéntico en bytes al de `--run-date <D>`.
 
-4. FX: `PYTHONPATH=generators .venv/bin/python -m fx.ecb --from <S> --to <FIN> --out-dir build`
-5. `aws s3 sync build/landing/bookings s3://<B>/landing/bookings --dryrun --region eu-west-3 --profile skyroute-dev-login`, después sin `--dryrun`.
+5. `aws s3 sync build/landing/bookings s3://<B>/landing/bookings --dryrun --region eu-west-3`, después sin `--dryrun`.
 6. Ídem con `build/landing/fx` → `landing/fx` y `build/landing/ad_spend` → `landing/ad_spend`.
 
 Esperado: una clave `ingest_date=<D>/part.json.gz` por día y fuente.
@@ -89,12 +90,13 @@ Esperado: una clave `ingest_date=<D>/part.json.gz` por día y fuente.
 
 Con las credenciales de `skyroute-dev-local-data` del paso 2:
 
+0. Reconstruye la imagen de Spark para que instale `boto3` de `spark/requirements.txt` (lo necesita `sts:GetCallerIdentity`): `docker compose -f docker/spark/compose.yml build spark` → esperado: termina sin error.
 1. Dry-run: `docker compose -f docker/spark/compose.yml run --rm spark python -m jobs.maintenance.rebuild_tables --env dev --warehouse s3://<B>/silver --dry-run`
    Esperado: la identidad pasa, imprime las 11 tablas (`skyroute_dev_bronze.{clickstream,bookings,fx,ad_spend}` y `skyroute_dev_silver.{bookings_scd2,bookings_current,fx_daily,bookings_eur,events,sessions,ad_spend_daily}`) y `--dry-run: no se borra nada`.
 2. Borrado: `docker compose -f docker/spark/compose.yml run --rm -it spark python -m jobs.maintenance.rebuild_tables --env dev --warehouse s3://<B>/silver`
    Teclea `dev` cuando lo pida. Esperado: una línea `DROP PURGE skyroute.<tabla>` por tabla y `terminado: 11 tablas`. Guarda la salida como evidencia.
 
-Salidas de rechazo (código 2, no borra nada): identidad distinta de `skyroute-dev-local-data` (repite el paso 2), texto tecleado distinto de `dev`. Si falla con `No module named 'boto3'`, la imagen de Spark no trae boto3: para y avisa al orquestador (ver "Pendiente" al final).
+Salidas de rechazo (código 2, no borra nada): identidad distinta de `skyroute-dev-local-data` (repite el paso 2), texto tecleado distinto de `dev`, `--catalog-name` que no sea un identificador simple. Si falla con `No module named 'boto3'`, la imagen no se reconstruyó: repite el paso 0 (falla cerrado, sin borrar).
 
 ### 5.4 Bronze en local, día ascendente, las cuatro fuentes
 
@@ -148,7 +150,7 @@ Datos de prod: bucket `skyroute-prod-data-437266392155` (`<BP>`), bases `skyrout
 1. PR 7a: `infra/terraform/envs/prod/main.tf`, `create_local_data_role = true`. Revisa el plan de CI (solo el rol y su inline); el apply lo hace CI.
 2. Perfil `[profile skyroute-prod-local-data]` como el del paso 2 con `role_arn = arn:aws:iam::437266392155:role/workload/skyroute-prod-local-data`; `eval "$(aws configure export-credentials --profile skyroute-prod-local-data --format env)"`; `aws sts get-caller-identity --region eu-west-3` → `assumed-role/skyroute-prod-local-data/...`.
 3. Regenera `landing/` de prod como en 5.1 (Lambda `skyroute-prod-generator` con `--profile` de prod; bucket `<BP>`) y el recuento de 5.2. El schedule sigue pausado (paso 0).
-4. `docker compose -f docker/spark/compose.yml run --rm spark python -m jobs.maintenance.rebuild_tables --env prod --confirm-prod --warehouse s3://<BP>/silver --dry-run`
+4. Con la imagen reconstruida (paso 5.3.0; repítelo si `spark/requirements.txt` cambió): `docker compose -f docker/spark/compose.yml run --rm spark python -m jobs.maintenance.rebuild_tables --env prod --confirm-prod --warehouse s3://<BP>/silver --dry-run`
 5. `docker compose -f docker/spark/compose.yml run --rm -it spark python -m jobs.maintenance.rebuild_tables --env prod --confirm-prod --warehouse s3://<BP>/silver` y teclea `prod`. Es el segundo y último uso de la excepción. Sin `--confirm-prod` sale con error y no borra.
 6. Bronze y Silver de prod como 5.4 y 5.5 con `--env prod` y `<BP>`; validaciones como 5.6 sobre `skyroute_prod_*`.
 7. `dbt build` de prod con `local-dbt` de prod: `.venv/bin/dbt build --project-dir dbt --profiles-dir <dir del profiles.yml del owner> --target prod --vars '{run_date: <D>}'`.
@@ -161,8 +163,3 @@ Datos de prod: bucket `skyroute-prod-data-437266392155` (`<BP>`), bases `skyrout
 - Salida de `rebuild_tables` (dry-run y borrado) de cada entorno.
 - Resultados de 5.6 (o su equivalente de prod) y la cifra de Cost Explorer.
 - Si algo falló: el paso, el comando, el mensaje literal y la última fecha OK del log.
-
-## Pendiente
-
-- La imagen `docker/spark` instala solo `spark/requirements.txt`, que no incluye `boto3`; `rebuild_tables` lo necesita para `sts:GetCallerIdentity` y falla cerrado (sin borrar) si no está. Decisión del owner antes del paso 5.3.
-- `ota.ad_spend` y `export_bookings` solo aceptan `--run-date`, así que 5.1 es un comando por día.

@@ -4,16 +4,19 @@ Uso unico por entorno para el backfill de la Fase 4 (Ruling "Bronze rebuild exce
 gold-dbt): una vez en dev y una vez en prod al cierre. Fuera de ese backfill no se ejecuta;
 Medallion layers e Idempotency siguen en vigor. Runbook: docs/runbooks/gold-dbt-backfill.md.
 
-Salvaguardas, en este orden: `--env` obligatorio; `--env prod` exige `--confirm-prod`; la
-identidad de `sts:GetCallerIdentity` debe ser el rol `skyroute-<env>-local-data` del mismo
-entorno; imprime la lista cerrada; `--dry-run` termina ahi sin borrar; si no, pide teclear el
-nombre del entorno y solo entonces borra, registrando cada DROP.
+Salvaguardas, en este orden: `--env` obligatorio; `--catalog-name` debe ser un identificador
+simple (`^[a-z_][a-z0-9_]*$`); `--env prod` exige `--confirm-prod`; la identidad de
+`sts:GetCallerIdentity` debe ser el rol `skyroute-<env>-local-data` del mismo entorno en la
+cuenta 437266392155 (campo `Account` y cuenta del ARN); imprime la lista cerrada; `--dry-run`
+termina ahi sin borrar; si no, pide teclear el nombre del entorno
+y solo entonces borra, registrando cada DROP.
 
     python -m jobs.maintenance.rebuild_tables --env dev --warehouse s3://<bucket>/silver --dry-run
 """
 
 import argparse
 import logging
+import re
 import sys
 from types import SimpleNamespace
 
@@ -35,6 +38,9 @@ SILVER_TABLES = (
     "sessions",
     "ad_spend_daily",
 )
+# Cuenta unica del proyecto (Convention "Bootstrap identity"); constante, no argumento.
+ACCOUNT_ID = "437266392155"
+CATALOG_NAME_RE = re.compile(r"[a-z_][a-z0-9_]*")
 
 
 class RebuildRefused(Exception):
@@ -60,17 +66,33 @@ def sts_identity(region: str) -> dict:
 
 
 def check_identity(identity: dict, env: str) -> str:
-    """Exige `arn:aws:sts::<cuenta>:assumed-role/skyroute-<env>-local-data/<sesion>`."""
+    """Exige `arn:aws:sts::437266392155:assumed-role/skyroute-<env>-local-data/<sesion>`."""
     arn = identity.get("Arn", "")
     parts = arn.split(":", 5)
     resource = parts[5] if len(parts) == 6 else ""
     pieces = resource.split("/")
     role = pieces[1] if len(pieces) == 3 and pieces[0] == "assumed-role" else None
-    if parts[:3] != ["arn", "aws", "sts"] or role != expected_role(env):
+    arn_account = parts[4] if len(parts) == 6 else None
+    if (
+        parts[:3] != ["arn", "aws", "sts"]
+        or role != expected_role(env)
+        or identity.get("Account") != ACCOUNT_ID
+        or arn_account != ACCOUNT_ID
+    ):
         raise RebuildRefused(
-            f"identidad {arn!r} no es el rol {expected_role(env)} de --env {env}; no se borra nada"
+            f"identidad {arn!r} no es el rol {expected_role(env)} de la cuenta {ACCOUNT_ID} "
+            f"para --env {env}; no se borra nada"
         )
     return arn
+
+
+def check_catalog_name(name: str) -> str:
+    """El catalogo se interpola en el DROP: solo un identificador simple."""
+    if not CATALOG_NAME_RE.fullmatch(name):
+        raise RebuildRefused(
+            f"--catalog-name {name!r} no es un identificador valido; no se borra nada"
+        )
+    return name
 
 
 def parse_args(argv=None) -> argparse.Namespace:
@@ -91,6 +113,7 @@ def parse_args(argv=None) -> argparse.Namespace:
 
 def run(args, identity_fn=sts_identity, input_fn=input, spark_fn=build_spark) -> list[str]:
     """Devuelve los identificadores borrados; lanza RebuildRefused sin borrar si algo falla."""
+    check_catalog_name(args.catalog_name)
     if args.env == "prod" and not args.confirm_prod:
         raise RebuildRefused("--env prod exige --confirm-prod; no se borra nada")
     arn = check_identity(identity_fn(args.region), args.env)

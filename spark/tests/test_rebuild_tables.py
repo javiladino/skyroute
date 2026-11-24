@@ -1,5 +1,7 @@
 """Tests de rebuild_tables (S8). Catalogo hadoop local; sts e input simulados, sin AWS."""
 
+from pathlib import Path
+
 import pytest
 from conftest import Lake
 from jobs.maintenance import rebuild_tables
@@ -7,9 +9,13 @@ from jobs.maintenance import rebuild_tables
 ACCOUNT = "437266392155"
 
 
-def identity(role: str):
-    arn = f"arn:aws:sts::{ACCOUNT}:assumed-role/{role}/botocore-session-1"
-    return lambda region: {"Account": ACCOUNT, "Arn": arn, "UserId": "AROAEXAMPLE:x"}
+def identity(role: str, account: str = ACCOUNT, arn_account: str | None = None):
+    arn = f"arn:aws:sts::{arn_account or account}:assumed-role/{role}/botocore-session-1"
+    return lambda region: {"Account": account, "Arn": arn, "UserId": "AROAEXAMPLE:x"}
+
+
+def never_spark(args):
+    raise AssertionError("no debe arrancar Spark")
 
 
 def typed(text: str, prompts: list):
@@ -71,6 +77,58 @@ def test_rebuild_tables_closed_list(lake):
     assert lake.spark.table(other).count() == 0
     assert len(prompts) == 1
     assert len(rebuild_tables.closed_list("dev")) == 11
+    # PURGE: el directorio de cada tabla borrada queda sin ficheros en el warehouse local
+    for identifier in rebuild_tables.closed_list("dev"):
+        table_dir = Path(lake.warehouse, *identifier.split("."))
+        assert not [p for p in table_dir.rglob("*") if p.is_file()]
+    other_dir = Path(lake.warehouse, "skyroute_dev_bronze", "keep_me")
+    assert [p for p in other_dir.rglob("*") if p.is_file()]
+
+
+@pytest.mark.parametrize(
+    "name", ["x.skyroute_dev_gold.t --", "skyroute.x", "Skyroute", "1cat", "", "cat;drop"]
+)
+def test_rebuild_tables_rejects_injected_catalog_name(lake, capsys, name):
+    create_all(lake)
+    rc = rebuild_tables.main(
+        argv(lake, "--env", "dev", "--catalog-name", name),
+        identity_fn=identity("skyroute-dev-local-data"),
+        input_fn=never_input,
+        spark_fn=never_spark,
+    )
+    assert rc == 2
+    assert "--catalog-name" in capsys.readouterr().err
+    assert all_present(lake)
+
+
+@pytest.mark.parametrize(
+    "account,arn_account",
+    [("111122223333", None), (ACCOUNT, "111122223333"), ("111122223333", ACCOUNT)],
+)
+def test_rebuild_tables_rejects_other_account(lake, account, arn_account):
+    create_all(lake)
+    rc = rebuild_tables.main(
+        argv(lake, "--env", "dev"),
+        identity_fn=identity("skyroute-dev-local-data", account, arn_account),
+        input_fn=never_input,
+        spark_fn=never_spark,
+    )
+    assert rc == 2
+    assert all_present(lake)
+
+
+def test_rebuild_tables_prod_confirmed_reaches_prompt(lake):
+    create_all(lake, "prod")
+    prompts = []
+    rc = rebuild_tables.main(
+        argv(lake, "--env", "prod", "--confirm-prod"),
+        identity_fn=identity("skyroute-prod-local-data"),
+        input_fn=typed("dev", prompts),
+        spark_fn=never_spark,
+    )
+    assert rc == 2
+    assert len(prompts) == 1 and "(prod)" in prompts[0]
+    assert all_present(lake, "prod")
 
 
 def test_rebuild_tables_prod_guard(lake, capsys):
@@ -130,6 +188,7 @@ def test_rebuild_tables_dry_run(lake, capsys):
         argv(lake, "--env", "dev", "--dry-run"),
         identity_fn=identity("skyroute-dev-local-data"),
         input_fn=never_input,
+        spark_fn=never_spark,
     )
     assert rc == 0
     assert all_present(lake)
