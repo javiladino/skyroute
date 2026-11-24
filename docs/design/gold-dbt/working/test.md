@@ -18,6 +18,8 @@ Fase 0c: PASS (spike sobre bookings_eur; ventana de sessions en la fase 5)
 
 Fase 1: PASS (con desviaciones registradas; schedule de prod en pausa hasta la fase 7)
 
+Fase 2: PASS (con desviaciones registradas; hallazgos de review corregidos en 96dc5a1)
+
 ## Checks
 
 ### Fase 0a (PR `bootstrap/`: `gold/*` en las boundaries y workgroup `skyroute-<env>-dbt`)
@@ -93,7 +95,33 @@ Veredicto de fase 1: PASS (con desviaciones registradas; schedule de prod en pau
 
 Nota: las filas 1.1 a 1.5 las ejecutó el ejecutor en esta sesión; las 1.6 y 1.7 son evidencia de CI tal como la aportó el orquestador.
 
+### Fase 2 (PR #50, Spark: `ad_spend`, ruta y fecha en reservas, guard `schema_mismatch`, Glue job `silver-ad_spend_daily`)
+
+| # | Check | Source | Command | Result | Status |
+|---|-------|--------|---------|--------|--------|
+| 2.1 | Lint (V1) | plan.md fase 2 y Testing Strategy; ejecutor, 2026-11-24, `main` en 76e0845 | `.venv/bin/python -m ruff check spark generators` | `All checks passed!` | PASS |
+| 2.2 | Tests del generador (V2) | plan.md Testing Strategy; ejecutor, 2026-11-24 | `.venv/bin/python -m pytest generators/tests -q` | `71 passed` | PASS |
+| 2.3 | Tests de Spark (V3) | plan.md fase 2 y Testing Strategy; ejecutor, 2026-11-24 | `.venv/bin/python -m pytest spark/tests -q` | `105 passed in 336.07s`, código 0 (base 90, esperado 105) | PASS |
+| 2.4 | Formato Terraform (V4) | plan.md fase 2 y Testing Strategy; ejecutor, 2026-11-24 | `terraform fmt -check -recursive infra/terraform` | sin salida, código 0 | PASS |
+| 2.5 | Despliegue de la fase 2 (merge de la PR #50) | run 45372615727 de `terraform-apply` | apply de CI en dev y en prod | apply-dev y apply-prod: `3 added, 11 changed, 0 destroyed` | PASS |
+| 2.6 | Revisión de costes | cost-guard | revisión del diff de la fase 2 | OK | PASS |
+| 2.7 | Revisión de seguridad | security-reviewer | revisión del diff de la fase 2 | Apto. 2 LOW: cifrado por defecto del bucket (confirmado en `modules/generator-landing/bucket.tf:21,31`) y validación de `--run-date` (confirmada con `date.fromisoformat` en `spark/lib/args.py:120-127`); los dos cerrados sin cambio | PASS |
+| 2.8 | Revisión adversarial | adversarial-reviewer | revisión del diff contra plan.md | GO-WITH-FIXES: MEDIO idempotencia de `ad_spend_date_mismatch`; BAJO INSERT con columnas explícitas en `ad_spend_daily` y `fx_daily`; BAJO test de campañas frente al generador. Todo corregido en 96dc5a1 | PASS |
+
+#### Desviaciones respecto al plan (fase 2)
+
+- Los tests `test_schema_mismatch_<job>` de las reservas se agrupan en `spark/tests/test_schema_guard.py` en lugar de uno por archivo de job.
+- `spark/jobs/silver/fx_daily.py` cambia (INSERT con columnas explícitas, hallazgo BAJO de la review) aunque no estaba en Files Changed de la fase 2.
+- El guard `schema_mismatch` compara solo nombres de columna, no tipos.
+- El ejecutor editó dos archivos con heredoc de Python, incumpliendo la Convention "Simple shell commands".
+
+Veredicto de fase 2: PASS (con desviaciones registradas; hallazgos de review corregidos en 96dc5a1).
+
+Nota: las filas 2.1 a 2.4 las ejecutó el ejecutor en esta sesión; la 2.5 es evidencia de CI y las 2.6 a 2.8 son reviews, tal como las aportó el orquestador.
+
 ## Review
+
+Fase 2: cost-guard OK; security-reviewer apto con 2 LOW cerrados sin cambio; adversarial-reviewer GO-WITH-FIXES, los tres hallazgos corregidos en 96dc5a1 (filas 2.6 a 2.8).
 
 Fase 0a: security-reviewer OK. Un hallazgo low informativo (`gold/*` en `AllowLakehouseDelete` de prod): rechazado, es intencionado (S13). La review adversarial global sobre el diff completo queda pendiente hasta la fase 7.
 
