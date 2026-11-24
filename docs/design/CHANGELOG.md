@@ -276,3 +276,8 @@ Newest first. One `##` heading per day with activity. Write outcomes, not implem
 - Implement: fases 0a (bootstrap, aplicada por el owner) y 0b (módulo lakehouse, aplicada por CI) en PASS; PRs #43-#45. O17 con simulate-principal-policy: explicitDeny de local-dbt sobre landing, bronze y silver. Detectada deriva perpetua de BUCKET_NAME en la Lambda del generador (previa a la Fase 4).
 - Spike 0c en PASS (rama spike/gold-dbt-0c): merge Iceberg con pre_hook DELETE e incremental_predicates en dbt-athena 1.11.2, materialización table y full-refresh con local-dbt, idempotente (132/132), 45 KB en Athena, sin permisos IAM que falten. Deriva: bookings_eur en lugar de sessions (no existe en dev). El perfil de local-dbt necesita mfa_serial.
 - Deriva BUCKET_NAME de la Lambda del generador resuelta: el Deny kms:Decrypt de los roles de CI ocultaba sus variables de entorno. Allow acotado por ViaService lambda y FunctionArn skyroute-<env>-* en ci-plan y ci-apply-{dev,prod}, y techo en ci-boundary (6.068 de 6.144 caracteres tras compactar). Bootstrap aplicado por el owner (PR #47); plan de CI sin cambios en dev y prod. Finding nuevo.
+
+## 2026-11-24 — gold-dbt: fase 1 en PASS
+
+- PR #48 (pausa del schedule de prod) aplicada en prod; PR #49 (generador de la Fase 4) fusionada y desplegada en dev y prod (run 45361072667).
+- Umbral multi-campaña del test al 50 %, decisión del owner. Evidencia de la fase 1 en `gold-dbt/working/test.md` (rama `docs/gold-dbt-1-evidence`). Siguiente: fase 2.
