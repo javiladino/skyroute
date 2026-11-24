@@ -408,3 +408,29 @@ def test_unique_with_where_only_counts_rows_in_scope(lake):
     failures = run_checks(frame, rule)
     assert [(f.rule, f.count) for f in failures] == [("unique:k[cur]", 1)]
     assert run_checks(frame.filter("k = 'a'"), rule) == []
+
+
+def test_bronze_ingest_ad_spend(lake, monkeypatch):
+    from lib.schemas import SCHEMAS
+    from ota import ad_spend, model
+    from pyspark.sql.types import StringType, StructField, StructType
+
+    out = ad_spend.write_export(D, str(lake.root))
+    assert out == lake.root / daily_key("ad_spend", D)
+    assert ingest.main(lake.argv("ad_spend", D)) == 0
+    rows = lake.rows("ad_spend", "campaign_id")
+    expected = ad_spend.build_rows(D)
+    assert len(rows) == len(model.CAMPAIGNS) == len(expected)
+    assert {k for e in expected for k in e} == set(SCHEMAS["ad_spend"].fieldNames())
+    assert all(r["spend"] is not None and r["clicks"] is not None for r in rows)
+    assert {r["_source_file"] for r in rows} == {daily_key("ad_spend", D)}
+    assert ingest.main(lake.argv("ad_spend", D)) == 0  # relanzar no duplica
+    assert lake.rows("ad_spend", "campaign_id") == rows
+
+    # Un campo nuevo declarado sin evolucionar la tabla falla como hoy (align_to_table).
+    widened = StructType([*SCHEMAS["ad_spend"].fields, StructField("cpc", StringType(), True)])
+    monkeypatch.setitem(SCHEMAS, "ad_spend", widened)
+    ad_spend.write_export(D1, str(lake.root))
+    with pytest.raises(ValueError, match="columnas nuevas"):
+        ingest.main(lake.argv("ad_spend", D1))
+    assert lake.rows("ad_spend", "campaign_id") == rows

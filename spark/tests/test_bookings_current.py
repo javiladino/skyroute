@@ -41,3 +41,25 @@ def test_u9_fresh_lake_first_pass_out_of_order_equals_in_order(lake, lake_b):  #
 
     assert current_rows(lake_b) == current_rows(lake)
     assert len(current_rows(lake_b)) == 3
+
+
+def test_route_and_travel_date_reach_current_and_bad_travel_date_is_not_published(lake):
+    from datetime import date
+
+    import pytest
+    from lib.wap import WapCheckError
+    from test_bookings_scd2 import ingest_day, version_row
+
+    seed_bronze(lake, days=range(1))
+    run_current(lake, 0)
+    rows = current_rows(lake)
+    assert {(r["origin"], r["destination"], r["travel_date"]) for r in rows} == {
+        ("CDG", "LHR", date(2026, 3, 1))
+    }
+
+    early = {**version_row(9, "B9", "pending", day_str(1), "08:00:00"), "travel_date": "2025-12-01"}
+    ingest_day(lake, day_str(1), [early])  # travel_date anterior a created_at
+    with pytest.raises(WapCheckError) as err:
+        run_current(lake, 1)
+    assert "expression:travel_after_created" in {f.rule for f in err.value.failures}
+    assert current_rows(lake) == rows

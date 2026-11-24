@@ -1,4 +1,4 @@
-# Jobs de demo de Glue (Fase 8): Bronze generico y los seis Silver. Glue 5.0 Flex,
+# Jobs de demo de Glue (Fase 8): Bronze generico y los siete Silver. Glue 5.0 Flex,
 # 2 DPU, sin trigger ni schedule (Convention No hourly-billed resources): el owner los
 # lanza a mano con `aws glue start-job-run --arguments '{"--run-date":"YYYY-MM-DD"}'`
 # (Bronze ademas pide "--source"). El codigo es el mismo que corre en local
@@ -18,7 +18,7 @@
 locals {
   spark_dir     = "${path.module}/../../../../spark"
   scripts_s3    = "s3://${var.bucket_name}/scripts"
-  silver_tables = ["bookings_scd2", "bookings_current", "fx_daily", "bookings_eur", "events", "sessions"]
+  silver_tables = ["bookings_scd2", "bookings_current", "fx_daily", "bookings_eur", "events", "sessions", "ad_spend_daily"]
 
   # Fuentes que viajan en el zip; su hash decide cuando se vuelve a subir (ver spark_libs).
   spark_lib_files = sort(setunion(

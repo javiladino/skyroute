@@ -42,6 +42,9 @@ def version_row(history_id, booking_id, status, run_date, hour, amount=100.0):
         "customer_id": f"C-{booking_id}",
         "session_id": f"S-{booking_id}",
         "campaign_id": "CMP1",
+        "origin": "CDG",
+        "destination": "LHR",
+        "travel_date": "2026-03-01",
         "status": status,
         "currency": "EUR",
         "amount": amount,
@@ -193,14 +196,15 @@ def test_fresh_lake_first_pass_out_of_order_equals_in_order(lake, lake_b):
 
 def typed_version(history_id: int, booking_id: str, status: str, valid_from: datetime):
     return (
-        booking_id, history_id, f"C-{booking_id}", f"S-{booking_id}", "CMP1", status, "EUR",
-        Decimal("100.00"), valid_from, valid_from, valid_from,
+        booking_id, history_id, f"C-{booking_id}", f"S-{booking_id}", "CMP1", "CDG", "LHR",
+        date(2026, 3, 1), status, "EUR", Decimal("100.00"), valid_from, valid_from, valid_from,
     )  # fmt: skip
 
 
 VERSION_SCHEMA = (
     "booking_id string, history_id bigint, customer_id string, session_id string, "
-    "campaign_id string, status string, currency string, amount decimal(12,2), "
+    "campaign_id string, origin string, destination string, travel_date date, "
+    "status string, currency string, amount decimal(12,2), "
     "created_at timestamp, updated_at timestamp, valid_from timestamp"
 )
 
@@ -285,3 +289,13 @@ def test_u21_failing_check_keeps_branch_and_next_run_publishes(lake, lake_b, tmp
     assert list_branches(lake.spark, scd2_table(lake)) == ["main"]
     assert scd2_rows(lake) == scd2_rows(lake_b)
     assert_integrity(scd2_rows(lake))
+
+
+def test_route_and_travel_date_enter_scd2_and_row_hash(lake):
+    ingest_day(lake, day(0), rows_for_day(0))
+    run_scd2(lake, 0)
+    rows = scd2_rows(lake)
+    assert {(r["origin"], r["destination"], r["travel_date"]) for r in rows} == {
+        ("CDG", "LHR", date(2026, 3, 1))
+    }
+    assert {"origin", "destination", "travel_date"} <= set(bookings_scd2.HASH_COLUMNS)

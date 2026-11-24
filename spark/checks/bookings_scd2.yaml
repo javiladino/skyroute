@@ -6,6 +6,10 @@ checks:
   - {type: not_null, column: is_current}
   - {type: not_null, column: row_hash}
   - {type: not_null, column: amount}
+  - {type: not_null, column: origin}
+  - {type: not_null, column: destination}
+  - {type: not_null, column: travel_date}
+  - {type: expression, name: travel_after_created, sql: "travel_date >= to_date(created_at)"}
   - {type: unique, columns: [booking_id, history_id]}
   - {type: unique, columns: [booking_id], where: "is_current"}
   - {type: accepted_values, column: status, values: [pending, confirmed, cancelled]}

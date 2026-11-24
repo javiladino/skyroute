@@ -7,5 +7,8 @@ checks:
   - {type: not_null, column: amount}
   - {type: not_null, column: fx_rate_applied}
   - {type: not_null, column: amount_eur}
+  - {type: not_null, column: origin}
+  - {type: not_null, column: destination}
+  - {type: not_null, column: travel_date}
   - {type: unique, columns: [booking_id]}
   - {type: expression, name: positive_rate, sql: "fx_rate_applied > 0"}

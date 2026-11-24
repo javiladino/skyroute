@@ -207,3 +207,21 @@ def test_missing_checks_file_fails_before_writing(lake, tmp_path):
     with pytest.raises(FileNotFoundError, match="events.yaml"):
         silver_events.main(silver_argv(lake, day(1), tmp_path))
     assert not lake.spark.catalog.tableExists(f"{lake.catalog}.{SILVER}.events")
+
+
+def test_new_funnel_event_types_are_published(lake):
+    d = day(0)
+    rows = [
+        ev("EV1", f"{d}T10:00:00Z", etype="search"),
+        ev("EV2", f"{d}T10:01:00Z", etype="product_view"),
+        ev("EV3", f"{d}T10:02:00Z", etype="add_to_cart", amount=10.0),
+        ev("EV4", f"{d}T10:03:00Z", etype="begin_checkout"),
+    ]
+    ingest_clicks(lake, d, rows)
+    run_events(lake, d)
+    assert [r["event_type"] for r in event_rows(lake)] == [
+        "search",
+        "product_view",
+        "add_to_cart",
+        "begin_checkout",
+    ]

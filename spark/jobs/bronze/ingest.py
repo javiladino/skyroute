@@ -24,7 +24,7 @@ from lib.technical_columns import add_technical_columns
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
 
-SOURCES = ("clickstream", "bookings", "fx")
+SOURCES = ("clickstream", "bookings", "fx", "ad_spend")
 LOG = logging.getLogger("bronze.ingest")
 
 

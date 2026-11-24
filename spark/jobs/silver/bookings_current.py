@@ -17,6 +17,7 @@ from pathlib import Path
 from lib.args import parse_args
 from lib.checks import require_rules_file
 from lib.entrypoint import exit_on_error
+from lib.schema_guard import ddl_columns, require_columns
 from lib.session import build_spark
 from lib.wap import run_wap
 from pyspark.sql import SparkSession, Window
@@ -33,6 +34,9 @@ CREATE TABLE IF NOT EXISTS {table} (
     customer_id string,
     session_id string,
     campaign_id string,
+    origin string,
+    destination string,
+    travel_date date,
     status string,
     currency string,
     amount decimal(12,2),
@@ -65,6 +69,9 @@ def latest_per_booking(bronze, run_date: str):
         "customer_id",
         "session_id",
         "campaign_id",
+        "origin",
+        "destination",
+        F.to_date("travel_date").alias("travel_date"),
         "status",
         "currency",
         amount_decimal().alias("amount"),
@@ -105,6 +112,7 @@ def run(spark: SparkSession, args) -> dict:
     if args.catalog_impl == "hadoop":
         spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {args.catalog_name}.{silver_db}")
     spark.sql(DDL.format(table=target))
+    require_columns(spark, target, ddl_columns(DDL))
 
     latest = latest_per_booking(spark.table(source), args.run_date).cache()
     result = {}

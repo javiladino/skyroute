@@ -25,6 +25,7 @@ from pathlib import Path
 from lib.args import parse_args
 from lib.checks import Failure, require_rules_file
 from lib.entrypoint import exit_on_error
+from lib.schema_guard import ddl_columns, require_columns
 from lib.session import build_spark
 from lib.wap import WapCheckError, branch_name, run_wap
 from pyspark.sql import SparkSession
@@ -83,7 +84,8 @@ def write_rates(spark: SparkSession, target: str, rates, run_date: str) -> int:
         )
     rates.createOrReplaceTempView("_fx_batch")
     spark.sql(f"DELETE FROM {target} WHERE fx_date = DATE '{run_date}'")
-    spark.sql(f"INSERT INTO {target} SELECT * FROM _fx_batch")
+    cols = ", ".join(ddl_columns(DDL))
+    spark.sql(f"INSERT INTO {target} ({cols}) SELECT {cols} FROM _fx_batch")
     return rows
 
 
@@ -97,6 +99,7 @@ def run(spark: SparkSession, args) -> dict:
     if args.catalog_impl == "hadoop":
         spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {args.catalog_name}.{silver_db}")
     spark.sql(DDL.format(table=target))
+    require_columns(spark, target, ddl_columns(DDL))
 
     rates = rates_from_bronze(spark.table(source), args.run_date).cache()
     result = {}
