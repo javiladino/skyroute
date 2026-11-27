@@ -36,3 +36,19 @@ variable "hmac_key_version" {
   type        = number
   default     = 1
 }
+
+variable "local_data_session_seconds" {
+  description = "Duración máxima de sesión (y umbral aws:MultiFactorAuthAge) del rol local-data, en segundos."
+  type        = number
+  default     = 3600
+
+  validation {
+    condition     = var.local_data_session_seconds >= 3600 && var.local_data_session_seconds <= 43200
+    error_message = "local_data_session_seconds debe estar entre 3600 y 43200."
+  }
+
+  validation {
+    condition     = var.env == "dev" || var.local_data_session_seconds == 3600
+    error_message = "local_data_session_seconds solo puede ser distinto de 3600 en dev."
+  }
+}
