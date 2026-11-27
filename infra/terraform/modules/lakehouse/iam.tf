@@ -281,8 +281,9 @@ resource "aws_iam_role_policy" "glue_job" {
 }
 
 # Rol para Spark, export y FX en local (Ruling "Credenciales en local"): solo el
-# usuario del owner, con MFA y sesion de 1 hora. Es el unico rol que escribe en
-# landing/ (export de Reservas y FX).
+# usuario del owner, con MFA y sesion de var.local_data_session_seconds (1 h por
+# defecto; 12 h temporal en dev para el backfill de la Fase 4). Es el unico rol
+# que escribe en landing/ (export de Reservas y FX).
 resource "aws_iam_role" "local_data" {
   count = var.create_local_data_role ? 1 : 0
 
@@ -290,7 +291,7 @@ resource "aws_iam_role" "local_data" {
   path                 = "/workload/"
   description          = "Rol de datos para ejecucion local en ${var.env}; solo ${var.owner_user_name} con MFA."
   permissions_boundary = local.workload_boundary_arn
-  max_session_duration = 3600
+  max_session_duration = var.local_data_session_seconds
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -304,7 +305,7 @@ resource "aws_iam_role" "local_data" {
             "aws:MultiFactorAuthPresent" = "true"
           }
           NumericLessThan = {
-            "aws:MultiFactorAuthAge" = "3600"
+            "aws:MultiFactorAuthAge" = tostring(var.local_data_session_seconds)
           }
         }
       },
